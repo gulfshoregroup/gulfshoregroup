@@ -1,0 +1,26 @@
+const Cities = [
+	"naples",
+	"bonita-springs",
+	"estero",
+	"ave-maria",
+	"marco-island",
+	"fort-myers",
+	"fort-myers-beach",
+	"cape-coral",
+	"sanibel",
+	"captiva",
+	"lehigh-acres",
+	"babcock-ranch",
+	"immokalee",
+	"golden-gate",
+	"goodland",
+	"everglades-city",
+	"north-fort-myers",
+	"alva",
+	"miromar-lakes",
+	"pine-island",
+	"pineland",
+	"sanibel-island",
+];
+
+export default Cities;

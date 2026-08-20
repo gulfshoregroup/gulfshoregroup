@@ -1,0 +1,19 @@
+name: Scheduled Cron Jobs
+
+on:
+  schedule:
+    # Runs at the top of every hour
+    - cron: '0 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
+
+jobs:
+  run-crons:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Sync Properties Cron
+        run: |
+          curl -X GET "https://gulfshore-fullcode-next-production.up.railway.app/api/v2/cron/sync-properties"
+          
+      - name: Trigger Drip Campaigns Cron
+        run: |
+          curl -X GET "https://gulfshore-fullcode-next-production.up.railway.app/api/v2/cron/run-drip"

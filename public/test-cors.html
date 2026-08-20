@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS & API Diagnostic Tool</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>API Diagnostic Tool</h1>
+    <p>This page tests connectivity to the backend from your browser.</p>
+    
+    <h2>Test 1: Direct fetch to Port 5000</h2>
+    <div id="test1-status">Testing...</div>
+    <pre id="test1-result"></pre>
+
+    <h2>Test 2: Relative fetch (via Proxy Rewrite)</h2>
+    <div id="test1-status-rel">Testing...</div>
+    <pre id="test1-result-rel"></pre>
+
+    <script>
+        async function runTests() {
+            // Test 1
+            try {
+                const res = await fetch('http://localhost:5000/api/v2/properties?limit=1');
+                document.getElementById('test1-status').innerHTML = '<span class="success">SUCCESS! Status: ' + res.status + '</span>';
+                const json = await res.json();
+                document.getElementById('test1-result').textContent = JSON.stringify(json, null, 2).substring(0, 1000);
+            } catch (e) {
+                document.getElementById('test1-status').innerHTML = '<span class="error">FAILED: ' + e.message + '</span>';
+                document.getElementById('test1-result').textContent = e.stack || e.toString();
+            }
+
+            // Test 2
+            try {
+                const res = await fetch('/api/v2/properties?limit=1');
+                document.getElementById('test1-status-rel').innerHTML = '<span class="success">SUCCESS! Status: ' + res.status + '</span>';
+                const json = await res.json();
+                document.getElementById('test1-result-rel').textContent = JSON.stringify(json, null, 2).substring(0, 1000);
+            } catch (e) {
+                document.getElementById('test1-status-rel').innerHTML = '<span class="error">FAILED: ' + e.message + '</span>';
+                document.getElementById('test1-result-rel').textContent = e.stack || e.toString();
+            }
+        }
+        runTests();
+    </script>
+</body>
+</html>

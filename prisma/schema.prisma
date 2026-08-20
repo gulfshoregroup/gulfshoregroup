@@ -1,0 +1,695 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/app/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum InquiryType {
+  Contact_Form
+  Tour_Request
+  General
+  Home_Valuation
+}
+
+enum AlertFrequency {
+  Instant
+  Daily
+  Weekly
+}
+
+enum LeadStatus {
+  New
+  Contacted
+  Interested
+  Closed
+}
+
+enum LeadSource {
+  Signup
+  Contact_Form
+  Tour_Request
+  Admin
+  General
+  Other
+  Home_Valuation
+}
+
+enum LeadTag {
+  Buyer
+  Seller
+  Hot_Lead
+  Cold_Lead
+}
+
+model Media {
+  id String @id @default(cuid())
+
+  MediaKey         String  @unique
+  MediaURL         String
+  MimeType         String?
+  Order            Int?
+  ShortDescription String?
+
+  // Bridge refs
+  ResourceRecordKey String
+  ClassName         String?
+  MediaCategory     String?
+
+  // Relation
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([propertyId])
+  @@map("media")
+}
+
+model SavedProperty {
+  id         String @id @default(uuid())
+  leadId     String
+  propertyId String
+
+  lastNotifiedPrice Int
+
+  createdAt DateTime @default(now())
+
+  lead     Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, propertyId])
+  @@map("savedproperty")
+}
+
+model SavedSearch {
+  id     String @id @default(cuid())
+  userId String
+
+  name    String?
+  filters Json // 🔥 all 20+ filters here
+
+  frequency AlertFrequency @default(Daily)
+  notify    Boolean        @default(true)
+
+  lastNotifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user Lead @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("savedsearch")
+}
+
+model SearchHistory {
+  id          String @id @default(cuid())
+  userId      String?
+  /// Stable hash of normalized search payload for deduplication within a time window
+  fingerprint String?
+  filters     Json
+  resultCount Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user Lead? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([userId, fingerprint])
+  @@map("searchhistory")
+}
+
+model Lead {
+  id        String  @id @default(uuid())
+  userId    String? @unique
+  firstName String?
+  lastName  String?
+  fullName  String?
+  email     String  @unique
+  phone     String?
+
+  status LeadStatus @default(New)
+  source LeadSource
+
+  tags Json?
+
+  score      Int      @default(0)
+  scoreLabel String   @default("Cold")
+
+  // Preferences / CRM data
+  budgetMin Int?
+  budgetMax Int?
+  location  String?
+
+  lastContactedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  notes           Note[]
+  inquiryHistory  Inquiry[]
+  alerts          UserAlert[]
+  sequenceSteps   SequenceStep[]
+  viewHistory     ViewedProperty[]
+  searchHistory   SearchHistory[]
+  savedSearch     SavedSearch[]
+  savedProperties SavedProperty[]
+  tasks           Task[]
+  aiChats         AIChatHistory[]
+
+  @@map("lead")
+}
+
+model Inquiry {
+  id         String      @id @default(cuid())
+  leadId     String
+  type       InquiryType
+  message    String?     @db.Text
+  propertyId String?
+  createdAt  DateTime    @default(now())
+
+  Lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("inquiry")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  leadId    String
+  message   String
+  createdAt DateTime @default(now())
+
+  Lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("note")
+}
+
+model Property {
+  id String @id @default(cuid())
+
+  // ---- Bridge Identity ----
+  ListingKey      String  @unique
+  ListingId       String  @unique
+  MLSNumber       String
+  SourceSystemKey String?
+  Development     String?
+  Community       String?
+
+  // ---- Status & Dates ----
+  StandardStatus              String
+  MlsStatus                   String?
+  StatusType                  String?
+  OnMarketDate                DateTime?
+  OnMarketTimestamp           DateTime?
+  StatusChangeTimestamp       DateTime?
+  ModificationTimestamp       DateTime?
+  BridgeModificationTimestamp DateTime?
+  MajorChangeType             String?
+  MajorChangeTimestamp        DateTime?
+
+  // ---- Pricing ----
+  ListPrice            Int?
+  ClosePrice           Int?
+  OriginalListPrice    Int?
+  PriceChangeTimestamp DateTime?
+
+  City            String
+  StateOrProvince String?
+  PostalCode      String?
+  CountyOrParish  String?
+  FullAddress     String
+
+  // ---- Property Info ----
+  Description           String? @db.Text
+  PropertyType          String?
+  PropertySubType       String?
+  BedroomsTotal         Int?
+  BathroomsFull         Int?
+  BathroomsHalf         Int?
+  BathroomsTotalInteger Int?
+  BathroomsTotalDecimal Float?
+  LivingArea            Int?
+  LivingAreaUnits       String?
+  BuildingAreaTotal     Int?
+  BuildingAreaUnits     String?
+  YearBuilt             Int?
+  StoriesTotal          Int?
+  RoomsTotal            Int?
+
+  // ---- Lot Info ----
+  LotSizeAcres      Float?
+  LotSizeSquareFeet Int?
+  LotSizeArea       Float?
+  LotSizeUnits      String?
+
+  // ---- Location Details ----
+  SubdivisionName String?
+  MLSAreaMajor    String?
+  MLSAreaMinor    String?
+  Directions      String? @db.Text
+
+  // ---- Geo ----
+  Latitude      Float?
+  Longitude     Float?
+  MapCoordinate String?
+
+  HeatingYN Boolean?
+
+  CoolingYN        Boolean?
+  // ---- Parking & Garage ----
+  GarageYN         Boolean?
+  GarageSpaces     Int?
+  AttachedGarageYN Boolean?
+  CarportYN        Boolean?
+  CarportSpaces    Int?
+  CoveredSpaces    Int?
+  ParkingTotal     Int?
+
+  // ---- Water & Outdoor ----
+  WaterfrontYN Boolean?
+
+  ViewYN        Boolean?
+  View          Json?
+  GulfAccessYN  Boolean?
+  PoolPrivateYN Boolean?
+  SpaYN         Boolean?
+
+  // ---- Community & Association ----
+  AssociationYN           Boolean?
+  AssociationFee          Int?
+  AssociationFeeFrequency String?
+  AssociationAmenities    Json?
+  CommunityFeatures       Json?
+  DaysOnMarket            Int?
+
+  // ---- Property Condition ----
+  NewConstructionYN Boolean?
+  Furnished         String?
+  PossessionType    String?
+  Zoning            String?
+  ZoningDescription String?
+  LandLeaseYN       Boolean?
+
+  // ---- Financial ----
+  TaxYear          Int?
+  MasterHOAFee     Int?
+  HOAFee           Int?
+  HOAFeeFreq       String?
+  MasterHOAFeeFreq String?
+  MandatoryHOAYN   Boolean?
+
+  // ---- Agent & Office Info ----
+  ListAgentFullName       String?
+  ListAgentKey            String?
+  ListAgentMlsId          String?
+  ListAgentEmail          String?
+  ListAgentDirectPhone    String?
+  ListAgentCellPhone      String?
+  ListAgentOfficePhone    String?
+  ListAgentOfficePhoneExt String?
+
+  ListOfficeName     String?
+  ListOfficeKey      String?
+  ListOfficeMlsId    String?
+  ListOfficeEmail    String?
+  ListOfficePhone    String?
+  ListOfficePhoneExt String?
+
+  // ---- Media & Virtual Tours ----
+  PhotosCount             Int?
+  PhotosChangeTimestamp   DateTime?
+  VideosCount             Int?
+  VideosChangeTimestamp   DateTime?
+  VirtualTourURLUnbranded String?   @db.Text
+  VirtualTourURLBranded   String?   @db.Text
+  AllPixDownloaded        Boolean   @default(false)
+  images                  Json?
+  communityId Int?
+  // ---- Relations ----
+  media    Media[]
+  savedBy  SavedProperty[]
+  viewedBy ViewedProperty[]
+
+  // ---- Timestamps ----
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  raw         Json
+
+
+  // ---- Indexes ----
+  @@index([City, StateOrProvince])
+  @@index([PostalCode])
+  @@index([ListingId])
+  @@index([MLSNumber])
+  @@index([ViewYN])
+  @@index([PoolPrivateYN])
+  @@index([GulfAccessYN])
+  @@index([WaterfrontYN])
+  @@index([GarageYN])
+  @@index([MandatoryHOAYN])
+  @@index([CountyOrParish])
+  @@index([ListPrice])
+  @@index([ClosePrice])
+  @@index([BedroomsTotal])
+  @@index([BathroomsFull])
+  @@index([PropertyType])
+  @@index([PropertySubType])
+  @@index([StandardStatus])
+  @@index([MlsStatus])
+  @@index([SubdivisionName])
+  @@index([Latitude, Longitude])
+  @@index([OnMarketDate])
+  @@index([YearBuilt])
+  @@index([LivingArea])
+  @@index([ModificationTimestamp])
+  @@index([BridgeModificationTimestamp])
+  @@map("properties")
+}
+
+model ViewedProperty {
+  id         String   @id @default(cuid())
+  userId     String
+  propertyId String
+  /// First time the lead opened this listing
+  viewedAt      DateTime @default(now())
+  /// Most recent view time (updated on each repeat view)
+  lastViewedAt  DateTime @default(now())
+  /// Total view events for this lead + property pair
+  viewCount     Int      @default(1)
+
+  user     Lead     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId])
+  @@index([userId])
+  @@index([propertyId])
+  @@index([userId, lastViewedAt])
+  @@map("viewedproperty")
+}
+
+model UserAlert {
+  id              String   @id @default(cuid())
+  userId          String
+  emailEnabled    Boolean  @default(true)
+  smsEnabled      Boolean  @default(true)
+  whatsappEnabled Boolean  @default(true)
+  pushEnabled     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            Lead     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@map("useralert")
+}
+
+model Sequence {
+  id           String         @id
+  name         String
+  active       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  steps        Json?
+  SequenceStep SequenceStep[]
+
+  @@map("sequence")
+}
+
+model SequenceStep {
+  id          String    @id
+  sequenceId  String
+  leadId      String
+  stepIndex   Int
+  scheduledAt DateTime
+  sentAt      DateTime?
+  type        String
+  message     String
+  status      String    @default("pending")
+  Lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  Sequence    Sequence  @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([scheduledAt])
+  @@index([sequenceId])
+  @@index([status])
+  @@map("sequencestep")
+}
+
+model City {
+  id           Int         @id @default(autoincrement())
+  name         String      @unique
+  slug         String      @unique
+  defaultImage String?
+  images       Json?
+  description  String?     @db.Text
+  isFeatured   Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  communities  Community[]
+  faqs         Faq[]
+
+  @@index([name])
+  @@index([slug])
+  @@map("city")
+}
+
+model Community {
+  id              Int        @id @default(autoincrement())
+  name            String     @unique
+  slug            String     @unique
+  defaultImage    String?
+  images          Json?
+  description     String?    @db.Text
+  videoUrl        String?
+  propertyCount   Int        @default(0)
+  isGolfCommunity Boolean    @default(false)
+  golfCourses     Json?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  cityId          Int
+  city            City       @relation(fields: [cityId], references: [id])
+  
+  @@index([name])
+  @@index([slug])
+  @@index([cityId])
+  @@map("community")
+}
+
+model ContactRequest {
+  id        String   @id @default(cuid())
+  user      String?
+  name      String
+  email     String
+  message   String   @db.Text
+  phone     String?
+  status    String?  @default("New Request")
+  ref       String?
+  refType   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@map("contactrequest")
+}
+
+model Wishlist {
+  id         String   @id @default(cuid())
+  userId     String
+  propertyId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, propertyId])
+  @@map("wishlist")
+}
+
+model UserSearchQuery {
+  id                String   @id @default(cuid())
+  userId            String
+  searchQuery       Json
+  searchCount       Int      @default(1)
+  totalResultsFound Int?
+  lastSearched      DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@map("usersearchquery")
+}
+
+model UserViewedProperty {
+  id         String   @id @default(cuid())
+  userId     String
+  propertyId String
+  viewCount  Int      @default(1)
+  lastViewed DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, propertyId])
+  @@map("userviewedproperty")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  clerkId      String   @unique
+  email        String
+  name         String?
+  firstName    String?
+  lastName     String?
+  profileImage String?
+  lastSignIn   DateTime?
+  isActive     Boolean  @default(true)
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("user")
+}
+
+model ScheduleTour {
+  id         String   @id @default(cuid())
+  email      String
+  name       String
+  date       DateTime
+  phone      String
+  message    String?
+  status     String?  @default("Pending")
+  user       String?
+  propertyId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([propertyId])
+  @@map("scheduletour")
+}
+
+model Blog {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  description     String    @db.Text
+  content         String    @db.Text
+  coverImage      String?
+  category        String    @default("others")
+  metaTitle       String
+  metaDescription String?
+  metaKeywords    Json?
+  author          String    @default("Gulfshore Group")
+  published       Boolean   @default(false)
+  publishedAt     DateTime?
+  
+  fbPostId        String?   @unique
+  originalFbLink  String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("blog")
+}
+
+model ScheduledNotification {
+  id               String    @id @default(cuid())
+  name             String
+  notificationType String
+  channel          String
+  segment          String
+  propertyCriteria Json
+  status           String    @default("scheduled")
+  scheduledTime    DateTime?
+  frequency        String?
+  lastSent         DateTime?
+  userId           String?
+  propertyId       String?
+  nextScheduled    DateTime?
+  messageTemplate  String    @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@map("schedulednotification")
+}
+
+model CampaignClick {
+  id        String   @id @default(cuid())
+  source    String   // e.g. Facebook, Instagram, LinkedIn
+  path      String?  // path visited
+  createdAt DateTime @default(now())
+
+  @@index([source])
+  @@index([createdAt])
+  @@map("campaignclick")
+}
+
+model DripCampaign {
+  id               String    @id @default(cuid())
+  name             String
+  channel          String    // "Email" or "SMS"
+  daysAfterSignup  Int       // 0 = Immediate, 1 = 1 day, 3 = 3 days, 5 = 5 days, 10 = 10 days
+  messageTemplate  String    @db.Text
+  status           String    @default("active")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@map("dripcampaign")
+}
+
+model DripCampaignLog {
+  id               String    @id @default(cuid())
+  campaignId       String
+  userId           String
+  sentAt           DateTime  @default(now())
+  status           String    @default("sent")
+
+  @@unique([campaignId, userId])
+  @@map("dripcampaignlog")
+}
+
+model Faq {
+  id        String   @id @default(cuid())
+  question  String   @db.Text
+  answer    String   @db.Text
+  cityId    Int?
+  category  String?  @default("General")
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  city      City?    @relation(fields: [cityId], references: [id])
+
+  @@map("faq")
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  leadId      String
+  title       String
+  description String?   @db.Text
+  dueDate     DateTime?
+  status      String    @default("pending") // pending, completed
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("task")
+}
+
+model AIChatHistory {
+  id        String   @id @default(cuid())
+  leadId    String
+  channel   String   // "website", "sms", "email"
+  role      String   // "user", "ai", "admin"
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("aichathistory")
+}
