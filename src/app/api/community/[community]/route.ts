@@ -75,7 +75,7 @@ export async function PUT(
 		if (body.Development || body.name) prismaBody.name = body.Development || body.name;
 		if (body.slug) prismaBody.slug = body.slug;
 		if (body.defaultImage) prismaBody.defaultImage = body.defaultImage;
-		if (body.images) prismaBody.images = body.images;
+		if (body.images || body.Images) prismaBody.images = body.images || body.Images;
 		if (body.description) prismaBody.description = body.description;
 		if (body.propertyCount !== undefined) prismaBody.propertyCount = body.propertyCount;
 		if (body.videoUrl !== undefined) prismaBody.videoUrl = body.videoUrl;

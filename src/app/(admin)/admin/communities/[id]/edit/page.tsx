@@ -121,7 +121,8 @@ export default function EditCommunityPage() {
 					description: res.data.community.description,
 					title: res.data.parsedData.title,
 					metaDescription: res.data.parsedData.metaDescription,
-					keywords: res.data.parsedData.keywords
+					keywords: res.data.parsedData.keywords,
+					...(res.data.parsedData.golfCourses ? { golfCourses: res.data.parsedData.golfCourses } : {})
 				});
 				toast.success("AI Content generated successfully!");
 			}

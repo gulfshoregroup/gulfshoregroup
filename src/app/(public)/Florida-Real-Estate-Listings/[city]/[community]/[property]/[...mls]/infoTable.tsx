@@ -43,7 +43,8 @@ function formatCurrency(input: string | number | null | undefined) {
 	return new Intl.NumberFormat("en-US", {
 		style: "currency",
 		currency: "USD",
-		maximumFractionDigits: 0,
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 2,
 	}).format(num);
 }
 
@@ -98,7 +99,7 @@ function getAnnualFee(fee: any, freq: any): number {
 	else if (f.includes("semi")) multiplier = 2;
 	else if (f.includes("annual") || f.includes("year")) multiplier = 1;
 	else if (f.includes("week")) multiplier = 52;
-	else if (f === "" || f === "undefined" || f === "null") multiplier = 1; // Fallback to 1 if missing but fee exists
+	else if (f === "" || f === "undefined" || f === "null") multiplier = 0; // Don't guess if missing
 
 	return numFee * multiplier;
 }

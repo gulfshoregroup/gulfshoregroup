@@ -16,7 +16,9 @@ function getGeneralSettings() {
 	return {
 		siteName: "Gulfshore Group",
 		contactEmail: "admin@gulfshore.com",
-		siteUrl: "https://gulfshoregroup.com"
+		siteUrl: "https://gulfshoregroup.com",
+		shareSubject: "Check out this property!",
+		shareBody: "Take a look at this property I found:"
 	};
 }
 
@@ -28,12 +30,14 @@ export async function GET() {
 export async function POST(req: Request) {
 	try {
 		const body = await req.json();
-		const { siteName, contactEmail, siteUrl } = body;
+		const { siteName, contactEmail, siteUrl, shareSubject, shareBody } = body;
 
 		const updated = {
 			siteName: siteName || "Gulfshore Group",
 			contactEmail: contactEmail || "admin@gulfshore.com",
-			siteUrl: siteUrl || "https://gulfshoregroup.com"
+			siteUrl: siteUrl || "https://gulfshoregroup.com",
+			shareSubject: shareSubject || "Check out this property!",
+			shareBody: shareBody || "Take a look at this property I found:"
 		};
 
 		const dir = path.dirname(filePath);

@@ -46,7 +46,7 @@ Output your response as a valid JSON object with the following keys:
 - "keywords": A comma-separated list of highly relevant SEO keywords.`;
 
 		if (isGolfCommunity) {
-			systemPrompt += `\n\nCRITICAL INSTRUCTION: This is a Golf Community. In the "infoText", you MUST explicitly list the specific names of the golf courses it has. For EACH course, you MUST state exactly how many holes it has (e.g., 18-hole, 36-hole), the course architect/designer (e.g., Tom Fazio), the par rating, and the year it opened (if available). Format these specific golf course details prominently, such as using a dedicated HTML <ul> or a table so it stands out. Additionally, include membership options, initiation fees, and club amenities. Be highly specific about the golf offerings in ${community.name}.`;
+			systemPrompt += `\n- "golfCourses": An array of objects, where each object represents a golf course in this community. Each object MUST have the following string keys: "name" (e.g. "South Course"), "architect" (e.g. "Tom Fazio"), "holes" (e.g. "18"), "par" (e.g. "72"), "opened" (e.g. "2002"), "yards" (e.g. "7100"), "rating" (e.g. "74.5"), "slope" (e.g. "138"). If you don't know a specific statistic, leave it as an empty string "".\n\nCRITICAL INSTRUCTION: This is a Golf Community. In the "infoText", you MUST explicitly list the specific names of the golf courses it has. For EACH course, you MUST state exactly how many holes it has (e.g., 18-hole, 36-hole), the course architect/designer (e.g., Tom Fazio), the par rating, and the year it opened (if available). Format these specific golf course details prominently, such as using a dedicated HTML <ul> or a table so it stands out. Additionally, include membership options, initiation fees, and club amenities. Be highly specific about the golf offerings in ${community.name}.`;
 		} else {
 			systemPrompt += `\n\nThis is a beautiful non-golf community. Focus deeply on the natural beauty, waterfront access (if applicable), community amenities, and neighborhood charm in the "infoText".`;
 		}
@@ -82,7 +82,8 @@ Output your response as a valid JSON object with the following keys:
 			infoText: parsedData.infoText || "",
 			title: parsedData.title || "",
 			metaDescription: parsedData.metaDescription || "",
-			keywords: parsedData.keywords || ""
+			keywords: parsedData.keywords || "",
+			...(parsedData.golfCourses ? { golfCourses: parsedData.golfCourses } : {})
 		});
 
 		// Save the generated JSON to the community description

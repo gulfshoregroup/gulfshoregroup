@@ -1,4 +1,3 @@
-"use server";
 import type { Metadata } from "next";
 import Footer from "@/components/global/footer";
 import ReadMore from "@/components/property/readmore";

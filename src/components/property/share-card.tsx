@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -13,11 +13,13 @@ import {
 	LinkedinShareButton,
 	WhatsappShareButton,
 	TelegramShareButton,
+	EmailShareButton,
 	WhatsappIcon,
 	LinkedinIcon,
 	TelegramIcon,
 	TwitterIcon,
 	FacebookIcon,
+	EmailIcon,
 } from "next-share";
 import { Copy, Share, MessageCircle } from "lucide-react";
 
@@ -27,6 +29,18 @@ export default function SocialShare({
 	propertyUrl: string;
 }) {
 	const [copied, setCopied] = useState(false);
+	const [shareSubject, setShareSubject] = useState("Check out this property!");
+	const [shareBody, setShareBody] = useState("Take a look at this property I found: ");
+
+	useEffect(() => {
+		fetch("/api/admin/general-settings")
+			.then((res) => res.json())
+			.then((data) => {
+				if (data.shareSubject) setShareSubject(data.shareSubject);
+				if (data.shareBody) setShareBody(data.shareBody);
+			})
+			.catch(() => {});
+	}, []);
 
 	const propertyUrlLink =
 		typeof window !== "undefined"
@@ -41,7 +55,7 @@ export default function SocialShare({
 
 	// Function to share via SMS
 	const shareViaSMS = () => {
-		const smsBody = `Check out this property! ${propertyUrlLink}`;
+		const smsBody = `${shareBody} ${propertyUrlLink}`;
 		const isIos = typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 		const separator = isIos ? '&' : '?';
 		window.open(`sms:${separator}body=${encodeURIComponent(smsBody)}`, "_self");
@@ -58,14 +72,14 @@ export default function SocialShare({
 				<h3 className="py-2 font-medium lg:text-2xl text-lg">
 					Share this property on :
 				</h3>
-				<div className="flex gap-4 items-center">
+				<div className="flex flex-wrap gap-3 sm:gap-4 items-center">
 					<FacebookShareButton url={propertyUrlLink}>
 						<FacebookIcon className="text-blue-600 w-10 hover:scale-110 transition-transform" />
 					</FacebookShareButton>
 
 					<TwitterShareButton
 						url={propertyUrlLink}
-						title="Check out this property!">
+						title={shareSubject}>
 						<TwitterIcon className="text-blue-400 w-10 hover:scale-110 transition-transform" />
 					</TwitterShareButton>
 
@@ -75,15 +89,22 @@ export default function SocialShare({
 
 					<WhatsappShareButton
 						url={propertyUrlLink}
-						title="Check out this property!">
+						title={shareSubject}>
 						<WhatsappIcon className=" w-10 hover:scale-110 transition-transform" />
 					</WhatsappShareButton>
 
 					<TelegramShareButton
 						url={propertyUrlLink}
-						title="Check out this property!">
+						title={shareSubject}>
 						<TelegramIcon className="text-blue-500 w-10 hover:scale-110 transition-transform" />
 					</TelegramShareButton>
+
+					<EmailShareButton
+						url={propertyUrlLink}
+						subject={shareSubject}
+						body={shareBody}>
+						<EmailIcon className="w-10 hover:scale-110 transition-transform" />
+					</EmailShareButton>
 
 					<button
 						onClick={shareViaSMS}

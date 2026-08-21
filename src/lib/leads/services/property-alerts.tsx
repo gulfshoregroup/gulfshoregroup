@@ -30,6 +30,7 @@ import {
   import { render } from "@react-email/render";
   import * as React from "react";
   import { Resend } from "resend";
+  import prisma from "@/lib/prisma";
   
   // ─── Types ───────────────────────────────────────────────────────────────────
   
@@ -860,13 +861,12 @@ import {
   
     const resend = new Resend(apiKey);
   
+    const subject = options.subject ?? `1 New Property Matches Your Search`;
     const { data, error } = await resend.emails.send({
       from: options.from ?? process.env.RESEND_FROM_EMAIL!,
       to: Array.isArray(options.to) ? options.to : [options.to],
       replyTo: options.replyTo,
-      subject:
-        options.subject ??
-        `1 New Property Matches Your Search`,
+      subject: subject,
       html,
     });
   
@@ -876,6 +876,24 @@ import {
     }
   
     console.log(`Email sent. ID: ${data?.id}`);
+    
+    if (data?.id) {
+      const emailTo = Array.isArray(options.to) ? options.to.join(", ") : options.to;
+      try {
+        await prisma.communicationLog.create({
+          data: {
+            type: "Email",
+            to: emailTo,
+            subject: subject,
+            status: "sent",
+            providerId: data.id,
+          },
+        });
+      } catch (logErr) {
+        console.error("Failed to log property alert email:", logErr);
+      }
+    }
+    
     return { success: true, id: data?.id };
   }
   

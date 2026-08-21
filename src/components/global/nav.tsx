@@ -193,21 +193,13 @@ const Navbar = () => {
 								</NavigationMenuLink>
 							</NavigationMenuItem>
 							<SignedOut>
-								{fakeInitials ? (
-									<NavigationMenuItem>
-										<div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm cursor-pointer" title="Verified via Email Alert">
-											{fakeInitials}
-										</div>
-									</NavigationMenuItem>
-								) : (
-									<NavigationMenuItem>
-										<Link href={`/signup${path !== "/" ? `?redirect_url=${encodeURIComponent(path)}` : ""}`}>
-											<Button className="rounded-full font-bold cursor-pointer bg-primary hover:bg-accent text-white px-6">
-												Sign Up
-											</Button>
-										</Link>
-									</NavigationMenuItem>
-								)}
+								<NavigationMenuItem>
+									<Link href={`/signup${path !== "/" ? `?redirect_url=${encodeURIComponent(path)}` : ""}`}>
+										<Button className="rounded-full font-bold cursor-pointer bg-primary hover:bg-accent text-white px-6">
+											Sign Up
+										</Button>
+									</Link>
+								</NavigationMenuItem>
 							</SignedOut>
 							<SignedIn>
 								<NavigationMenuItem>
@@ -256,17 +248,11 @@ const Navbar = () => {
 								<UserButton />
 							</SignedIn>
 							<SignedOut>
-								{fakeInitials ? (
-									<div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm cursor-pointer" title="Verified via Email Alert">
-										{fakeInitials}
-									</div>
-								) : (
-									<Link href={`/signup${path !== "/" ? `?redirect_url=${encodeURIComponent(path)}` : ""}`}>
-										<Button className="rounded-full font-bold cursor-pointer bg-primary hover:bg-accent text-white px-4 py-2 text-xs h-9">
-											Sign Up
-										</Button>
-									</Link>
-								)}
+								<Link href={`/signup${path !== "/" ? `?redirect_url=${encodeURIComponent(path)}` : ""}`}>
+									<Button className="rounded-full font-bold cursor-pointer bg-primary hover:bg-accent text-white px-4 py-2 text-xs h-9">
+										Sign Up
+									</Button>
+								</Link>
 							</SignedOut>
 						</div>
 

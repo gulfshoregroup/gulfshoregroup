@@ -1,5 +1,3 @@
-"use server";
-
 import Footer from "@/components/global/footer";
 
 export default async function RootLayout({

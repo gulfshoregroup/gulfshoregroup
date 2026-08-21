@@ -109,6 +109,11 @@ const navigationItems = [
 				href: "/admin/notifications",
 			},
 			{
+				label: "Communication Logs",
+				icon: List,
+				href: "/admin/communication-logs",
+			},
+			{
 				label: "MLS",
 				icon: Database,
 				href: "/admin/automation?tab=mls",

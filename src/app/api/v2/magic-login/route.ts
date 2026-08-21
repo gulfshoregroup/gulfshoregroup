@@ -69,9 +69,20 @@ export async function GET(req: NextRequest) {
     });
     
     const signInUrl = new URL(tokenResponse.url);
-    const fullRedirectUrl = new URL(redirectUrl, req.url).toString();
-    signInUrl.searchParams.set("redirect_url", fullRedirectUrl);
-    signInUrl.searchParams.set("redirectUrl", fullRedirectUrl);
+    
+    // Convert absolute redirect URL to a relative path to avoid Clerk domain mismatch block on non-primary domains
+    let relativeRedirectUrl = redirectUrl;
+    if (redirectUrl.startsWith("http")) {
+      try {
+        const parsed = new URL(redirectUrl);
+        relativeRedirectUrl = parsed.pathname + parsed.search;
+      } catch (e) {
+        relativeRedirectUrl = "/";
+      }
+    }
+    
+    signInUrl.searchParams.set("redirect_url", relativeRedirectUrl);
+    signInUrl.searchParams.set("redirectUrl", relativeRedirectUrl);
     
     return NextResponse.redirect(signInUrl);
   } catch (error) {

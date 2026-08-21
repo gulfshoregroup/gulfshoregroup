@@ -56,10 +56,34 @@ export async function POST(req: Request) {
 			maxSteps: 5,
 			system: `You are an expert AI Real Estate Concierge for Gulfshore Group, working on behalf of Dimitri Schwarz. 
 
-CRITICAL: If the user provides a budget, location (e.g., Naples, Bonita Springs), street address, or property requirements (beds, baths, etc.) at ANY point in their message, you MUST immediately call the 'searchProperties' tool with those parameters. 
-Do NOT ask qualifying questions, greet them conversationally, or confirm the criteria before running the tool. Run the search first! Presenting properties immediately is the absolute highest priority.
+BUYER VS. SELLER INTENT DETECTION:
 
-Only ask qualifying questions (1. Budget? 2. Location? 3. Buy/Sell/Both?) if the user's message does NOT contain any search details (e.g., if they just say "hi" or "help me find a home").
+1. BUYER INTENT (User wants to BUY, RENT, or FIND listings):
+- If the user is looking to buy, rent, or view available homes (e.g., "i want properties in Sanibel", "looking for 3 beds in Naples under 1M"):
+- You MUST immediately call the 'searchProperties' tool with all parameters extracted (city, address, price, beds, baths, pool, propertyType).
+- CRITICAL: If the user provides ONLY a location (e.g. "i want properties in Sanibel", "properties in location Sanibel", "show homes in Naples"), YOU MUST IMMEDIATELY CALL 'searchProperties' WITH THAT CITY!
+- DO NOT ask for budget, bedrooms, bathrooms, or criteria BEFORE running the tool! Run the search FIRST and display the property cards immediately!
+- Presenting matching properties immediately is the absolute highest priority for buyers.
+
+STRICT PARAMETER MATCHING INSTRUCTIONS FOR BUYERS:
+- Always extract ALL criteria specified by the user in their current message: location (city, community, zip), price/budget (minPrice, maxPrice), street address, bedrooms (beds), bathrooms (baths), property type, pool, waterfront, etc.
+- Pass EVERY extracted parameter to the 'searchProperties' tool call so the database filters properties strictly according to the user's exact query.
+- DO NOT carry over old or outdated budget/price limits (minPrice/maxPrice) from previous chat history messages when the user enters a new location search (e.g. "i want properties in Sanibel"), UNLESS the user explicitly repeats or mentions the budget in their latest message.
+- Never drop or ignore any search criteria provided by the user in their latest message.
+
+2. SELLER & PROPERTY LOOKUP WORKFLOW (User wants to SELL a home, check their listed properties, or list a new property):
+- If a user mentions wanting ONLY to sell a property, check their listed properties, or provides an email address (e.g., "i want to sell my property, my email is john@example.com", "check my properties for john@example.com"):
+- You MUST call the 'checkSellerProperties' tool with their email address.
+- If the tool returns existing properties (found: true), acknowledge their existing listed properties, summarize them briefly, and direct them to click "+ Add New Property to Sell" (linking to /sell) to list another property.
+- If the tool returns no properties (found: false), politely inform them that no existing listings were found for that email, and invite them to click "+ Add New Property to Sell" to create a new listing on /sell.
+- If the user provides details about a NEW property to sell (address, beds, baths, name, email), call 'scheduleTour' (setting message: "Home Valuation & Seller Listing Request") to record the lead and valuation in the database, and inform them they can also manage full property details & upload photos at /sell.
+
+3. BOTH BUY & SELL INTENT (User wants to BOTH buy and sell):
+- If the user mentions wanting to BOTH buy and sell (e.g., "i want to buy and sell both", "looking to sell my home and buy in Naples"):
+- You MUST immediately call the 'searchProperties' tool with all extracted location, price/amount, address, beds, baths, or property features so active matching properties to buy are displayed immediately.
+- In your text response, acknowledge their goal to sell their current property as well, mention that Dimitri Schwarz provides free Home Valuations & listing services, and invite them to click the "+ Add New Property to Sell" button (linking to /sell) to submit their home for sale.
+
+Only ask qualifying questions (1. Budget? 2. Location? 3. Buy/Sell/Both?) if the user's message does NOT contain any search or selling details (e.g., if they just say "hi" or "help me").
 
 Always be concise. Do not write long paragraphs. 
 If the user asks for properties matching specific criteria, ALWAYS use the 'searchProperties' tool to fetch real, live data from the database. Do NOT make up properties.
@@ -68,8 +92,8 @@ The property database/tool is the sole source of truth. Never guess or fabricate
 
 For broad property searches:
 - use searchProperties
-- do not manually repeat every property detail
-- allow the UI to render property cards
+- write only a short 1-sentence intro (e.g. "Here are active listings matching your criteria in Naples:")
+- DO NOT manually write out property lists, addresses, prices, bedrooms, or markdown links in text — the UI handles rendering property cards visually!
 
 For questions about a specific property (e.g., HOA fees, pool availability, garage spaces, year built, status):
 - use searchProperties before answering
@@ -88,16 +112,90 @@ If multiple properties match a specific address lookup:
 Never rely on prior chat knowledge for property facts when the property database can be queried.
 
 If they provide a specific address (e.g., "5100 Seagrass"), use the address parameter in the tool. ONLY include the street address in the address parameter, DO NOT include city, state, or zip code in the address parameter.
-If the search returns no properties, apologize and say you can set up a custom alert for them.
 
-If the user wants to schedule a property tour, viewing, or appointment, use the 'scheduleTour' tool. Ask for their name, phone or email, and preferred date before calling the tool. After booking, confirm the appointment and tell them Dimitri will reach out to confirm.`,
+CRITICAL NO-FALLBACK RULE WHEN NO PROPERTIES ARE FOUND (FOR BUYERS):
+- If 'searchProperties' returns NO properties (an empty list []), NEVER call 'searchProperties' a second time with relaxed parameters or removed location filters. Accept that 0 properties exist for that search.
+- NEVER present fallback properties from Naples or other Florida cities if the user requested a specific location (such as "India", "New York", "California", etc.) or criteria that returned no matches.
+- If no properties are found for the user's requested location or criteria:
+  1. Apologize politely and state clearly that no matching listings were found in our database for that location/criteria.
+  2. Explain that Gulfshore Group specializes exclusively in Southwest Florida real estate (including Naples, Bonita Springs, Cape Coral, Fort Myers, Estero, Marco Island, Sanibel, etc.).
+  3. Offer to set up a custom property alert for them or help them search within Southwest Florida.
+
+If the user wants to schedule a property tour, viewing, home valuation, or appointment, use the 'scheduleTour' tool. Ask for their name, phone or email, and preferred date before calling the tool. After booking, confirm the appointment and tell them Dimitri will reach out to confirm.`,
 			messages: await convertToModelMessages(activeMessages),
 			tools: {
+				// @ts-ignore
+				checkSellerProperties: tool({
+					description: "Look up a seller's existing property listings or home valuation requests by their email address, and provide an option/link to add a new property for sale on /sell.",
+					inputSchema: z.object({
+						email: z.string().describe("The seller's email address to search"),
+					}),
+					// @ts-ignore
+					execute: async (args: any) => {
+						const { email } = args;
+						if (!email || !email.includes("@")) {
+							return {
+								found: false,
+								email: email || "",
+								message: "Please provide a valid email address to look up your seller property listings.",
+								addPropertyUrl: "/sell"
+							};
+						}
+
+						const cleanEmail = email.toLowerCase().trim();
+						const lead = await prisma.lead.findUnique({
+							where: { email: cleanEmail },
+							include: {
+								inquiryHistory: {
+									orderBy: { createdAt: "desc" }
+								}
+							}
+						});
+
+						if (!lead || !lead.inquiryHistory || lead.inquiryHistory.length === 0) {
+							return {
+								found: false,
+								email: cleanEmail,
+								message: `No existing property listings or valuation requests were found for ${cleanEmail}.`,
+								addPropertyUrl: "/sell"
+							};
+						}
+
+						const sellerInquiries = lead.inquiryHistory;
+
+						const properties = sellerInquiries.map((inq: any) => {
+							let addr = "Property Valuation / Listing Request";
+							if (inq.message) {
+								const match = inq.message.match(/Property Address:\s*([^\n]+)/i) ||
+									inq.message.match(/Property:\s*([^\n]+)/i) ||
+									inq.message.match(/Address:\s*([^\n]+)/i);
+								if (match && match[1]) {
+									addr = match[1].trim();
+								}
+							}
+							return {
+								id: inq.id,
+								type: inq.type,
+								address: addr,
+								message: inq.message,
+								createdAt: inq.createdAt
+							};
+						});
+
+						return {
+							found: true,
+							email: cleanEmail,
+							leadName: lead.fullName || `${lead.firstName || ""} ${lead.lastName || ""}`.trim(),
+							properties,
+							addPropertyUrl: "/sell"
+						};
+					},
+				}),
 				// @ts-ignore
 				searchProperties: tool({
 					description: "Search the real estate database for active properties matching the user's criteria. Use this whenever the user asks to see homes, properties, or listings.",
 					inputSchema: z.object({
-						city: z.string().optional().describe("City name, e.g., Naples, Bonita Springs, Cape Coral"),
+						city: z.string().optional().describe("City name only (e.g., Sanibel, Naples, Bonita Springs, Cape Coral). DO NOT include state, 'FL', or 'location'."),
 						address: z.string().optional().describe("ONLY the street address (e.g. '622 Sw 52nd St'). DO NOT include city, state, or zip code."),
 						propertyType: z.string().optional().describe("Type of property (e.g., 'Single Family', 'Condo', 'Townhouse')"),
 						community: z.string().optional().describe("Name of the community or subdivision"),
@@ -154,8 +252,28 @@ If the user wants to schedule a property tour, viewing, or appointment, use the 
 						const isSpecificLookup = !!(address || mlsNumber);
 						const where: any = isSpecificLookup ? {} : { StandardStatus: "Active" };
 
-						let finalCity = city;
-						let finalAddress = address;
+						// Normalize location strings by stripping state codes (FL, Florida), filler words (location, area, city), and punctuation
+						const cleanLocation = (val: any): string | undefined => {
+							if (!val || typeof val !== "string") return undefined;
+							const cleaned = val
+								.replace(/,\s*fl\b/gi, "")
+								.replace(/,\s*florida\b/gi, "")
+								.replace(/\bfl\b/gi, "")
+								.replace(/\bflorida\b/gi, "")
+								.replace(/\blocation\b/gi, "")
+								.replace(/\barea\b/gi, "")
+								.replace(/\bcity\b/gi, "")
+								.replace(/[,;]/g, " ")
+								.replace(/\s+/g, " ")
+								.trim();
+							return cleaned || undefined;
+						};
+
+						let finalCity = cleanLocation(city);
+						let finalAddress = address ? address.trim() : undefined;
+						keyword = cleanLocation(keyword);
+						community = cleanLocation(community);
+						subdivision = cleanLocation(subdivision);
 
 						// AI sometimes wrongly maps city names or keywords to the `address` field
 						if (finalAddress) {
@@ -174,7 +292,7 @@ If the user wants to schedule a property tour, viewing, or appointment, use the 
 							});
 
 							if (!hasNumbers || (matchesKnownCity && addrLower.split(" ").length <= 3)) {
-								keyword = keyword ? `${keyword} ${finalAddress}` : finalAddress;
+								keyword = keyword ? `${keyword} ${cleanLocation(finalAddress) || finalAddress}` : (cleanLocation(finalAddress) || finalAddress);
 								finalAddress = undefined;
 							}
 						}
@@ -184,6 +302,8 @@ If the user wants to schedule a property tour, viewing, or appointment, use the 
 							const cityUpper = finalCity.toUpperCase();
 							if (cityUpper.includes("CAPE CORA")) {
 								where.City = { contains: "CAPE CORAL" };
+							} else if (cityUpper.includes("FT MYERS") || cityUpper.includes("FT. MYERS")) {
+								where.City = { contains: "FORT MYERS" };
 							} else {
 								where.City = { contains: cityUpper };
 							}
@@ -269,16 +389,19 @@ If the user wants to schedule a property tour, viewing, or appointment, use the 
 						// Implement broad keyword search for misspelled or partial words (e.g. 'nap')
 						if (keyword) {
 							const kw = keyword.trim();
-							where.AND = where.AND || [];
-							where.AND.push({
-								OR: [
-									{ City: { contains: kw } },
-									{ FullAddress: { contains: kw } },
-									{ Community: { contains: kw } },
-									{ Development: { contains: kw } },
-									{ SubdivisionName: { contains: kw } },
-								]
-							});
+							// Only add keyword filter if keyword is distinct from finalCity to avoid excluding addresses
+							if (!finalCity || kw.toLowerCase() !== finalCity.toLowerCase()) {
+								where.AND = where.AND || [];
+								where.AND.push({
+									OR: [
+										{ City: { contains: kw } },
+										{ FullAddress: { contains: kw } },
+										{ Community: { contains: kw } },
+										{ Development: { contains: kw } },
+										{ SubdivisionName: { contains: kw } },
+									]
+								});
+							}
 						}
 						if (parsedMinPrice || parsedMaxPrice) {
 							where.ListPrice = {};
@@ -309,33 +432,52 @@ If the user wants to schedule a property tour, viewing, or appointment, use the 
 						console.log("AI searchProperties Connecting to database URL host:", process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).hostname : "fallback (hayabusa)");
 						console.log("AI searchProperties Final prisma where clause filters:", JSON.stringify(where, null, 2));
 
-						const properties = await prisma.property.findMany({
+						const selectFields = {
+							id: true,
+							FullAddress: true,
+							ListPrice: true,
+							BedroomsTotal: true,
+							BathroomsTotalInteger: true,
+							PoolPrivateYN: true,
+							LivingArea: true,
+							PropertyType: true,
+							City: true,
+							Community: true,
+							MLSNumber: true,
+							YearBuilt: true,
+							Description: true,
+							WaterfrontYN: true,
+							GulfAccessYN: true,
+							GarageYN: true,
+							LotSizeAcres: true,
+							HOAFee: true,
+							StandardStatus: true,
+							GarageSpaces: true,
+						};
+
+						let properties = await prisma.property.findMany({
 							where,
 							take: 10, // limit to 10 so we don't overwhelm the chat but still give good options
 							orderBy: { ListPrice: 'desc' },
-							select: {
-								id: true,
-								FullAddress: true,
-								ListPrice: true,
-								BedroomsTotal: true,
-								BathroomsTotalInteger: true,
-								PoolPrivateYN: true,
-								LivingArea: true,
-								PropertyType: true,
-								City: true,
-								Community: true,
-								MLSNumber: true,
-								YearBuilt: true,
-								Description: true,
-								WaterfrontYN: true,
-								GulfAccessYN: true,
-								GarageYN: true,
-								LotSizeAcres: true,
-								HOAFee: true,
-								StandardStatus: true,
-								GarageSpaces: true,
-							}
+							select: selectFields
 						});
+
+						// Smart Fallback: If strict price filter returned 0 results, retry without ListPrice constraint to show active location listings
+						if (properties.length === 0 && where.ListPrice) {
+							const fallbackWhere = { ...where };
+							delete fallbackWhere.ListPrice;
+
+							const fallbackProperties = await prisma.property.findMany({
+								where: fallbackWhere,
+								take: 10,
+								orderBy: { ListPrice: 'asc' }, // Show lowest priced available listings first
+								select: selectFields
+							});
+
+							if (fallbackProperties.length > 0) {
+								properties = fallbackProperties;
+							}
+						}
 
 						return properties.map((p: any) => ({
 							address: p.FullAddress,

@@ -2,8 +2,13 @@ import { SignIn } from "@clerk/nextjs";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-export default function SignInPage({ searchParams }: { searchParams: { redirect_url?: string } }) {
-	const redirectUrl = searchParams.redirect_url || "/";
+export const dynamic = "force-dynamic";
+
+export default async function SignInPage({ searchParams }: { searchParams: Promise<{ redirect_url?: string; redirectUrl?: string }> }) {
+	const resolvedParams = await searchParams;
+	const redirectUrl = resolvedParams.redirect_url || resolvedParams.redirectUrl || "/";
+	const hasRedirect = redirectUrl !== "/";
+	
 	return (
 		<div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
 			{/* Back Button */}
@@ -16,9 +21,9 @@ export default function SignInPage({ searchParams }: { searchParams: { redirect_
 			<SignIn 
 				routing="path" 
 				path="/signin" 
-				signUpUrl={`/signup${searchParams.redirect_url ? `?redirect_url=${encodeURIComponent(searchParams.redirect_url)}` : ""}`}
+				signUpUrl={`/signup${hasRedirect ? `?redirect_url=${encodeURIComponent(redirectUrl)}` : ""}`}
 				fallbackRedirectUrl={redirectUrl} 
-				forceRedirectUrl={searchParams.redirect_url ? redirectUrl : undefined}
+				forceRedirectUrl={hasRedirect ? redirectUrl : undefined}
 			/>
 		</div>
 	);

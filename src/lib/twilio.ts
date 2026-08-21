@@ -12,11 +12,28 @@ export const sendSMS = async (to: string, body: string) => {
 			console.log("Twilio credentials missing, skipping SMS dispatch.");
 			return;
 		}
-		await client.messages.create({
+		const message = await client.messages.create({
 			body,
 			from,
 			to,
 		});
+
+		try {
+			const { PrismaClient } = require('@prisma/client');
+			const prisma = new PrismaClient();
+			await prisma.communicationLog.create({
+				data: {
+					type: "SMS",
+					to: to,
+					subject: "SMS Message",
+					message: body,
+					status: "sent",
+					providerId: message.sid,
+				}
+			});
+		} catch (logErr) {
+			console.error("Twilio SMS logging failed:", logErr);
+		}
 	} catch (error) {
 		console.error("Twilio SMS send failed gracefully:", error);
 	}

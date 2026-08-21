@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import type { AdminLeadAlertPayload } from "@/lib/leads/types";
+import prisma from "@/lib/prisma";
 
 const resend = process.env.RESEND_API_KEY
 	? new Resend(process.env.RESEND_API_KEY)
@@ -152,6 +153,22 @@ export async function sendAdminLeadAlertEmail(
 					continue;
 				}
 				return { ok: false, error: result.error.message };
+			}
+
+			if (result.data?.id) {
+				try {
+					await prisma.communicationLog.create({
+						data: {
+							type: "Email",
+							to: to,
+							subject: subject,
+							status: "sent",
+							providerId: result.data.id,
+						},
+					});
+				} catch (logErr) {
+					console.error("Failed to log admin alert email:", logErr);
+				}
 			}
 
 			return { ok: true, id: result.data?.id };

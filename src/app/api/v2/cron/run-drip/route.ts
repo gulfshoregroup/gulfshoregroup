@@ -97,13 +97,29 @@ export async function GET() {
 
 							if (isEmail && lead.email) {
 								try {
-									await resend.emails.send({
-										from: process.env.RESEND_FROM_EMAIL || "Gulfshore Group <onboarding@resend.dev>",
+									const result = await resend.emails.send({
+										from: process.env.RESEND_FROM_EMAIL || "Gulfshore Group <noreply@updates.gulfshoregroup.com>",
 										to: lead.email,
 										subject: campaign.name,
 										html: `<p>${personalizedMessage.replace(/\\n/g, "<br/>")}</p>`,
 									});
 									sent = true;
+									
+									if (result.data?.id) {
+										try {
+											await prisma.communicationLog.create({
+												data: {
+													type: "Email",
+													to: lead.email,
+													subject: campaign.name,
+													status: "sent",
+													providerId: result.data.id,
+												}
+											});
+										} catch (logErr) {
+											console.error("Failed to log drip email:", logErr);
+										}
+									}
 								} catch (e) {
 									console.error("Email send failed:", e);
 									failed = true;
@@ -113,12 +129,27 @@ export async function GET() {
 							if (isSMS && lead.phone) {
 								try {
 									const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
-									await client.messages.create({
+									const message = await client.messages.create({
 										body: personalizedMessage,
 										from: process.env.TWILIO_NUMBER,
 										to: lead.phone,
 									});
 									sent = true;
+									
+									try {
+										await prisma.communicationLog.create({
+											data: {
+												type: "SMS",
+												to: lead.phone,
+												subject: "Drip Campaign SMS",
+												message: personalizedMessage,
+												status: "sent",
+												providerId: message.sid,
+											}
+										});
+									} catch(logErr) {
+										console.error("Failed to log drip sms:", logErr);
+									}
 								} catch (e) {
 									console.error("SMS send failed:", e);
 									failed = true;

@@ -45,13 +45,6 @@ export default function ForcedLoginModal() {
 			return;
 		}
 
-		// Bypass modal if user clicked a link from an email alert (current or previous page in session)
-		const searchParams = new URLSearchParams(window.location.search);
-		if (searchParams.get("utm_source") === "email_alert" || sessionStorage.getItem("fake_logged_in_initials")) {
-			setIsOpen(false);
-			return;
-		}
-
 		// Track property views in localStorage
 		const viewsKey = "gulfshore_property_views";
 		const currentViews = Number(localStorage.getItem(viewsKey) || "0");

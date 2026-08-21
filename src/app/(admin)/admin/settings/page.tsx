@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Bell, Shield, Globe, Save, Eye, EyeOff } from "lucide-react";
+import { Settings, Bell, Shield, Globe, Save, Eye, EyeOff, Share } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -14,6 +14,8 @@ export default function SettingsPage() {
 	const [siteName, setSiteName] = useState("Gulfshore Group");
 	const [contactEmail, setContactEmail] = useState("admin@gulfshore.com");
 	const [siteUrl, setSiteUrl] = useState("https://gulfshoregroup.com");
+	const [shareSubject, setShareSubject] = useState("Check out this property!");
+	const [shareBody, setShareBody] = useState("Take a look at this property I found:");
 	const [savingGeneral, setSavingGeneral] = useState(false);
 
 	const [notifications, setNotifications] = useState(true);
@@ -49,6 +51,8 @@ export default function SettingsPage() {
 				if (data.siteName) setSiteName(data.siteName);
 				if (data.contactEmail) setContactEmail(data.contactEmail);
 				if (data.siteUrl) setSiteUrl(data.siteUrl);
+				if (data.shareSubject) setShareSubject(data.shareSubject);
+				if (data.shareBody) setShareBody(data.shareBody);
 			})
 			.catch(() => {});
 
@@ -68,7 +72,7 @@ export default function SettingsPage() {
 			const res = await fetch("/api/admin/general-settings", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ siteName, contactEmail, siteUrl }),
+				body: JSON.stringify({ siteName, contactEmail, siteUrl, shareSubject, shareBody }),
 			});
 			const data = await res.json();
 			if (data.success) {
@@ -190,6 +194,45 @@ export default function SettingsPage() {
 								value={siteUrl} 
 								onChange={(e) => setSiteUrl(e.target.value)} 
 							/>
+						</div>
+						<Button 
+							onClick={handleSaveGeneral} 
+							disabled={savingGeneral}
+							className="bg-primary text-white"
+						>
+							<Save className="h-4 w-4 mr-2" />
+							{savingGeneral ? "Saving..." : "Save Changes"}
+						</Button>
+					</CardContent>
+				</Card>
+
+				{/* Property Sharing Settings */}
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<Share className="h-5 w-5" />
+							Property Sharing Settings
+						</CardTitle>
+						<CardDescription>Configure the default title and message for sharing properties</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="space-y-2">
+							<Label htmlFor="shareSubject">Default Share Subject / Title</Label>
+							<Input 
+								id="shareSubject" 
+								value={shareSubject} 
+								onChange={(e) => setShareSubject(e.target.value)} 
+							/>
+							<p className="text-sm text-muted-foreground">Used for Email subject and Twitter/Telegram titles.</p>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="shareBody">Default Share Message</Label>
+							<Input 
+								id="shareBody" 
+								value={shareBody} 
+								onChange={(e) => setShareBody(e.target.value)} 
+							/>
+							<p className="text-sm text-muted-foreground">Used for Email body and SMS message.</p>
 						</div>
 						<Button 
 							onClick={handleSaveGeneral} 

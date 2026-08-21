@@ -1,4 +1,3 @@
-"use server";
 import OwnerCard from "@/components/cards/property/ownerCard";
 import SliderComponent from "@/components/global/slider";
 import ListingLabels from "@/components/property/listingLabels";

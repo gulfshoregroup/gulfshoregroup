@@ -693,3 +693,17 @@ model AIChatHistory {
   @@index([leadId])
   @@map("aichathistory")
 }
+
+model CommunicationLog {
+  id         String   @id @default(cuid())
+  type       String   // "Email" or "SMS"
+  to         String
+  subject    String?
+  message    String?  @db.Text
+  status     String   @default("sent") // sent, delivered, opened, failed, bounced, clicked
+  providerId String?  @unique // Resend ID or Twilio SID
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@map("communicationlog")
+}

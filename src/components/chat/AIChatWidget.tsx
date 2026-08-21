@@ -130,6 +130,53 @@ export default function AIChatWidget() {
 																</div>
 															</a>
 														))}
+														<div className="pt-2 border-t border-gray-200 mt-2 flex flex-col items-center gap-1 text-[11px] text-gray-500">
+															<span>Looking to sell your current property too?</span>
+															<a
+																href="/sell"
+																className="w-full text-center bg-gray-100 text-gray-800 font-semibold py-1.5 px-2 rounded border border-gray-300 hover:bg-gray-200 hover:text-primary transition-colors block text-xs"
+															>
+																+ Add New Property to Sell
+															</a>
+														</div>
+													</div>
+												);
+											}
+										}
+										if (part.type === "tool-checkSellerProperties" && "output" in part && part.output) {
+											const result: any = part.output;
+											if (result.found) {
+												return (
+													<div key={part.toolCallId} className="mt-3 space-y-2">
+														<p className="text-xs font-semibold text-primary border-b pb-1">
+															Your Listed Properties / Valuations ({result.email}):
+														</p>
+														{result.properties.map((prop: any, i: number) => (
+															<div key={i} className="bg-gray-50 p-2.5 rounded border border-gray-200 text-xs text-gray-700 space-y-1">
+																<span className="font-bold text-gray-900 block truncate">{prop.address}</span>
+																<span className="text-gray-500 text-[10px] block">
+																	{prop.createdAt ? new Date(prop.createdAt).toLocaleDateString() : ""}
+																</span>
+															</div>
+														))}
+														<a
+															href="/sell"
+															className="block text-center bg-primary text-white font-bold py-2 px-3 rounded-lg text-xs hover:bg-primary/90 transition-colors shadow-xs mt-2"
+														>
+															+ Add New Property to Sell
+														</a>
+													</div>
+												);
+											} else {
+												return (
+													<div key={part.toolCallId} className="mt-3 space-y-2 bg-gray-50 border border-gray-200 p-3 rounded-lg text-xs">
+														<p className="text-gray-700">{result.message || `No existing properties found for ${result.email}.`}</p>
+														<a
+															href="/sell"
+															className="block text-center bg-primary text-white font-bold py-2 px-3 rounded-lg text-xs hover:bg-primary/90 transition-colors shadow-xs mt-2"
+														>
+															+ Add New Property to Sell
+														</a>
 													</div>
 												);
 											}

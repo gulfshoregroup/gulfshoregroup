@@ -1,143 +1,555 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { openai } from "@ai-sdk/openai";
-import { generateText } from "ai";
 import { Resend } from "resend";
+import UrlMaker from "@/hooks/url-maker";
+import { sendAdminLeadAlertEmail } from "@/lib/email/admin-lead-alert";
+import { recalculateLeadScore } from "@/lib/leads/services/scoring.service";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend client
+const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy");
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://gulfshore-fullcode-next-production.up.railway.app";
+
+// Helper to extract best cover image URL for property cards
+function getPropertyImageUrl(p: any): string {
+	if (p.media && Array.isArray(p.media) && p.media.length > 0 && p.media[0]?.MediaURL) {
+		return p.media[0].MediaURL;
+	}
+	if (p.images) {
+		if (Array.isArray(p.images) && p.images.length > 0) {
+			const first = p.images[0];
+			if (typeof first === "string") return first;
+			if (typeof first === "object" && first?.MediaURL) return first.MediaURL;
+		}
+	}
+	// High-resolution luxury real estate fallback photo
+	return "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80";
+}
+
+// Robust Helper to extract ONLY the user's latest fresh email message (completely strip quoted thread history)
+const cleanEmailBody = (rawBody: string): string => {
+	if (!rawBody || typeof rawBody !== "string") return "";
+
+	// 1. Aggressively strip Gmail/Outlook quote containers before HTML tag removal
+	let cleanedRaw = rawBody
+		.replace(/<div\s+class=["']gmail_quote["']>[\s\S]*$/gi, "")
+		.replace(/<blockquote[\s\S]*$/gi, "");
+
+	// 2. Cut off at "On <date> ... wrote:" header anywhere in the string
+	const quoteMatch = cleanedRaw.match(/\bOn\s+[\s\S]*?wrote\s*:/i);
+	if (quoteMatch && quoteMatch.index !== undefined) {
+		cleanedRaw = cleanedRaw.substring(0, quoteMatch.index);
+	}
+
+	const origMatch = cleanedRaw.match(/-----Original Message-----/i);
+	if (origMatch && origMatch.index !== undefined) {
+		cleanedRaw = cleanedRaw.substring(0, origMatch.index);
+	}
+
+	// 3. Strip HTML tags and convert <br>/<p> to line breaks
+	let text = cleanedRaw
+		.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+		.replace(/<br\s*\/?>/gi, "\n")
+		.replace(/<\/p>/gi, "\n\n")
+		.replace(/<[^>]+>/g, "");
+
+	const lines = text.split("\n");
+	const userLines: string[] = [];
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (
+			/^On\s+.*wrote:/i.test(trimmed) ||
+			/^On\s+.*wrote\s*:/i.test(trimmed) ||
+			/^-----Original Message-----/i.test(trimmed) ||
+			/^From:\s+.*<.*>/i.test(trimmed) ||
+			/^Sent:\s+/i.test(trimmed)
+		) {
+			break;
+		}
+		if (trimmed.startsWith(">")) {
+			continue;
+		}
+		userLines.push(line);
+	}
+
+	const result = userLines.join(" ").replace(/\s+/g, " ").trim();
+	return result || rawBody.replace(/<[^>]+>/g, "").trim();
+};
+
+interface ExtractedSearch {
+	city?: string;
+	maxPrice?: number;
+	beds?: number;
+	baths?: number;
+	poolOnly?: boolean;
+	waterfrontOnly?: boolean;
+}
+
+// Extract search parameters strictly from the user's fresh message (ignoring subject lines with old city names)
+function extractSearchParamsFromUserText(text: string): ExtractedSearch {
+	const result: ExtractedSearch = {};
+	if (!text || typeof text !== "string") return result;
+
+	const clean = text.toLowerCase().trim();
+
+	// 1. City extraction (Strictly from user body text)
+	const knownCities = [
+		{ key: "sanibel", name: "SANIBEL" },
+		{ key: "bonita springs", name: "BONITA SPRINGS" },
+		{ key: "bonita", name: "BONITA SPRINGS" },
+		{ key: "cape coral", name: "CAPE CORAL" },
+		{ key: "fort myers", name: "FORT MYERS" },
+		{ key: "ft myers", name: "FORT MYERS" },
+		{ key: "ft. myers", name: "FORT MYERS" },
+		{ key: "estero", name: "ESTERO" },
+		{ key: "marco island", name: "MARCO ISLAND" },
+		{ key: "punta gorda", name: "PUNTA GORDA" },
+		{ key: "lehigh", name: "LEHIGH ACRES" },
+		{ key: "miami", name: "MIAMI" },
+		{ key: "ave maria", name: "AVE MARIA" },
+		{ key: "naples", name: "NAPLES" },
+	];
+
+	for (const item of knownCities) {
+		if (clean.includes(item.key)) {
+			result.city = item.name;
+			break;
+		}
+	}
+
+	// 2. Max Price extraction ($500k, $1m, 500000, under 1M)
+	const priceKMatch = clean.match(/(?:under|below|max|up to|\$)\s*(\d+(?:\.\d+)?)\s*k\b/i);
+	if (priceKMatch && priceKMatch[1]) {
+		result.maxPrice = parseFloat(priceKMatch[1]) * 1000;
+	} else {
+		const priceMMatch = clean.match(/(?:under|below|max|up to|\$)\s*(\d+(?:\.\d+)?)\s*m\b/i);
+		if (priceMMatch && priceMMatch[1]) {
+			result.maxPrice = parseFloat(priceMMatch[1]) * 1000000;
+		} else {
+			const priceRawMatch = clean.match(/(?:under|below|max|price)\s*\$?(\d[\d,]{3,})/i);
+			if (priceRawMatch && priceRawMatch[1]) {
+				result.maxPrice = parseInt(priceRawMatch[1].replace(/,/g, ""), 10);
+			}
+		}
+	}
+
+	// 3. Bedrooms extraction (1 bed, 2 beds, 3 bedrooms, 4 bed)
+	const bedMatch = clean.match(/(\d+)\s*(?:bed|beds|bedroom|bedrooms)\b/i);
+	if (bedMatch && bedMatch[1]) {
+		result.beds = parseInt(bedMatch[1], 10);
+	}
+
+	// 4. Bathrooms extraction (1 bath, 2 baths, 3 bathrooms)
+	const bathMatch = clean.match(/(\d+)\s*(?:bath|baths|bathroom|bathrooms)\b/i);
+	if (bathMatch && bathMatch[1]) {
+		result.baths = parseInt(bathMatch[1], 10);
+	}
+
+	// 5. Pool / Waterfront extraction
+	if (clean.includes("pool")) result.poolOnly = true;
+	if (clean.includes("waterfront") || clean.includes("gulf access")) result.waterfrontOnly = true;
+
+	return result;
+}
+
+// Builder for High-End Luxury Property Email Template (Matches User Reference Image)
+function buildHtmlPropertyEmail(
+	matchedCity: string,
+	properties: any[],
+	introTitle: string = "HOMES MATCHING YOUR SEARCH",
+	subtitle: string = "We found matching active properties for your criteria."
+): string {
+	const propertyCardsHtml = properties.map((p: any) => {
+		const relativeUrl = UrlMaker(p.City || "", p.Community || "", p.FullAddress || "", p.MLSNumber || undefined);
+		const fullUrl = `${baseUrl}${relativeUrl}`;
+		const imgUrl = getPropertyImageUrl(p);
+		const formattedPrice = p.ListPrice ? `$${p.ListPrice.toLocaleString()}` : "Price Upon Request";
+		const beds = p.BedroomsTotal ?? 0;
+		const baths = p.BathroomsTotalInteger ?? 0;
+		const sqft = p.LivingArea ? `${p.LivingArea.toLocaleString()} sqft` : "N/A";
+		const poolText = p.PoolPrivateYN ? "Private Pool" : p.WaterfrontYN ? "Waterfront" : "Luxury Residence";
+		const officeName = p.ListOfficeName || "Gulfshore Group Real Estate";
+
+		return `
+		<!-- PROPERTY CARD -->
+		<div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+			<!-- COVER IMAGE -->
+			<div style="width: 100%; height: 220px; background-color: #f3f4f6; overflow: hidden;">
+				<a href="${fullUrl}" target="_blank" style="text-decoration: none;">
+					<img src="${imgUrl}" alt="${p.FullAddress}" style="width: 100%; height: 220px; object-fit: cover; border: 0; display: block;" />
+				</a>
+			</div>
+
+			<!-- CARD BODY -->
+			<div style="padding: 18px 20px;">
+				<!-- ACTIVE BADGE -->
+				<div style="margin-bottom: 8px;">
+					<span style="background-color: #16a34a; color: #ffffff; font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 4px; letter-spacing: 0.5px; text-transform: uppercase;">ACTIVE</span>
+				</div>
+
+				<!-- PRICE -->
+				<div style="font-size: 26px; font-weight: 800; color: #111827; margin: 4px 0 2px 0; letter-spacing: -0.5px;">
+					${formattedPrice}
+				</div>
+
+				<!-- ADDRESS -->
+				<div style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 4px;">
+					${p.FullAddress}, ${p.City}, FL ${p.PostalCode || ""}
+				</div>
+
+				<!-- SUBTYPE / COMMUNITY -->
+				<div style="font-size: 11px; font-weight: 700; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
+					${(p.PropertyType || "SINGLE FAMILY").toUpperCase()} ${p.Community ? `• ${p.Community.toUpperCase()}` : ""}
+				</div>
+
+				<!-- SPECS GRID -->
+				<div style="border-top: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6; padding: 10px 0; margin-bottom: 14px;">
+					<table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 13px; color: #4b5563; text-align: center;">
+						<tr>
+							<td width="25%" style="border-right: 1px solid #f3f4f6;"><strong>${beds}</strong> Beds</td>
+							<td width="25%" style="border-right: 1px solid #f3f4f6;"><strong>${baths}</strong> Baths</td>
+							<td width="25%" style="border-right: 1px solid #f3f4f6;"><strong>${sqft}</strong></td>
+							<td width="25%"><strong>${poolText}</strong></td>
+						</tr>
+					</table>
+				</div>
+
+				<!-- LISTING OFFICE -->
+				<div style="font-size: 11px; color: #9ca3af; margin-bottom: 14px;">
+					Source: MLS Listing • Listing Office: ${officeName}
+				</div>
+
+				<!-- RED VIEW DETAILS BUTTON -->
+				<a href="${fullUrl}" target="_blank" style="display: block; width: 100%; background-color: #dc2626; color: #ffffff; text-align: center; padding: 13px 0; border-radius: 6px; font-size: 14px; font-weight: 700; text-decoration: none; box-sizing: border-box;">
+					VIEW DETAILS
+				</a>
+			</div>
+		</div>
+		`;
+	}).join("");
+
+	return `
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	</head>
+	<body style="margin: 0; padding: 0; background-color: #f9fafb; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased;">
+		<div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);">
+			
+			<!-- HEADER LOGO BAR -->
+			<div style="padding: 24px 24px 16px 24px; border-bottom: 2px solid #dc2626; background-color: #ffffff; text-align: center;">
+				<h1 style="margin: 0; color: #dc2626; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">GULFSHORE GROUP</h1>
+				<p style="margin: 4px 0 0 0; color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Real Estate Concierge | Dimitri Schwarz</p>
+			</div>
+
+			<!-- INTRO SECTION -->
+			<div style="padding: 24px 24px 12px 24px; text-align: center; background-color: #ffffff;">
+				<h2 style="margin: 0 0 8px 0; color: #111827; font-size: 18px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">${introTitle} IN ${matchedCity}</h2>
+				<p style="margin: 0; color: #4b5563; font-size: 14px; line-height: 1.5;">${subtitle}</p>
+				<div style="width: 60px; height: 3px; background-color: #d97706; margin: 16px auto 0 auto; border-radius: 2px;"></div>
+			</div>
+
+			<!-- CARDS CONTAINER -->
+			<div style="padding: 16px 24px 24px 24px; background-color: #f9fafb;">
+				${propertyCardsHtml}
+			</div>
+
+			<!-- FOOTER -->
+			<div style="padding: 20px 24px; background-color: #ffffff; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #6b7280;">
+				<p style="margin: 0 0 8px 0; font-weight: 600;">Dimitri Schwarz & AI Concierge Team • Gulfshore Group Real Estate</p>
+				<p style="margin: 0 0 8px 0;">Looking to sell your home or get a free valuation? <a href="${baseUrl}/sell" style="color: #dc2626; font-weight: bold; text-decoration: underline;">Visit Seller Portal</a></p>
+				<p style="margin: 0; color: #9ca3af;">© ${new Date().getFullYear()} Gulfshore Group. All rights reserved. <a href="${baseUrl}" style="color: #dc2626; text-decoration: none;">www.gulfshoregroup.com</a></p>
+			</div>
+
+		</div>
+	</body>
+	</html>
+	`;
+}
 
 export async function POST(req: Request) {
 	try {
-		const payload = await req.json();
-		console.log("[Email Webhook payload received]:", JSON.stringify(payload, null, 2));
+		const body = await req.json();
+		console.log("[Resend Webhook Payload Received]:", JSON.stringify(body));
 
-		const data = payload.data || payload;
-		const fromEmail = data.from || data.sender || data.From;
-		const subject = data.subject || data.Subject || "No Subject";
-		let textBody = data.text || data.html || data.TextBody || data.HtmlBody || "";
+		// Support Resend SVIX inbound payload structure (body.data or root body)
+		const payloadData = body.data || body;
 
-		// If this is a standard Resend webhook, it might not contain the body. Fetch it using email_id
-		if (!textBody && data.email_id) {
-			console.log(`[Email Webhook] Text is missing. Fetching full INBOUND email by ID: ${data.email_id}...`);
-			try {
-				// Inbound emails require the 'receiving' API endpoint in Resend
-				let emailResponse;
-				if ((resend.emails as any).receiving) {
-					emailResponse = await (resend.emails as any).receiving.get(data.email_id);
-				} else {
-					// Fallback if receiving is not typed but available on raw resend object
-					const res = await fetch(`https://api.resend.com/emails/${data.email_id}/receiving`, {
-						headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}` }
-					});
-					emailResponse = { data: await res.json() };
-				}
-				
-				if (emailResponse && emailResponse.data) {
-					textBody = emailResponse.data.text || emailResponse.data.html || "";
-				}
-			} catch (err) {
-				console.error("[Email Webhook] Error fetching inbound email body:", err);
+		const fromEmail = payloadData.From || payloadData.from || payloadData.email || body.From || body.from || body.headers?.from;
+		const textBody = payloadData.TextBody || payloadData.text || payloadData.html || body.TextBody || body.text || body.html || "";
+		const rawSubject = payloadData.Subject || payloadData.subject || body.Subject || body.subject || "Real Estate Inquiry";
+
+		// Robust Extraction of Message-ID for email threading (In-Reply-To / References)
+		let messageId: string | undefined = undefined;
+
+		if (payloadData.headers) {
+			if (Array.isArray(payloadData.headers)) {
+				const found = payloadData.headers.find((h: any) => h.name?.toLowerCase() === "message-id");
+				if (found) messageId = found.value;
+			} else if (typeof payloadData.headers === "object") {
+				messageId = payloadData.headers["message-id"] || payloadData.headers["Message-ID"] || payloadData.headers["message_id"] || payloadData.headers["Message-Id"];
 			}
 		}
 
-		// Extract just the new reply, remove the quoted history (e.g. "On Wed, Jul 29... wrote:")
-		const cleanTextBody = textBody
-			.split(/On\s+.*?\s+wrote:/i)[0] // Remove Gmail style quotes
-			.split(/-----Original Message-----/i)[0] // Remove Outlook style quotes
-			.split(/_{5,}/)[0] // Remove Yahoo style quotes
-			.split(/From:\s+/i)[0] // Remove iOS style quotes
-			.replace(/^>.*$/gm, "") // Remove remaining > quote lines
-			.trim();
-
-		console.log(`[Email Webhook Parsed Data] From: ${fromEmail}, Subject: ${subject}, Text length: ${cleanTextBody?.length}`);
-
-		if (!fromEmail || !cleanTextBody) {
-			console.error("[Email Webhook Error] Missing fields. Parsed as:", { fromEmail, subject, text: cleanTextBody ? 'Present' : 'Missing' });
-			return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+		if (!messageId) {
+			messageId = payloadData.email_id || payloadData.id || body.email_id || body.id;
 		}
 
-		// Clean the email address if it comes in format "Name <email@domain.com>"
-		const match = fromEmail.match(/<([^>]+)>/);
-		const cleanEmail = match ? match[1] : fromEmail.trim();
-		console.log(`[Email Webhook] Clean email: ${cleanEmail}`);
+		// Extract clean email address if passed like "User Name <user@example.com>"
+		let cleanFromEmail = fromEmail || "";
+		const emailMatch = cleanFromEmail.match(/<([^>]+)>/);
+		if (emailMatch && emailMatch[1]) {
+			cleanFromEmail = emailMatch[1].trim();
+		} else {
+			cleanFromEmail = cleanFromEmail.trim();
+		}
 
-		// Find the lead by email
+		if (!cleanFromEmail) {
+			return NextResponse.json({ error: "Missing sender email address" }, { status: 400 });
+		}
+
+		// Clean Subject line for Gmail threading: Ensure a single "Re: " prefix
+		const rawSub = (rawSubject || "Real Estate Inquiry").trim();
+		const hasRe = /^re:\s*/i.test(rawSub);
+		const replySubject = hasRe ? rawSub : `Re: ${rawSub}`;
+
+		// Extract ONLY the latest fresh user message from the email (completely strip old thread history)
+		const latestUserText = cleanEmailBody(textBody);
+		console.log(`[Resend Webhook Processed] Sender: ${cleanFromEmail} | Reply Subject: "${replySubject}" | Latest Fresh Text: "${latestUserText}" | Msg ID: "${messageId}"`);
+
+		// 1. Find or create lead by email
 		let lead = await prisma.lead.findUnique({
-			where: { email: cleanEmail },
+			where: { email: cleanFromEmail }
 		});
 
-		// If lead doesn't exist, we can optionally create one (or ignore)
 		if (!lead) {
 			lead = await prisma.lead.create({
 				data: {
-					email: cleanEmail,
-					firstName: "New",
-					lastName: "Lead",
-					fullName: "New Lead",
-					source: "Inbound Email",
-					status: "New",
-				},
+					email: cleanFromEmail,
+					source: "Other",
+				}
 			});
 		}
 
-		// 1. Save User's Email to AI Chat History
+		// 2. Save ONLY the new user message to AIChatHistory
 		await prisma.aIChatHistory.create({
 			data: {
 				leadId: lead.id,
 				channel: "email",
 				role: "user",
-				message: `Subject: ${subject}\n\n${cleanTextBody}`,
+				message: `Subject: ${replySubject}\n\n${latestUserText || textBody}`,
 			}
 		});
 
-		// 2. Fetch past context for the AI
-		const pastChats = await prisma.aIChatHistory.findMany({
-			where: { leadId: lead.id },
-			orderBy: { createdAt: 'asc' },
-			take: 20
+		// 3. Extract Search Parameters (City, Price, Beds, Baths, Pool) STRICTLY from user's fresh message
+		const searchParams = extractSearchParamsFromUserText(latestUserText);
+		const freshTextLower = latestUserText.toLowerCase();
+
+		const isSellIntent = freshTextLower.includes("sell") || freshTextLower.includes("selling") || freshTextLower.includes("valuation") || freshTextLower.includes("cma");
+		const isBuyIntent = freshTextLower.includes("buy") || freshTextLower.includes("buying") || freshTextLower.includes("property") || freshTextLower.includes("properties") || freshTextLower.includes("home") || freshTextLower.includes("listing") || searchParams.city !== undefined;
+
+		// 4. Query Database for Active Properties matching the extracted criteria (default to NAPLES if no city in user message)
+		const targetCity = searchParams.city || "NAPLES";
+		console.log(`[Resend Webhook DB Query] Extracted Search Params:`, JSON.stringify(searchParams), `Target City: "${targetCity}"`);
+
+		const dbWhere: any = {
+			StandardStatus: "Active",
+			City: { contains: targetCity }
+		};
+
+		if (searchParams.maxPrice) {
+			dbWhere.ListPrice = { lte: searchParams.maxPrice };
+		}
+		if (searchParams.beds) {
+			dbWhere.BedroomsTotal = { gte: searchParams.beds };
+		}
+		if (searchParams.baths) {
+			dbWhere.BathroomsTotalInteger = { gte: searchParams.baths };
+		}
+		if (searchParams.poolOnly) {
+			dbWhere.PoolPrivateYN = true;
+		}
+		if (searchParams.waterfrontOnly) {
+			dbWhere.WaterfrontYN = true;
+		}
+
+		let properties = await prisma.property.findMany({
+			where: dbWhere,
+			take: 6,
+			orderBy: { ListPrice: 'desc' },
+			select: {
+				id: true,
+				FullAddress: true,
+				ListPrice: true,
+				BedroomsTotal: true,
+				BathroomsTotalInteger: true,
+				LivingArea: true,
+				PropertyType: true,
+				PropertySubType: true,
+				City: true,
+				StateOrProvince: true,
+				PostalCode: true,
+				Community: true,
+				MLSNumber: true,
+				PoolPrivateYN: true,
+				WaterfrontYN: true,
+				GulfAccessYN: true,
+				ListOfficeName: true,
+				images: true,
+				media: {
+					take: 1,
+					select: { MediaURL: true }
+				}
+			}
 		});
 
-		const formattedHistory = pastChats.map(chat => ({
-			role: chat.role === "ai" ? "assistant" : "user",
-			content: chat.message
-		}));
+		// Fallback to general city search if strict filters returned 0 results
+		if (properties.length === 0) {
+			properties = await prisma.property.findMany({
+				where: {
+					City: { contains: targetCity },
+					StandardStatus: "Active"
+				},
+				take: 6,
+				orderBy: { ListPrice: 'desc' },
+				select: {
+					id: true,
+					FullAddress: true,
+					ListPrice: true,
+					BedroomsTotal: true,
+					BathroomsTotalInteger: true,
+					LivingArea: true,
+					PropertyType: true,
+					PropertySubType: true,
+					City: true,
+					StateOrProvince: true,
+					PostalCode: true,
+					Community: true,
+					MLSNumber: true,
+					PoolPrivateYN: true,
+					WaterfrontYN: true,
+					GulfAccessYN: true,
+					ListOfficeName: true,
+					images: true,
+					media: {
+						take: 1,
+						select: { MediaURL: true }
+					}
+				}
+			});
+		}
 
-		// 3. Generate AI Response
-		const { text: aiResponse } = await generateText({
-			model: openai("gpt-4o-mini"),
-			system: `You are an expert AI Real Estate Concierge for Gulfshore Group, working on behalf of Dimitri Schwarz. 
-You are replying to an email from a client. Keep your tone highly professional, concise, and helpful. 
-Do not use emojis excessively. Format your response exactly like a professional email body (no need for Subject line, just the body). 
-Sign off with:
+		console.log(`[Resend Webhook DB Query] Found ${properties.length} active properties in ${targetCity}`);
+
+		let plainTextSummary = "";
+		let htmlContent = "";
+
+		if (isSellIntent && !isBuyIntent) {
+			// SELLER INTENT
+			plainTextSummary = `Hello,
+
+Thank you for reaching out to Gulfshore Group Real Estate!
+
+Dimitri Schwarz provides complimentary, high-precision Home Valuations (Comparative Market Analysis) and full listing representation across Southwest Florida.
+
+To list your property for sale or get a free home market valuation immediately, please visit our seller portal:
+${baseUrl}/sell
+
 Best regards,
-Gulfshore Group AI Concierge
-on behalf of Dimitri Schwarz`,
-			messages: formattedHistory as any,
-		});
+Dimitri Schwarz & AI Team
+Gulfshore Group Real Estate
+${baseUrl}`;
 
-		// 4. Send the Email back to the user via Resend
-		const adminEmail = process.env.ADMIN_ALERT_EMAIL || "mailbox@gulfshoregroup.com";
-		
-		await resend.emails.send({
-			from: process.env.RESEND_FROM_EMAIL || "Gulfshore Group <noreply@updates.gulfshoregroup.com>",
-			to: cleanEmail,
-			subject: `Re: ${subject}`,
-			text: aiResponse,
-		});
+			htmlContent = buildHtmlPropertyEmail(
+				targetCity,
+				properties,
+				"COMPLIMENTARY HOME VALUATION & SELLER SERVICES",
+				`Dimitri Schwarz offers full listing representation. Visit <a href="${baseUrl}/sell" style="color: #dc2626; font-weight: bold;">Seller Portal</a> to list your home. Here are active market listings in ${targetCity} for reference:`
+			);
+		} else {
+			// BUY INTENT or GENERAL PROPERTY SEARCH
+			plainTextSummary = `Hello,
 
-		// 5. Save AI's Reply to AI Chat History
+Thank you for reaching out to Gulfshore Group! Here are top active property listings currently available in ${targetCity}:
+
+${properties.map((p, i) => `${i + 1}. ${p.FullAddress} - $${p.ListPrice?.toLocaleString()} (${baseUrl}${UrlMaker(p.City || "", p.Community || "", p.FullAddress || "", p.MLSNumber || undefined)})`).join("\n")}
+
+Best regards,
+Dimitri Schwarz & AI Team
+Gulfshore Group Real Estate
+${baseUrl}`;
+
+			htmlContent = buildHtmlPropertyEmail(
+				targetCity,
+				properties,
+				`ACTIVE HOMES MATCHING YOUR SEARCH`,
+				`We found ${properties.length} active luxury properties matching your search criteria in ${targetCity}. Each listing has been curated for quality and value.`
+			);
+		}
+
+		console.log(`[Resend Webhook Success] Generated luxury email card HTML response for ${targetCity}.`);
+
+		// 6. Save response to AIChatHistory
 		await prisma.aIChatHistory.create({
 			data: {
 				leadId: lead.id,
 				channel: "email",
 				role: "ai",
-				message: aiResponse,
+				message: plainTextSummary,
 			}
 		});
 
-		return NextResponse.json({ success: true });
-	} catch (error) {
-		console.error("[EmailWebhookError]", error);
-		return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+		// Recalculate lead score
+		try {
+			recalculateLeadScore(lead.id);
+		} catch (scoreErr) {
+			console.error("Scoring error:", scoreErr);
+		}
+
+		// 7. Build email thread headers so Gmail stacks replies in the SAME thread (Only if valid RFC Message-ID containing @)
+		const sendHeaders: Record<string, string> = {};
+		if (messageId && messageId.includes("@")) {
+			const formattedMsgId = messageId.startsWith("<") && messageId.endsWith(">") ? messageId : `<${messageId}>`;
+			sendHeaders["In-Reply-To"] = formattedMsgId;
+			sendHeaders["References"] = formattedMsgId;
+		}
+
+		// 8. Send the luxury email card response back via Resend inside the SAME thread
+		try {
+			const sendResult = await resend.emails.send({
+				from: process.env.RESEND_FROM_EMAIL || "Gulfshore Group <noreply@updates.gulfshoregroup.com>",
+				to: cleanFromEmail,
+				subject: replySubject,
+				text: plainTextSummary,
+				html: htmlContent,
+				headers: Object.keys(sendHeaders).length > 0 ? sendHeaders : undefined,
+			});
+			console.log("[Resend Email Sent Result]:", JSON.stringify(sendResult));
+			
+			if (sendResult?.data?.id) {
+				try {
+					await prisma.communicationLog.create({
+						data: {
+							type: "Email",
+							to: cleanFromEmail,
+							subject: replySubject,
+							status: "sent",
+							providerId: sendResult.data.id,
+						},
+					});
+				} catch (logErr) {
+					console.error("Failed to log AI auto reply:", logErr);
+				}
+			}
+		} catch (sendErr) {
+			console.error("[Resend Email Send Exception]:", sendErr);
+		}
+
+		return NextResponse.json({ success: true, leadId: lead.id });
+	} catch (error: any) {
+		console.error("Resend Webhook Error:", error);
+		return NextResponse.json({ error: error.message || "Webhook failed" }, { status: 500 });
 	}
 }

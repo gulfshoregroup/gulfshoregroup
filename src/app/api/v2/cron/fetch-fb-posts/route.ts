@@ -26,7 +26,7 @@ export async function GET(req: Request) {
 		}
 
 		// 1. Fetch posts from Facebook Graph API
-		const fbUrl = `https://graph.facebook.com/v19.0/${pageId}/posts?fields=id,message,full_picture,permalink_url,created_time&access_token=${accessToken}&limit=10`;
+		const fbUrl = `https://graph.facebook.com/v19.0/${pageId}/posts?fields=id,message,full_picture,permalink_url,created_time&access_token=${accessToken}&limit=100`;
 		const fbResponse = await fetch(fbUrl);
 		const fbData = await fbResponse.json();
 
