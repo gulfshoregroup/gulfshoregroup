@@ -274,6 +274,26 @@ export async function POST(req: Request) {
 		const body = await req.json();
 		console.log("[Resend Webhook Payload Received]:", JSON.stringify(body));
 
+		// If this is a status update event (sent, delivered, bounced, complained, opened, clicked)
+		if (body.type && body.type.startsWith("email.") && body.type !== "email.received") {
+			const eventData = body.data || body;
+			const emailId = eventData.email_id || eventData.id;
+			
+			if (emailId) {
+				const status = body.type.split(".")[1] || "unknown";
+				try {
+					await prisma.communicationLog.updateMany({
+						where: { providerId: emailId },
+						data: { status: status, updatedAt: new Date() }
+					});
+					console.log(`[Resend Webhook] Updated log ${emailId} to status: ${status}`);
+				} catch (err) {
+					console.error("Failed to update communication log status:", err);
+				}
+			}
+			return NextResponse.json({ success: true, event: body.type });
+		}
+
 		// Support Resend SVIX inbound payload structure (body.data or root body)
 		const payloadData = body.data || body;
 
