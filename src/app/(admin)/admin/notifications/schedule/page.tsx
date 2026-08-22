@@ -437,12 +437,21 @@ function ScheduleNotificationContent() {
 
 								<div className="space-y-2">
 									<Label htmlFor="title">Notification Title</Label>
-									<Input
-										id="title"
-										placeholder="Enter notification title"
-										value={title}
-										onChange={(e) => setTitle(e.target.value)}
-									/>
+									<div className="flex rounded-md shadow-sm">
+										<span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground whitespace-nowrap">
+											Dimitri Schwarz 239.992.9119 | 
+										</span>
+										<Input
+											id="title"
+											placeholder="Enter notification title"
+											value={title}
+											onChange={(e) => setTitle(e.target.value)}
+											className="rounded-l-none"
+										/>
+									</div>
+									<p className="text-[0.8rem] text-muted-foreground">
+										Your contact info is automatically locked to the beginning of email subjects.
+									</p>
 								</div>
 
 								<div className="space-y-2">
@@ -754,6 +763,9 @@ function ScheduleNotificationContent() {
 										)}
 									</div>
 									<h4 className="font-medium text-sm mb-1">
+										{(selectedChannel === "Email" || selectedChannel === "Both" || !selectedChannel) && (
+											<span className="text-muted-foreground font-normal">Dimitri Schwarz 239.992.9119 | </span>
+										)}
 										{title || "Notification Title"}
 									</h4>
 									<p className="text-sm text-muted-foreground">
