@@ -19,7 +19,7 @@ import {
 	SelectItem,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2 } from "lucide-react";
+import { Trash2, Edit2, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import CityList from "@/data/cities";
 
@@ -39,6 +39,9 @@ export default function PropertyCriteria({
 	const [selectedCommunity, setSelectedCommunity] = useState("");
 	const [comSearch, setComSearch] = useState("");
 	const [citySearch, setCitySearch] = useState("");
+
+	const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+	const [editingTitleValue, setEditingTitleValue] = useState("");
 
 	const [criteria, setCriteria] = useState({
 		city: "",
@@ -133,6 +136,17 @@ export default function PropertyCriteria({
 			await refreshLead();
 		} catch {
 			toast.error("Failed to delete criteria");
+		}
+	};
+
+	const handleEditTitle = async (id: string) => {
+		try {
+			await axios.put(`/api/leads/${lead.id || lead._id}/criteria/${id}`, { name: editingTitleValue });
+			toast.success("Title updated successfully!");
+			setEditingTitleId(null);
+			await refreshLead();
+		} catch {
+			toast.error("Failed to update title");
 		}
 	};
 
@@ -324,8 +338,36 @@ export default function PropertyCriteria({
 								key={c._id}
 								className="p-2 border rounded flex items-center justify-between">
 								<div className="flex flex-col w-full text-sm">
-									<p>
-										<b>{c.city}</b> • {c.developmentName}
+									{editingTitleId === c._id ? (
+										<div className="flex items-center gap-2 mb-1">
+											<Input 
+												value={editingTitleValue} 
+												onChange={(e) => setEditingTitleValue(e.target.value)} 
+												className="h-7 text-xs py-0"
+											/>
+											<Button onClick={() => handleEditTitle(c._id)} size="sm" className="h-7 px-2">
+												<Check className="w-3 h-3" />
+											</Button>
+											<Button onClick={() => setEditingTitleId(null)} size="sm" variant="outline" className="h-7 px-2">
+												<X className="w-3 h-3" />
+											</Button>
+										</div>
+									) : (
+										<p className="font-bold flex items-center gap-2">
+											{c.name || `${c.city} • ${c.developmentName}`}
+											<button 
+												onClick={() => {
+													setEditingTitleId(c._id);
+													setEditingTitleValue(c.name || `${c.city} • ${c.developmentName}`);
+												}}
+												className="text-gray-400 hover:text-blue-500"
+											>
+												<Edit2 className="w-3 h-3" />
+											</button>
+										</p>
+									)}
+									<p className="text-gray-500 text-xs mt-1">
+										<b>{c.city}</b> {c.developmentName ? `• ${c.developmentName}` : ""}
 									</p>
 									<p>
 										{c.beds} Beds / {c.baths} Baths
@@ -340,12 +382,14 @@ export default function PropertyCriteria({
 										<p>Features: {Array.isArray(c.features) ? c.features.join(", ") : c.features}</p>
 									)}
 								</div>
-								<Button
-									onClick={() => handleDeleteCriteria(c._id)}
-									variant="destructive"
-									size="icon">
-									<Trash2 className="w-4 h-4" />
-								</Button>
+								<div className="flex flex-col gap-2">
+									<Button
+										onClick={() => handleDeleteCriteria(c._id)}
+										variant="destructive"
+										size="icon">
+										<Trash2 className="w-4 h-4" />
+									</Button>
+								</div>
 							</div>
 						))}
 					</div>

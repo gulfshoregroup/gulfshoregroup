@@ -54,6 +54,7 @@ async function getMappedLead(id: string) {
 		const f = typeof s.filters === "string" ? JSON.parse(s.filters) : s.filters || {};
 		return {
 			_id: s.id,
+			name: s.name,
 			city: f.city || f.City || "",
 			developmentName: f.developmentName || f.community || "",
 			beds: f.beds || "",
