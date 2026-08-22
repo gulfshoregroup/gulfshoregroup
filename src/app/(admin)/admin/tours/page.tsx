@@ -49,6 +49,8 @@ import {
 	Eye,
 	User,
 	MessageSquare,
+	ChevronLeft,
+	ChevronRight
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -64,12 +66,20 @@ export default function ToursPage() {
 	const [viewModalTour, setViewModalTour] = useState<any | null>(null);
 	const [isViewOpen, setIsViewOpen] = useState(false);
 
+	const [page, setPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [totalCount, setTotalCount] = useState(0);
+	const limit = 20;
+
 	const fetchTours = async () => {
 		try {
-			const res = await fetch("/api/admin/tours");
+			setLoading(true);
+			const res = await fetch(`/api/admin/tours?page=${page}&limit=${limit}`);
 			const json = await res.json();
 			if (json.success) {
 				setTourRequests(json.tours);
+				setTotalCount(json.total || 0);
+				setTotalPages(json.totalPages || 1);
 			}
 		} catch (e) {
 			console.error("Error fetching tours:", e);
@@ -81,7 +91,7 @@ export default function ToursPage() {
 
 	useEffect(() => {
 		fetchTours();
-	}, []);
+	}, [page]);
 
 	// Handle Status Change
 	const handleStatusChange = async (tourId: string, newStatus: string) => {
@@ -173,7 +183,7 @@ export default function ToursPage() {
 			<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 				<Card>
 					<CardContent className="pt-6 text-center">
-						<div className="text-3xl font-bold text-foreground">{tourRequests.length}</div>
+						<div className="text-3xl font-bold text-foreground">{totalCount}</div>
 						<p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
 							<Clock className="h-4 w-4 text-blue-500" /> Total Tours
 						</p>
@@ -462,6 +472,33 @@ export default function ToursPage() {
 
 						</div>
 					)}
+
+					{/* Pagination Controls */}
+					<div className="flex items-center justify-between mt-4 px-2">
+						<span className="text-xs text-muted-foreground">
+							Page {page} of {totalPages} (Showing {tourRequests.length} of {totalCount} total)
+						</span>
+						<div className="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setPage((p) => Math.max(p - 1, 1))}
+								disabled={page === 1}
+							>
+								<ChevronLeft className="h-4 w-4 mr-1" />
+								Previous
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+								disabled={page === totalPages || totalPages === 0}
+							>
+								Next
+								<ChevronRight className="h-4 w-4 ml-1" />
+							</Button>
+						</div>
+					</div>
 				</CardContent>
 			</Card>
 

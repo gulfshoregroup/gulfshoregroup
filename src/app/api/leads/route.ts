@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: Request) {
 	try {
-		const leads = await prisma.lead.findMany({
-			orderBy: {
-				createdAt: "desc",
-			},
-		});
+		const { searchParams } = new URL(req.url);
+		const page = parseInt(searchParams.get("page") || "1");
+		const limit = parseInt(searchParams.get("limit") || "20");
+		const skip = (page - 1) * limit;
+
+		const [leads, total] = await Promise.all([
+			prisma.lead.findMany({
+				orderBy: {
+					createdAt: "desc",
+				},
+				skip,
+				take: limit,
+			}),
+			prisma.lead.count(),
+		]);
 
 		// Parse tags JSON + provide lastContactedAt fallback
 		const mapped = leads.map((lead) => ({
@@ -21,7 +31,15 @@ export async function GET() {
 			lastContactedAt: lead.lastContactedAt ?? lead.createdAt,
 		}));
 
-		return NextResponse.json(mapped);
+		const totalPages = Math.ceil(total / limit);
+
+		return NextResponse.json({ 
+			success: true,
+			data: mapped,
+			total,
+			page,
+			totalPages 
+		});
 	} catch (error) {
 		console.error("Error fetching leads:", error);
 		return NextResponse.json(

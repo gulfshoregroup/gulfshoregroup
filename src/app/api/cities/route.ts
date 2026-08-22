@@ -4,14 +4,18 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
 	try {
 		const queryParams = req.nextUrl.searchParams;
-		const limit = Number(queryParams.get("limit")) || 400;
+		const page = parseInt(queryParams.get("page") || "1");
+		const limit = parseInt(queryParams.get("limit") || "20");
+		const skip = (page - 1) * limit;
 
 		// Fetch cities
 		const res = await prisma.city.findMany({
 			orderBy: { id: "desc" },
+			skip,
 			take: limit,
 		});
 		const totalCount = await prisma.city.count();
+		const totalPages = Math.ceil(totalCount / limit);
 
 		// Count properties per city from the Property table (City is a plain string)
 		const propertyCounts = await prisma.property.groupBy({
@@ -41,6 +45,8 @@ export async function GET(req: NextRequest) {
 			success: true,
 			data: mappedCities,
 			totalCount,
+			page,
+			totalPages,
 		});
 	} catch (error: any) {
 		console.error("Error fetching cities:", error);

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Edit, Plus } from "lucide-react";
+import { Search, Edit, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import capitalizeWords from "@/hooks/capitalizeFirstLetter";
@@ -45,6 +45,10 @@ export default function CitiesPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [totalCount, setTotalCount] = useState(0);
+
+	const [page, setPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const limit = 20;
 
 	const [searchTerm, setSearchTerm] = useState("");
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -110,10 +114,15 @@ export default function CitiesPage() {
 
 	const fetchCities = async () => {
 		try {
-			const res = await axios.get("/api/cities");
+			setLoading(true);
+			const res = await axios.get(`/api/cities?page=${page}&limit=${limit}`);
 			setCities(res.data.data);
 			setTotalCount(res.data.totalCount);
+			setTotalPages(res.data.totalPages || 1);
 		} catch (error) {}
+		finally {
+			setLoading(false);
+		}
 	};
 
 	const filteredRequest = cities?.filter((request) => {
@@ -125,19 +134,8 @@ export default function CitiesPage() {
 	});
 
 	useEffect(() => {
-		const fetchData = async () => {
-			setLoading(true);
-			try {
-				await fetchCities();
-			} catch (error: any) {
-				setError(error);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchData();
-	}, []);
+		fetchCities();
+	}, [page]);
 
 	return (
 		<div className="space-y-6 px-4 my-5">
@@ -203,6 +201,34 @@ export default function CitiesPage() {
 					</TableBody>
 				</Table>
 			</div>
+
+			{/* Pagination Controls */}
+			<div className="flex items-center justify-between mt-4 px-2">
+				<span className="text-sm text-muted-foreground">
+					Page {page} of {totalPages} (Showing {cities?.length || 0} of {totalCount} total)
+				</span>
+				<div className="flex gap-2">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => setPage((p) => Math.max(p - 1, 1))}
+						disabled={page === 1}
+					>
+						<ChevronLeft className="h-4 w-4 mr-1" />
+						Previous
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+						disabled={page === totalPages || totalPages === 0}
+					>
+						Next
+						<ChevronRight className="h-4 w-4 ml-1" />
+					</Button>
+				</div>
+			</div>
+			
 			<Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
 				<DialogContent className="sm:max-w-[700px] w-[95vw] rounded-xl max-h-[90vh] overflow-hidden flex flex-col">
 					<form onSubmit={handleCreateCity} className="flex flex-col h-full overflow-hidden">

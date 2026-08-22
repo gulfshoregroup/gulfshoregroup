@@ -19,7 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Search, Plus, Phone, Mail, Calendar, Eye, Trash2, Edit } from "lucide-react";
+import { Search, Plus, Phone, Mail, Calendar, Eye, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { IPrismaLead } from "@/models/leads";
 import { toast } from "sonner";
 import {
@@ -103,6 +103,11 @@ export default function LeadsPage() {
 	const [leads, setLeads] = useState<IPrismaLead[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+
+	const [page, setPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [totalCount, setTotalCount] = useState(0);
+	const limit = 20;
 
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const [quickTagLeadId, setQuickTagLeadId] = useState<string | null>(null);
@@ -211,10 +216,13 @@ export default function LeadsPage() {
 	useEffect(() => {
 		const fetchLeads = async () => {
 			try {
-				const res = await fetch("/api/leads");
+				setLoading(true);
+				const res = await fetch(`/api/leads?page=${page}&limit=${limit}`);
 				if (!res.ok) throw new Error("Failed to fetch leads");
 				const json = await res.json();
-				setLeads(json);
+				setLeads(json.data || []);
+				setTotalCount(json.total || 0);
+				setTotalPages(json.totalPages || 1);
 			} catch (err: any) {
 				setError(err.message);
 			} finally {
@@ -222,7 +230,7 @@ export default function LeadsPage() {
 			}
 		};
 		fetchLeads();
-	}, []);
+	}, [page]);
 
 	// -------------------- FILTERS --------------------
 	const filteredLeads = leads.filter((lead) => {
@@ -552,6 +560,33 @@ export default function LeadsPage() {
 							</p>
 						</div>
 					)}
+
+					{/* Pagination Controls */}
+					<div className="flex items-center justify-between mt-4 px-2">
+						<span className="text-xs text-muted-foreground">
+							Page {page} of {totalPages} (Showing {leads.length} of {totalCount} total)
+						</span>
+						<div className="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setPage((p) => Math.max(p - 1, 1))}
+								disabled={page === 1}
+							>
+								<ChevronLeft className="h-4 w-4 mr-1" />
+								Previous
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+								disabled={page === totalPages || totalPages === 0}
+							>
+								Next
+								<ChevronRight className="h-4 w-4 ml-1" />
+							</Button>
+						</div>
+					</div>
 				</CardContent>
 			</Card>
 

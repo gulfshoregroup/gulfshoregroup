@@ -48,6 +48,8 @@ import {
 	MessageSquare,
 	Building2,
 	TrendingUp,
+	ChevronLeft,
+	ChevronRight
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -63,12 +65,20 @@ export default function ValuationsPage() {
 	const [selectedValuation, setSelectedValuation] = useState<any | null>(null);
 	const [isViewOpen, setIsViewOpen] = useState(false);
 
+	const [page, setPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [totalCount, setTotalCount] = useState(0);
+	const limit = 20;
+
 	const fetchValuations = async () => {
 		try {
-			const res = await fetch("/api/admin/valuations");
+			setLoading(true);
+			const res = await fetch(`/api/admin/valuations?page=${page}&limit=${limit}`);
 			const json = await res.json();
 			if (json.success) {
 				setValuations(json.valuations);
+				setTotalCount(json.total || 0);
+				setTotalPages(json.totalPages || 1);
 			}
 		} catch (e) {
 			console.error("Error fetching valuations:", e);
@@ -80,7 +90,7 @@ export default function ValuationsPage() {
 
 	useEffect(() => {
 		fetchValuations();
-	}, []);
+	}, [page]);
 
 	// Handle Status Change
 	const handleStatusChange = async (id: string, newStatus: string) => {
@@ -168,7 +178,7 @@ export default function ValuationsPage() {
 			<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 				<Card>
 					<CardContent className="pt-6 text-center">
-						<div className="text-3xl font-bold text-foreground">{valuations.length}</div>
+						<div className="text-3xl font-bold text-foreground">{totalCount}</div>
 						<p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
 							<Home className="h-4 w-4 text-amber-600" /> Total Seller Requests
 						</p>
@@ -367,6 +377,33 @@ export default function ValuationsPage() {
 							</Table>
 						</div>
 					)}
+
+					{/* Pagination Controls */}
+					<div className="flex items-center justify-between mt-4 px-2">
+						<span className="text-xs text-muted-foreground">
+							Page {page} of {totalPages} (Showing {valuations.length} of {totalCount} total)
+						</span>
+						<div className="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setPage((p) => Math.max(p - 1, 1))}
+								disabled={page === 1}
+							>
+								<ChevronLeft className="h-4 w-4 mr-1" />
+								Previous
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+								disabled={page === totalPages || totalPages === 0}
+							>
+								Next
+								<ChevronRight className="h-4 w-4 ml-1" />
+							</Button>
+						</div>
+					</div>
 				</CardContent>
 			</Card>
 

@@ -4,27 +4,33 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
 	try {
 		const { searchParams } = new URL(req.url);
-		const limit = parseInt(searchParams.get("limit") || "100");
+		const page = parseInt(searchParams.get("page") || "1");
+		const limit = parseInt(searchParams.get("limit") || "20");
+		const skip = (page - 1) * limit;
 		
-		const wishlists = await prisma.savedProperty.findMany({
-			take: limit,
-			orderBy: {
-				createdAt: "desc"
-			},
-			include: {
-				property: {
-					select: {
-						MLSNumber: true,
-					}
+		const [wishlists, totalCount] = await Promise.all([
+			prisma.savedProperty.findMany({
+				skip,
+				take: limit,
+				orderBy: {
+					createdAt: "desc"
 				},
-				lead: {
-					select: {
-						email: true,
-						fullName: true,
+				include: {
+					property: {
+						select: {
+							MLSNumber: true,
+						}
+					},
+					lead: {
+						select: {
+							email: true,
+							fullName: true,
+						}
 					}
 				}
-			}
-		});
+			}),
+			prisma.savedProperty.count()
+		]);
 
 		const mappedData = wishlists.map((w) => ({
 			id: w.id,
@@ -33,7 +39,15 @@ export async function GET(req: NextRequest) {
 			createdAt: w.createdAt.toISOString()
 		}));
 
-		return NextResponse.json({ success: true, data: mappedData });
+		const totalPages = Math.ceil(totalCount / limit);
+
+		return NextResponse.json({ 
+			success: true, 
+			data: mappedData,
+			total: totalCount,
+			page,
+			totalPages
+		});
 	} catch (error: any) {
 		console.error("Error fetching wishlists:", error);
 		return NextResponse.json(

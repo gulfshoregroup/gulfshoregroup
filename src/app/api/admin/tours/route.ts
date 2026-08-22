@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: Request) {
 	try {
-		const tours = await prisma.scheduleTour.findMany({
-			orderBy: {
-				createdAt: "desc",
-			},
-		});
+		const { searchParams } = new URL(req.url);
+		const page = parseInt(searchParams.get("page") || "1");
+		const limit = parseInt(searchParams.get("limit") || "20");
+		const skip = (page - 1) * limit;
+
+		const [tours, totalCount] = await Promise.all([
+			prisma.scheduleTour.findMany({
+				orderBy: {
+					createdAt: "desc",
+				},
+				skip,
+				take: limit,
+			}),
+			prisma.scheduleTour.count()
+		]);
 
 		const propertyIds = tours.map((t) => t.propertyId).filter(Boolean);
 		const emails = tours.map((t) => t.email.toLowerCase().trim()).filter(Boolean);
@@ -99,7 +109,15 @@ export async function GET() {
 		});
 
 
-		return NextResponse.json({ success: true, tours: mappedTours });
+		const totalPages = Math.ceil(totalCount / limit);
+
+		return NextResponse.json({ 
+			success: true, 
+			tours: mappedTours,
+			total: totalCount,
+			page,
+			totalPages
+		});
 	} catch (error: any) {
 		console.error("Error fetching admin tours:", error);
 		return NextResponse.json(

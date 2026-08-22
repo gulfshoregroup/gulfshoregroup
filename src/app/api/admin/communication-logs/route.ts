@@ -4,13 +4,31 @@ import prisma from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: Request) {
 	try {
-		const logs = await prisma.communicationLog.findMany({
-			orderBy: { createdAt: "desc" },
-			take: 100, // Limit to 100 recent logs for performance
+		const { searchParams } = new URL(req.url);
+		const page = parseInt(searchParams.get("page") || "1");
+		const limit = parseInt(searchParams.get("limit") || "20");
+		const skip = (page - 1) * limit;
+
+		const [logs, total] = await Promise.all([
+			prisma.communicationLog.findMany({
+				orderBy: { createdAt: "desc" },
+				skip,
+				take: limit,
+			}),
+			prisma.communicationLog.count(),
+		]);
+
+		const totalPages = Math.ceil(total / limit);
+
+		return NextResponse.json({ 
+			success: true,
+			logs, 
+			total,
+			page,
+			totalPages
 		});
-		return NextResponse.json({ logs });
 	} catch (error: any) {
 		console.error("Error fetching communication logs:", error);
 		return NextResponse.json(

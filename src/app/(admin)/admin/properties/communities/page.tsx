@@ -3,14 +3,9 @@
 
 import Link from "next/link";
 import {
-	Pagination,
-	PaginationContent,
-	PaginationEllipsis,
-	PaginationItem,
-	PaginationLink,
-	PaginationNext,
-	PaginationPrevious,
-} from "@/components/ui/pagination";
+	ChevronLeft,
+	ChevronRight
+} from "lucide-react";
 import {
 	Table,
 	TableBody,
@@ -124,7 +119,7 @@ export default function CommunitiesPage() {
 		}
 	};
 
-	const limit = 2000;
+	const limit = 20;
 
 	// Fetch communities
 	const fetchCommunities = async (pageNum = 1) => {
@@ -285,36 +280,32 @@ export default function CommunitiesPage() {
 				)}
 			</div>
 
-			{/* Pagination */}
-			{totalPages > 1 && (
-				<Pagination>
-					<PaginationContent>
-						{page > 1 && (
-							<PaginationItem>
-								<PaginationPrevious
-									onClick={() => pageHandler(page - 1)}
-									className={
-										page === 1 ? "pointer-events-none opacity-50 cursor-pointer" : "cursor-pointer"
-									}
-								/>
-							</PaginationItem>
-						)}
-
-						{page < totalPages && (
-							<PaginationItem>
-								<PaginationNext
-									onClick={() => pageHandler(page + 1)}
-									className={
-										page === totalPages
-											? "pointer-events-none opacity-50 cursor-pointer"
-											: "cursor-pointer"
-									}
-								/>
-							</PaginationItem>
-						)}
-					</PaginationContent>
-				</Pagination>
-			)}
+			{/* Pagination Controls */}
+			<div className="flex items-center justify-between mt-4 px-2">
+				<span className="text-sm text-muted-foreground">
+					Page {page} of {totalPages} (Showing {communities?.length || 0} of {totalCount} total)
+				</span>
+				<div className="flex gap-2">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => pageHandler(Math.max(page - 1, 1))}
+						disabled={page === 1}
+					>
+						<ChevronLeft className="h-4 w-4 mr-1" />
+						Previous
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => pageHandler(Math.min(page + 1, totalPages))}
+						disabled={page === totalPages || totalPages === 0}
+					>
+						Next
+						<ChevronRight className="h-4 w-4 ml-1" />
+					</Button>
+				</div>
+			</div>
 
 			<Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
 				<DialogContent className="sm:max-w-[700px] w-[95vw] rounded-xl max-h-[90vh] overflow-hidden flex flex-col">

@@ -3,18 +3,34 @@ import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
 	try {
-		const users = await prisma.lead.findMany({
-			where: {
-				userId: {
-					not: null,
+		const { searchParams } = new URL(req.url);
+		const page = parseInt(searchParams.get("page") || "1");
+		const limit = parseInt(searchParams.get("limit") || "20");
+		const skip = (page - 1) * limit;
+
+		const [users, total] = await Promise.all([
+			prisma.lead.findMany({
+				where: {
+					userId: {
+						not: null,
+					},
 				},
-			},
-			orderBy: {
-				createdAt: "desc",
-			},
-		});
+				orderBy: {
+					createdAt: "desc",
+				},
+				skip,
+				take: limit,
+			}),
+			prisma.lead.count({
+				where: {
+					userId: {
+						not: null,
+					},
+				}
+			}),
+		]);
 
 		// Map id to _id for admin frontend compatibility
 		const mappedUsers = users.map((u) => ({
@@ -26,7 +42,15 @@ export async function GET() {
 			isActive: true,
 		}));
 
-		return NextResponse.json({ success: true, users: mappedUsers });
+		const totalPages = Math.ceil(total / limit);
+
+		return NextResponse.json({ 
+			success: true, 
+			users: mappedUsers,
+			total,
+			page,
+			totalPages
+		});
 	} catch (error: any) {
 		console.error("Error fetching users:", error);
 		return NextResponse.json(

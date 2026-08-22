@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Mail, MessageSquare, Send, MailCheck, Activity, AlertTriangle } from "lucide-react";
+import { Search, Mail, MessageSquare, Send, MailCheck, Activity, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -33,12 +33,19 @@ export default function CommunicationLogsPage() {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [activeTab, setActiveTab] = useState("all"); // "all", "email", "sms"
 
+	const [page, setPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [totalCount, setTotalCount] = useState(0);
+	const limit = 20;
+
 	const fetchLogs = async () => {
 		try {
 			setLoading(true);
-			const res = await axios.get("/api/admin/communication-logs");
+			const res = await axios.get(`/api/admin/communication-logs?page=${page}&limit=${limit}`);
 			if (res.data && res.data.logs) {
 				setLogs(res.data.logs);
+				setTotalCount(res.data.total || 0);
+				setTotalPages(res.data.totalPages || 1);
 			}
 		} catch (error: any) {
 			console.error("Error fetching logs:", error);
@@ -54,7 +61,7 @@ export default function CommunicationLogsPage() {
 		// Refresh logs periodically
 		const interval = setInterval(fetchLogs, 30000);
 		return () => clearInterval(interval);
-	}, []);
+	}, [page]);
 
 	// Search Filter
 	const filteredLogs = logs.filter((log) => {
@@ -239,6 +246,31 @@ export default function CommunicationLogsPage() {
 						)}
 					</TableBody>
 				</Table>
+			</div>
+
+			{/* Pagination Controls */}
+			<div className="flex items-center justify-between mt-4">
+				<span className="text-xs text-muted-foreground">
+					Page {page} of {totalPages} (Showing {logs.length} of {totalCount} total)
+				</span>
+				<div className="flex gap-2">
+					<button
+						className="inline-flex items-center justify-center rounded-md text-sm font-medium border bg-background hover:bg-muted h-9 px-3 disabled:opacity-50"
+						onClick={() => setPage((p) => Math.max(p - 1, 1))}
+						disabled={page === 1}
+					>
+						<ChevronLeft className="h-4 w-4 mr-1" />
+						Previous
+					</button>
+					<button
+						className="inline-flex items-center justify-center rounded-md text-sm font-medium border bg-background hover:bg-muted h-9 px-3 disabled:opacity-50"
+						onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+						disabled={page === totalPages || totalPages === 0}
+					>
+						Next
+						<ChevronRight className="h-4 w-4 ml-1" />
+					</button>
+				</div>
 			</div>
 		</div>
 	);

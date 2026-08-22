@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: Request) {
 	try {
 		// Fetch Home Valuation contact requests and seller leads
 		const [valuationRequests, sellerLeads] = await Promise.all([
@@ -71,7 +71,25 @@ export async function GET() {
 			}
 		});
 
-		return NextResponse.json({ success: true, valuations: formattedValuations });
+		// Sort by createdAt descending
+		formattedValuations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+		const { searchParams } = new URL(req.url);
+		const page = parseInt(searchParams.get("page") || "1");
+		const limit = parseInt(searchParams.get("limit") || "20");
+		const skip = (page - 1) * limit;
+
+		const totalCount = formattedValuations.length;
+		const paginatedValuations = formattedValuations.slice(skip, skip + limit);
+		const totalPages = Math.ceil(totalCount / limit);
+
+		return NextResponse.json({ 
+			success: true, 
+			valuations: paginatedValuations,
+			total: totalCount,
+			page,
+			totalPages
+		});
 	} catch (error: any) {
 		console.error("Error fetching admin home valuations:", error);
 		return NextResponse.json(

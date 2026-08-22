@@ -34,6 +34,8 @@ import {
 	MessageCircle,
 	Code,
 	Code2,
+	ChevronLeft,
+	ChevronRight
 } from "lucide-react";
 import Link from "next/link";
 import { IContactRequest } from "@/models/contact";
@@ -78,16 +80,24 @@ export default function ContactRequestsPage() {
 	const [selectedRequest, setSelectedRequest] = useState<IContactRequest | null>(null);
 	const [dialogOpen, setDialogOpen] = useState(false);
 
+	const [page, setPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [totalCount, setTotalCount] = useState(0);
+	const limit = 20;
+
 	// Fetch contact requests
 	useEffect(() => {
 		const fetchContactRequests = async () => {
 			try {
-				const res = await fetch("/api/contact"); // use your real API route
+				setLoading(true);
+				const res = await fetch(`/api/contact?page=${page}&limit=${limit}`); // use your real API route
 				if (!res.ok)
 					throw new Error("Failed to fetch contact requests");
 				const json = await res.json();
 
 				setContactReq(json.data.requests || []);
+				setTotalCount(json.data.totalRequests || 0);
+				setTotalPages(json.data.totalPages || 1);
 			} catch (err: any) {
 				setError(err.message);
 			} finally {
@@ -95,7 +105,7 @@ export default function ContactRequestsPage() {
 			}
 		};
 		fetchContactRequests();
-	}, []);
+	}, [page]);
 
 	const filteredRequest = contactReq.filter((request) => {
 		const matchesSearch =
@@ -156,7 +166,7 @@ export default function ContactRequestsPage() {
 				<Card>
 					<CardContent className="pt-6 text-center">
 						<div className="text-3xl font-bold text-foreground">
-							{contactReq.length}
+							{totalCount}
 						</div>
 						<p className="text-sm text-muted-foreground mt-1">
 							Total Requests
@@ -348,6 +358,33 @@ export default function ContactRequestsPage() {
 								</p>
 							</div>
 						)}
+
+						{/* Pagination Controls */}
+						<div className="flex items-center justify-between mt-4 px-2">
+							<span className="text-xs text-muted-foreground">
+								Page {page} of {totalPages} (Showing {contactReq.length} of {totalCount} total)
+							</span>
+							<div className="flex gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setPage((p) => Math.max(p - 1, 1))}
+									disabled={page === 1}
+								>
+									<ChevronLeft className="h-4 w-4 mr-1" />
+									Previous
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+									disabled={page === totalPages || totalPages === 0}
+								>
+									Next
+									<ChevronRight className="h-4 w-4 ml-1" />
+								</Button>
+							</div>
+						</div>
 					</div>
 				</CardContent>
 			</Card>
