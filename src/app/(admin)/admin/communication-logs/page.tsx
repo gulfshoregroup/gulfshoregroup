@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Mail, MessageSquare } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Search, Mail, MessageSquare, Send, MailCheck, Activity, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -82,6 +83,11 @@ export default function CommunicationLogsPage() {
 		}
 	};
 
+	const totalEmails = logs.filter(l => l.type?.toLowerCase() === 'email').length;
+	const totalDelivered = logs.filter(l => l.type?.toLowerCase() === 'email' && (l.status.toLowerCase() === 'delivered' || l.status.toLowerCase() === 'opened' || l.status.toLowerCase() === 'clicked')).length;
+	const totalBounced = logs.filter(l => l.type?.toLowerCase() === 'email' && (l.status.toLowerCase() === 'bounced' || l.status.toLowerCase() === 'failed' || l.status.toLowerCase() === 'undelivered')).length;
+	const deliveryRate = totalEmails > 0 ? Math.round((totalDelivered / totalEmails) * 100) : 0;
+
 	return (
 		<div className="space-y-6 px-4 my-5">
 			<div className="flex items-center justify-between">
@@ -91,6 +97,46 @@ export default function CommunicationLogsPage() {
 						Track the delivery and open status of all system emails and SMS messages.
 					</p>
 				</div>
+			</div>
+
+			{/* Summary Cards */}
+			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+				<Card>
+					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+						<CardTitle className="text-sm font-medium">Total Emails Sent</CardTitle>
+						<Send className="h-4 w-4 text-muted-foreground" />
+					</CardHeader>
+					<CardContent>
+						<div className="text-2xl font-bold">{totalEmails}</div>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+						<CardTitle className="text-sm font-medium">Delivered Successfully</CardTitle>
+						<MailCheck className="h-4 w-4 text-emerald-500" />
+					</CardHeader>
+					<CardContent>
+						<div className="text-2xl font-bold">{totalDelivered}</div>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+						<CardTitle className="text-sm font-medium">Delivery Rate</CardTitle>
+						<Activity className="h-4 w-4 text-blue-500" />
+					</CardHeader>
+					<CardContent>
+						<div className="text-2xl font-bold">{deliveryRate}%</div>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+						<CardTitle className="text-sm font-medium">Bounced / Failed</CardTitle>
+						<AlertTriangle className="h-4 w-4 text-red-500" />
+					</CardHeader>
+					<CardContent>
+						<div className="text-2xl font-bold">{totalBounced}</div>
+					</CardContent>
+				</Card>
 			</div>
 
 			{/* Tabs & Search */}
