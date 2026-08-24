@@ -131,8 +131,64 @@ Photos Uploaded: ${images.length > 0 ? images.join(", ") : "No photos uploaded."
 			},
 		});
 
-		// Future Notification Hook placeholder for Milestone 2
-		console.log(`[Notification Hook] Seller Lead captured for ${cleanEmail}. Triggering email/SMS sequences in Milestone 2.`);
+		// 6. Send Email Notifications via Resend
+		const resendApiKey = process.env.RESEND_API_KEY;
+		const fromEmail = process.env.FROM_EMAIL || process.env.RESEND_FROM_EMAIL || "Gulfshore Group <noreply@gulfshoregroup.com>";
+		const adminEmail = process.env.ADMIN_EMAIL || process.env.ADMIN_ALERT_EMAIL || "mailbox@gulfshoregroup.com";
+		const resolvedName = `${cleanFirstName} ${cleanLastName}`.trim() || "Valued Client";
+
+		if (resendApiKey) {
+			try {
+				const { Resend } = await import("resend");
+				const resendClient = new Resend(resendApiKey);
+
+				// 6a. User Confirmation Email
+				if (cleanEmail) {
+					try {
+						await resendClient.emails.send({
+							from: fromEmail,
+							to: [cleanEmail],
+							subject: `Home Valuation Request Received - Gulfshore Group`,
+							html: `
+								<div style="font-family: Arial, sans-serif; padding: 20px;">
+									<h2>Home Valuation Request Received</h2>
+									<p>Dear ${resolvedName},</p>
+									<p>Thank you for reaching out! We have successfully received your request for a home valuation for your property at <strong>${formattedAddress}</strong>.</p>
+									<p>Our expert agents are currently reviewing your property details and will be in touch with a comprehensive market analysis shortly.</p>
+								</div>
+							`,
+						});
+					} catch (userErr) {
+						console.error("[Valuation API] User email failed:", userErr);
+					}
+				}
+
+				// 6b. Admin Notification Email
+				if (adminEmail) {
+					try {
+						await resendClient.emails.send({
+							from: fromEmail,
+							to: [adminEmail],
+							subject: `[New Seller Lead] Home Valuation Request from ${resolvedName}`,
+							html: `
+								<div style="font-family: Arial, sans-serif; padding: 20px;">
+									<h2>New Home Valuation Request (Seller Lead)</h2>
+									<p><strong>Name:</strong> ${resolvedName}</p>
+									<p><strong>Email:</strong> ${cleanEmail}</p>
+									<p><strong>Phone:</strong> ${cleanPhone || "Not provided"}</p>
+									<hr/>
+									<p style="white-space: pre-wrap;">${message}</p>
+								</div>
+							`,
+						});
+					} catch (adminErr) {
+						console.error("[Valuation API] Admin email failed:", adminErr);
+					}
+				}
+			} catch (emailInitErr) {
+				console.error("[Valuation API] Email service error:", emailInitErr);
+			}
+		}
 
 		return NextResponse.json({
 			success: true,
