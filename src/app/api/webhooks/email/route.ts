@@ -317,7 +317,7 @@ export async function POST(req: Request) {
 			messageId = payloadData.email_id || payloadData.id || body.email_id || body.id;
 		}
 
-		// Extract clean email address if passed like "User Name <user@example.com>"
+		// Clean up the fromEmail address
 		let cleanFromEmail = fromEmail || "";
 		const emailMatch = cleanFromEmail.match(/<([^>]+)>/);
 		if (emailMatch && emailMatch[1]) {
@@ -328,6 +328,35 @@ export async function POST(req: Request) {
 
 		if (!cleanFromEmail) {
 			return NextResponse.json({ error: "Missing sender email address" }, { status: 400 });
+		}
+
+		// LOOP PREVENTION: Ignore automated emails, bounces, and our own emails
+		const lowerEmail = cleanFromEmail.toLowerCase();
+		if (
+			lowerEmail.includes("noreply") || 
+			lowerEmail.includes("no-reply") || 
+			lowerEmail.includes("mailer-daemon") || 
+			lowerEmail.includes("postmaster") || 
+			lowerEmail.includes("bounce") ||
+			lowerEmail.includes("@updates.gulfshoregroup.com")
+		) {
+			console.log(`[Loop Prevention] Ignored automated sender: ${cleanFromEmail}`);
+			return NextResponse.json({ success: true, ignored: true, reason: "automated_sender" });
+		}
+
+		// LOOP PREVENTION: Check headers for auto-replies (Out of Office)
+		const headers = payloadData.headers || body.headers || {};
+		const headerString = typeof headers === 'object' ? JSON.stringify(headers).toLowerCase() : String(headers).toLowerCase();
+		
+		if (
+			headerString.includes('"auto-submitted":"auto-replied"') || 
+			headerString.includes('"auto-submitted":"auto-generated"') ||
+			headerString.includes('"x-autoreply":"yes"') ||
+			headerString.includes('"precedence":"bulk"') ||
+			headerString.includes('"precedence":"auto_reply"')
+		) {
+			console.log(`[Loop Prevention] Ignored auto-responder from: ${cleanFromEmail}`);
+			return NextResponse.json({ success: true, ignored: true, reason: "auto_responder_headers" });
 		}
 
 		// Clean Subject line for Gmail threading: Ensure a single "Re: " prefix

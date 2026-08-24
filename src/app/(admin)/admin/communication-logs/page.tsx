@@ -11,6 +11,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { Search, Mail, MessageSquare, Send, MailCheck, Activity, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -22,6 +28,7 @@ interface CommunicationLog {
 	type: string;
 	to: string;
 	subject: string | null;
+	message: string | null;
 	status: string;
 	createdAt: string;
 	updatedAt: string;
@@ -32,6 +39,7 @@ export default function CommunicationLogsPage() {
 	const [loading, setLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [activeTab, setActiveTab] = useState("all"); // "all", "email", "sms"
+	const [selectedLog, setSelectedLog] = useState<CommunicationLog | null>(null);
 
 	const [page, setPage] = useState(1);
 	const [totalPages, setTotalPages] = useState(1);
@@ -215,7 +223,11 @@ export default function CommunicationLogsPage() {
 							</TableRow>
 						) : (
 							filteredLogs.map((log) => (
-								<TableRow key={log.id}>
+								<TableRow 
+									key={log.id} 
+									className="cursor-pointer hover:bg-muted" 
+									onClick={() => setSelectedLog(log)}
+								>
 									<TableCell>
 										<div className="flex items-center gap-2 font-medium">
 											{log.type.toLowerCase() === "email" ? (
@@ -272,6 +284,42 @@ export default function CommunicationLogsPage() {
 					</button>
 				</div>
 			</div>
+
+			{/* Message Content Modal */}
+			<Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
+				<DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+					<DialogHeader>
+						<DialogTitle>Message Content</DialogTitle>
+					</DialogHeader>
+					<div className="space-y-4">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm bg-muted/30 p-4 rounded-md border">
+							<div>
+								<span className="font-semibold text-muted-foreground mr-2">To:</span>
+								{selectedLog?.to}
+							</div>
+							<div>
+								<span className="font-semibold text-muted-foreground mr-2">Status:</span>
+								<Badge variant="outline" className={getStatusColor(selectedLog?.status || "")}>
+									{selectedLog?.status.toUpperCase()}
+								</Badge>
+							</div>
+							<div className="col-span-1 md:col-span-2">
+								<span className="font-semibold text-muted-foreground mr-2">Subject:</span>
+								{selectedLog?.subject || "N/A"}
+							</div>
+						</div>
+						<div className="border rounded-md p-4 bg-white text-sm shadow-sm">
+							{selectedLog?.type.toLowerCase() === "email" ? (
+								<div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: selectedLog?.message || "No content found." }} />
+							) : (
+								<pre className="whitespace-pre-wrap font-sans text-base">
+									{selectedLog?.message || "No content found."}
+								</pre>
+							)}
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

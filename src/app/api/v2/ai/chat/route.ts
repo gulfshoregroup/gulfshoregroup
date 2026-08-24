@@ -594,7 +594,9 @@ If the user wants to schedule a property tour, viewing, home valuation, or appoi
 
 				if (toolResults && toolResults.length > 0) {
 					const resultObj = toolResults[0] as any;
-					const toolArgs = toolCalls && toolCalls.length > 0 ? JSON.stringify(toolCalls[0].args) : "{}";
+					// Fallback to resultObj.args if toolCalls is not populated in onFinish
+					const rawArgs = (toolCalls && toolCalls.length > 0) ? toolCalls[0].args : resultObj.args;
+					const toolArgs = rawArgs ? JSON.stringify(rawArgs) : "{}";
 					
 					// AI SDK sometimes returns the array directly in resultObj.result, or it might be serialized.
 					const toolRet = resultObj.result;
