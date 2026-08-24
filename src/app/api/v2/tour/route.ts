@@ -81,6 +81,64 @@ export async function POST(req: Request) {
 			},
 		});
 
+		// 4. Send Email Notifications via Resend
+		const resendApiKey = process.env.RESEND_API_KEY;
+		const fromEmail = process.env.FROM_EMAIL || process.env.RESEND_FROM_EMAIL || "Gulfshore Group <noreply@gulfshoregroup.com>";
+		const adminEmail = process.env.ADMIN_EMAIL || process.env.ADMIN_ALERT_EMAIL || "mailbox@gulfshoregroup.com";
+
+		if (resendApiKey) {
+			try {
+				const { Resend } = await import("resend");
+				const resendClient = new Resend(resendApiKey);
+
+				// 4a. User Confirmation Email
+				if (email) {
+					try {
+						await resendClient.emails.send({
+							from: fromEmail,
+							to: [email],
+							subject: `Tour Request Received - Gulfshore Group`,
+							html: `
+								<div style="font-family: Arial, sans-serif; padding: 20px;">
+									<h2>Tour Request Received</h2>
+									<p>Dear ${resolvedName},</p>
+									<p>Thank you for your interest! We have received your request to tour the property${propertyAddress ? ` at ${propertyAddress}` : ""}.</p>
+									<p>Our team will contact you shortly to confirm the exact date and time.</p>
+								</div>
+							`,
+						});
+					} catch (userErr) {
+						console.error("[Tour API] User email failed:", userErr);
+					}
+				}
+
+				// 4b. Admin Notification Email
+				if (adminEmail) {
+					try {
+						await resendClient.emails.send({
+							from: fromEmail,
+							to: [adminEmail],
+							subject: `[New Tour Request] Property Tour from ${resolvedName}`,
+							html: `
+								<div style="font-family: Arial, sans-serif; padding: 20px;">
+									<h2>New Property Tour Request</h2>
+									<p><strong>Name:</strong> ${resolvedName}</p>
+									<p><strong>Email:</strong> ${email}</p>
+									<p><strong>Phone:</strong> ${phone || "Not provided"}</p>
+									<p><strong>Property:</strong> ${propertyAddress || propertyId || "Not specified"}</p>
+									<p><strong>Requested Date:</strong> ${parsedDate.toLocaleString()}</p>
+									<p><strong>Message:</strong> ${message || "No message"}</p>
+								</div>
+							`,
+						});
+					} catch (adminErr) {
+						console.error("[Tour API] Admin email failed:", adminErr);
+					}
+				}
+			} catch (emailInitErr) {
+				console.error("[Tour API] Email service error:", emailInitErr);
+			}
+		}
 
 		return NextResponse.json({ success: true, lead: sqlLead, tour: sqlTour });
 	} catch (err: any) {
