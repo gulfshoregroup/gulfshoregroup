@@ -14,6 +14,7 @@ interface BlogArticleCardProps {
 		publishedAt: string;
 		category?: string;
 		coverImage: string;
+		externalUrl?: string;
 	};
 }
 
@@ -23,7 +24,11 @@ export default function BlogArticleCard({
 	const router = useRouter();
 
 	const handleClick = () => {
-		router.push(`/blogs/${article.slug}`);
+		if (article.externalUrl) {
+			window.open(article.externalUrl, "_blank");
+		} else {
+			router.push(`/blogs/${article.slug}`);
+		}
 	};
 
 	return (

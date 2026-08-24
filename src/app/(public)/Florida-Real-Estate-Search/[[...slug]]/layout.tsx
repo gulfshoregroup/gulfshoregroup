@@ -216,7 +216,7 @@ export default async function RootLayout({
 									</section>
 								)}
 
-								<div className="w-11/12 max-w-[1600px] mt-20 mb-8 mx-auto px-4">
+								<div className="w-11/12 max-w-[1600px] mt-8 mb-8 mx-auto px-4">
 									<span className="font-semibold text-sm">
 										Disclaimer:
 									</span>
