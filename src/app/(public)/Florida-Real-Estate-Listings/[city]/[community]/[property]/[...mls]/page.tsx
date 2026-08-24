@@ -463,13 +463,19 @@ export default async function Listing({
 										</div>
 
 										<div className="prose prose-gray max-w-none lg:max-h-[480px] overflow-y-auto">
-											{Meta?.content?.infoText && Meta.content.infoText.trim().length > 0 && (
+											{Meta?.content?.infoText && Meta.content.infoText.trim().length > 0 ? (
 												<ReadMore className="text-gray-500 leading-relaxed">
 													{Meta.content.infoText
 															.replaceAll("*", "")
 															.replaceAll("###", "•")
 															.replaceAll("##", "•")
 															.replaceAll("#", "")}
+												</ReadMore>
+											) : (
+												<ReadMore className="text-gray-500 leading-relaxed">
+													{Meta?.community
+														? `Welcome to ${Meta.community} in ${Meta.city || "Florida"}. An exceptional community offering a premier lifestyle with access to world-class amenities and the natural beauty of Southwest Florida's Gulf Coast.`
+														: `${Meta?.city || "Florida"}: Your Gateway to Paradise Living. Nestled along Florida's pristine coast, ${Meta?.city || "this area"} represents the epitome of luxury living, combining world-class amenities with natural beauty that captivates residents and visitors alike.`}
 												</ReadMore>
 											)}
 										</div>
@@ -480,7 +486,7 @@ export default async function Listing({
 					</div>
 				</div>
 			</section>
-			<div className="my-5 mx-auto w-11/12">
+			<div className="mt-2 mb-6 mx-auto w-11/12">
 				<span className="font-semibold text-sm">Disclaimer:</span>
 				<span className="text-xs font-light text-gray-600">
 					The source of this real property information is the
