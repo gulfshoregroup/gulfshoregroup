@@ -592,15 +592,24 @@ If the user wants to schedule a property tour, viewing, home valuation, or appoi
 				// Save the AI's response to the DB
 				let finalMessage = text;
 
-				// If the AI used a tool, we might want to append that context
 				if (toolResults && toolResults.length > 0) {
-					const result = toolResults[0] as any;
-					// Save the arguments passed to the tool to debug parameters payload
+					const resultObj = toolResults[0] as any;
 					const toolArgs = toolCalls && toolCalls.length > 0 ? JSON.stringify(toolCalls[0].args) : "{}";
-					if (result && result.result && Array.isArray(result.result) && result.result.length > 0) {
-						finalMessage += `\n\n[Displayed ${result.result.length} properties] [Args: ${toolArgs}]`;
+					
+					// AI SDK sometimes returns the array directly in resultObj.result, or it might be serialized.
+					const toolRet = resultObj.result;
+					const count = Array.isArray(toolRet) ? toolRet.length : (toolRet && typeof toolRet === 'object' && toolRet.properties ? toolRet.properties.length : 0);
+
+					if (count > 0) {
+						finalMessage += `\n\n[Displayed ${count} properties] [Args: ${toolArgs}]`;
+					} else if (toolRet && toolRet.found === true) {
+						// For seller check
+						finalMessage += `\n\n[Found Seller Properties] [Args: ${toolArgs}]`;
+					} else if (toolRet && toolRet.success === true) {
+						// For schedule tour
+						finalMessage += `\n\n[Scheduled Tour/Valuation] [Args: ${toolArgs}]`;
 					} else {
-						finalMessage += `\n\n[Searched for properties but found none] [Args: ${toolArgs}]`;
+						finalMessage += `\n\n[Searched but found none or returned empty] [Args: ${toolArgs}]`;
 					}
 				}
 

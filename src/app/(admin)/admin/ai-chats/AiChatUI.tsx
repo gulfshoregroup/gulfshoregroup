@@ -37,10 +37,9 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 		if (!matchesSearch) return false;
 
 		// Filter leads by channel
-		if (filter !== 'all') {
-			const hasChannelMessages = thread.messages.some((m: any) => m.channel === filter);
-			if (!hasChannelMessages) return false;
-		}
+		// Removed: We want ALL users to show up in the sidebar on every tab (Emails, SMS, Chat) 
+		// so it acts like a full WhatsApp contact list.
+		// The actual chat messages in the right pane are already filtered by channel below.
 
 		return true;
 	});
@@ -142,12 +141,18 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 														{lead.firstName ? `${lead.firstName} ${lead.lastName || ""}` : (lead.email || lead.phone || "Unknown User")}
 													</h3>
 													<span suppressHydrationWarning className="text-[10px] text-gray-400 shrink-0 ml-2">
-														{new Date(latestMessage.createdAt).toLocaleDateString()}
+														{latestMessage ? new Date(latestMessage.createdAt).toLocaleDateString() : "No messages"}
 													</span>
 												</div>
 												<p className="text-xs text-gray-500 truncate flex items-center gap-1">
-													{latestMessage.role === 'ai' ? <Bot className="w-3 h-3 text-primary" /> : channelIcon(latestMessage.channel)}
-													<span className="truncate">{latestMessage.message}</span>
+													{latestMessage ? (
+														<>
+															{latestMessage.role === 'ai' ? <Bot className="w-3 h-3 text-primary" /> : channelIcon(latestMessage.channel)}
+															<span className="truncate">{latestMessage.message}</span>
+														</>
+													) : (
+														<span className="truncate italic">No chat history yet...</span>
+													)}
 												</p>
 											</div>
 										</div>
@@ -196,49 +201,90 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 								
 							</div>
 
-							{/* Chat Messages */}
-							<div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[url('https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg')] bg-cover bg-center bg-fixed bg-no-repeat bg-opacity-20 relative">
-								{/* Subtle overlay to make text readable over the background pattern */}
-								<div className="absolute inset-0 bg-white/80 backdrop-blur-sm pointer-events-none"></div>
+							{/* Conditional Rendering based on Filter */}
+							{filter === 'email' ? (
+								<div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
+									{filteredMessages.map((chat: any) => {
+										const isAi = chat.role === 'ai';
+										return (
+											<div key={chat.id} className="bg-white border border-border/60 shadow-sm rounded-lg overflow-hidden">
+												<div className="bg-gray-50/80 px-4 py-3 border-b border-border/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+													<div className="flex items-start gap-3">
+														<div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isAi ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+															{isAi ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+														</div>
+														<div className="text-sm">
+															<div className="font-semibold text-gray-900">
+																{isAi ? 'Gulfshore Group AI' : (selectedThread.lead.firstName ? `${selectedThread.lead.firstName} ${selectedThread.lead.lastName || ""}` : 'User')}
+															</div>
+															<div className="text-gray-500 text-xs">
+																<span className="font-medium">From:</span> {isAi ? 'noreply@updates.gulfshoregroup.com' : (selectedThread.lead.email || 'unknown@user.com')}
+															</div>
+															<div className="text-gray-500 text-xs mt-0.5">
+																<span className="font-medium">To:</span> {!isAi ? 'Gulfshore Group' : (selectedThread.lead.email || 'unknown@user.com')}
+															</div>
+														</div>
+													</div>
+													<div className="text-xs text-gray-400 font-medium whitespace-nowrap self-start sm:self-auto">
+														{new Date(chat.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(chat.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+													</div>
+												</div>
+												<div className="p-5 text-gray-800 text-sm whitespace-pre-wrap leading-relaxed">
+													{chat.message && chat.message.trim().length > 0 ? chat.message : <span className="text-gray-400 italic">No text provided</span>}
+												</div>
+											</div>
+										);
+									})}
+									{filteredMessages.length === 0 && (
+										<div className="text-center text-gray-400 py-10 italic">
+											No email history found for this user.
+										</div>
+									)}
+								</div>
+							) : (
+								<div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[url('https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg')] bg-cover bg-center bg-fixed bg-no-repeat bg-opacity-20 relative">
+									{/* Subtle overlay to make text readable over the background pattern */}
+									<div className="absolute inset-0 bg-white/80 backdrop-blur-sm pointer-events-none"></div>
 
-								<div className="relative z-10 space-y-6">
-									<div className="text-center">
-										<span className="bg-white/80 backdrop-blur-sm text-xs font-semibold text-gray-500 px-3 py-1 rounded-full shadow-sm border border-gray-100">
-											Conversation Started
-										</span>
-									</div>
-									
-									{filteredMessages.map((chat: any) => (
-										<div key={chat.id} className={`flex flex-col ${chat.role === 'ai' ? 'items-end' : 'items-start'}`}>
-											<div className="flex items-center gap-1.5 mb-1 px-1">
-												{chat.role === 'user' ? (
-													<>
-														<span className="text-[10px] font-bold text-gray-500 uppercase">User</span>
-														{channelIcon(chat.channel)}
-													</>
-												) : (
-													<>
-														<Bot className="w-3.5 h-3.5 text-primary" />
-														<span className="text-[10px] font-bold text-primary uppercase">AI Concierge</span>
-													</>
-												)}
-											</div>
-											<div 
-												className={`max-w-[75%] text-sm p-4 rounded-2xl shadow-sm whitespace-pre-wrap leading-relaxed relative ${
-													chat.role === 'ai' 
-													? 'bg-primary text-white rounded-tr-sm border border-primary/10' 
-													: 'bg-white border border-gray-200 text-gray-800 rounded-tl-sm'
-												}`}
-											>
-												{chat.message && chat.message.trim().length > 0 ? chat.message : <span className="text-gray-400 italic">No text provided</span>}
-											</div>
-											<span suppressHydrationWarning className="text-[10px] text-gray-400 mt-1.5 px-2 font-medium">
-												{new Date(chat.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+									<div className="relative z-10 space-y-6">
+										<div className="text-center">
+											<span className="bg-white/80 backdrop-blur-sm text-xs font-semibold text-gray-500 px-3 py-1 rounded-full shadow-sm border border-gray-100">
+												Conversation Started
 											</span>
 										</div>
-									))}
+										
+										{filteredMessages.map((chat: any) => (
+											<div key={chat.id} className={`flex flex-col ${chat.role === 'ai' ? 'items-end' : 'items-start'}`}>
+												<div className="flex items-center gap-1.5 mb-1 px-1">
+													{chat.role === 'user' ? (
+														<>
+															<span className="text-[10px] font-bold text-gray-500 uppercase">User</span>
+															{channelIcon(chat.channel)}
+														</>
+													) : (
+														<>
+															<Bot className="w-3.5 h-3.5 text-primary" />
+															<span className="text-[10px] font-bold text-primary uppercase">AI Concierge</span>
+														</>
+													)}
+												</div>
+												<div 
+													className={`max-w-[75%] text-sm p-4 rounded-2xl shadow-sm whitespace-pre-wrap leading-relaxed relative ${
+														chat.role === 'ai' 
+														? 'bg-primary text-white rounded-tr-sm border border-primary/10' 
+														: 'bg-white border border-gray-200 text-gray-800 rounded-tl-sm'
+													}`}
+												>
+													{chat.message && chat.message.trim().length > 0 ? chat.message : <span className="text-gray-400 italic">No text provided</span>}
+												</div>
+												<span suppressHydrationWarning className="text-[10px] text-gray-400 mt-1.5 px-2 font-medium">
+													{new Date(chat.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+												</span>
+											</div>
+										))}
+									</div>
 								</div>
-							</div>
+							)}
 						</>
 					) : (
 						<div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-gray-50">
