@@ -487,7 +487,7 @@ export default async function Listing({
 				</div>
 			</section>
 			<div className="mt-2 mb-2 mx-auto w-11/12 px-4">
-				<span className="font-semibold text-sm">Disclaimer:{" "}</span>
+				<span className="font-semibold text-sm">Disclaimer:&nbsp;&nbsp;</span>
 				<span className="text-xs font-light text-gray-600">
 					The source of this real property information is the
 					copyrighted and proprietary database compilation of the
