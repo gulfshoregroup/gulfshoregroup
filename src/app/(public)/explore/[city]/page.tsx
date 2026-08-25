@@ -203,7 +203,7 @@ async function ExploreCity({
 				</Suspense>
 			)}
 			{seoData.similar && seoData.similar && (
-				<section className="my-4 w-11/12 mx-auto">
+				<section className="mb-4 w-11/12 mx-auto">
 					<h2 className="lg:text-lg font-medium px-4 pt-3 text-gray-900 lg:font-semibold mb-2">
 						Explore More Listings in {seoData.community || ""}{" "}
 						{seoData.city || ""} FL:
@@ -218,7 +218,7 @@ async function ExploreCity({
 									similar.DevelopmentName,
 									similar.PropertyAddress
 								)}
-								className="inline-flex gap-1 items-start px-2 lg:py-3 py-2 text-sm text-start font-medium hover:underline">
+								className="inline-flex gap-2 items-start px-4 lg:py-3 py-2 text-sm text-start font-medium hover:underline">
 								<Search size={20} className="flex-shrink-0 mt-[2px]" />{" "}
 								<span className=" lg:font-medium text-blue-600 md:font-normal">
 									{similar.FullAddress} -{" "}

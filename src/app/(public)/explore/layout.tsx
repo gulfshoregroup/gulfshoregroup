@@ -16,9 +16,9 @@ export default async function RootLayout({
 							<div>
 								<div>{children}</div>
 
-								<div className="w-11/12 mt-20 mb-8 mx-auto px-4">
+								<div className="w-11/12 mt-10 mb-2 mx-auto px-4">
 									<span className="font-semibold text-sm">
-										Disclaimer:
+										Disclaimer:{" "}
 									</span>
 									<span className="text-xs font-light text-gray-600">
 										The source of this real property information is

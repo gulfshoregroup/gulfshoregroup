@@ -22,7 +22,7 @@ export default function SimilarPropertiesCarousel({
 	}
 
 	return (
-		<section className="my-8 w-11/12 mx-auto relative group">
+		<section className="mt-4 mb-8 w-11/12 mx-auto relative group">
 			<h2 className="lg:text-2xl font-bold px-1 text-gray-900 mb-6">
 				Explore More Properties in {development}
 			</h2>

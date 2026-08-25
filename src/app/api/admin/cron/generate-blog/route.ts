@@ -28,54 +28,54 @@ export async function GET(req: Request) {
   }
   const topics = Array.from(topicSet);
 
-  // 3. Generate 4 Blogs in Parallel using OpenAI
-  try {
-    const blogPromises = topics.map(topic => generateBlogFromMemory(topic));
-    const blogs = await Promise.all(blogPromises);
+  // 3. Run OpenAI Generation & DB Save in background to avoid cron-job timeout
+  (async () => {
+    try {
+      console.log("[AI Blog Batch] Starting background generation for topics:", topics);
+      const blogPromises = topics.map(topic => generateBlogFromMemory(topic));
+      const blogs = await Promise.all(blogPromises);
 
-    // Array of valid luxury home images from images.unsplash.com
-    const defaultImages = [
-      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=1200&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=1200&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1600607687931-cebf006362ce?q=80&w=1200&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?q=80&w=1200&auto=format&fit=crop"
-    ];
+      // Array of valid luxury home images from images.unsplash.com
+      const defaultImages = [
+        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=1200&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=1200&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600607687931-cebf006362ce?q=80&w=1200&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?q=80&w=1200&auto=format&fit=crop"
+      ];
 
-    // 4. Save to Database and Publish Instantly
-    const createdBlogs = await Promise.all(
-      blogs.map((blog, index) =>
-        prisma.blog.create({
-          data: {
-            title: blog.title,
-            slug: blog.slug + "-" + Math.random().toString(36).substring(2, 7), // Ensure unique slug
-            description: blog.description,
-            content: blog.content,
-            coverImage: blog.coverImage || defaultImages[index % defaultImages.length], 
-            category: blog.category,
-            metaTitle: blog.metaTitle,
-            metaDescription: blog.metaDescription,
-            metaKeywords: blog.metaKeywords ? (blog.metaKeywords as any) : [],
-            author: blog.author || "Gulfshore Group",
-            published: false, // Save as Draft for review
-            publishedAt: null,
-          },
-        })
-      )
-    );
+      // 4. Save to Database
+      const createdBlogs = await Promise.all(
+        blogs.map((blog, index) =>
+          prisma.blog.create({
+            data: {
+              title: blog.title,
+              slug: blog.slug + "-" + Math.random().toString(36).substring(2, 7), // Ensure unique slug
+              description: blog.description,
+              content: blog.content,
+              coverImage: blog.coverImage || defaultImages[index % defaultImages.length], 
+              category: blog.category,
+              metaTitle: blog.metaTitle,
+              metaDescription: blog.metaDescription,
+              metaKeywords: blog.metaKeywords ? (blog.metaKeywords as any) : [],
+              author: blog.author || "Gulfshore Group",
+              published: false, // Save as Draft for review
+              publishedAt: null,
+            },
+          })
+        )
+      );
+      console.log(`[AI Blog Batch] Successfully generated and saved ${createdBlogs.length} Blogs`);
+    } catch (err: any) {
+      console.error("[AI Blog Batch Background Error]:", err?.message || err);
+    }
+  })();
 
-    return new NextResponse(
-      JSON.stringify({
-        message: "4 Blogs generated and published successfully",
-        count: createdBlogs.length,
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
-  } catch (err: any) {
-    console.error("[AI Blog Batch] error:", err);
-    return new NextResponse(
-      JSON.stringify({ error: "Batch generation failed", details: err.message }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
+  // 5. Return immediately
+  return new NextResponse(
+    JSON.stringify({
+      message: "Blog batch generation started in background",
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } }
+  );
 }

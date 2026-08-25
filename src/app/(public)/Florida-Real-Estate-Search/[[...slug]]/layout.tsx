@@ -216,9 +216,9 @@ export default async function RootLayout({
 									</section>
 								)}
 
-								<div className="w-11/12 max-w-[1600px] mt-8 mb-8 mx-auto px-4">
+								<div className="w-11/12 max-w-[1600px] mt-6 mb-2 mx-auto px-4">
 									<span className="font-semibold text-sm">
-										Disclaimer:
+										Disclaimer:{" "}
 									</span>
 									<span className="text-xs font-light text-gray-600">
 										The source of this real property information is
@@ -232,7 +232,7 @@ export default async function RootLayout({
 									</span>
 								</div>
 								{seoData.similar && seoData.similar && (
-									<section className="my-4 w-11/12 mx-auto">
+									<section className="mb-4 w-11/12 mx-auto">
 										<h2 className="lg:text-lg font-medium px-4 pt-3 text-gray-900 lg:font-semibold mb-2">
 											Explore More Listings in{" "}
 											{seoData.community || ""} {seoData.city || ""}{" "}
@@ -250,8 +250,8 @@ export default async function RootLayout({
 															similar.FullAddress,
 															similar.MLSNumber
 														)}
-														className="inline-flex gap-1 items-center px-2 lg:py-3 py-2 text-sm text-start font-medium  hover:underline">
-														<Search size={20} />{" "}
+														className="inline-flex gap-2 items-center px-4 lg:py-3 py-2 text-sm text-start font-medium hover:underline">
+														<Search size={20} className="flex-shrink-0" />{" "}
 														<span className=" lg:font-medium text-blue-600 md:font-normal">
 															{similar.FullAddress} -{" "}
 															{formatPrice(Number(similar.ListPrice))}

@@ -21,46 +21,35 @@ export async function GET(req: Request) {
     );
   }
 
-  // 2. Generate 10 FAQs in one OpenAI Call
-  let faqs;
-  try {
-    faqs = await generateMultipleFAQs(10);
-  } catch (err: any) {
-    console.error("[AI FAQ Batch] generation error:", err);
-    return new NextResponse(
-      JSON.stringify({ error: "OpenAI FAQ batch generation failed", details: err.message }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
+  // 2. Run OpenAI Generation & DB Save in background to avoid cron-job timeout
+  (async () => {
+    try {
+      console.log("[AI FAQ Batch] Starting background generation...");
+      const faqs = await generateMultipleFAQs(10);
+      
+      const createdFaqs = await Promise.all(
+        faqs.map((faq: any) =>
+          prisma.faq.create({
+            data: {
+              question: faq.question,
+              answer: faq.answer,
+              category: "City",
+              isActive: false, // Save as Draft for review
+            },
+          })
+        )
+      );
+      console.log(`[AI FAQ Batch] Successfully generated and saved ${createdFaqs.length} FAQs`);
+    } catch (err: any) {
+      console.error("[AI FAQ Batch Background Error]:", err?.message || err);
+    }
+  })();
 
-  // 3. Save New FAQs as Drafts (Inactive)
-  try {
-    // Insert new ones as Drafts
-    const createdFaqs = await Promise.all(
-      faqs.map((faq: any) =>
-        prisma.faq.create({
-          data: {
-            question: faq.question,
-            answer: faq.answer,
-            category: "City", // Always assign to City so it shows up on website
-            isActive: false, // Save as Draft for review
-          },
-        })
-      )
-    );
-
-    return new NextResponse(
-      JSON.stringify({
-        message: "Old FAQs deleted and 10 new FAQs generated and published successfully",
-        count: createdFaqs.length,
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
-  } catch (dbErr: any) {
-    console.error("[AI FAQ Batch] DB error:", dbErr);
-    return new NextResponse(
-      JSON.stringify({ error: "Database operation failed", details: dbErr.message }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
+  // 3. Return immediately
+  return new NextResponse(
+    JSON.stringify({
+      message: "FAQ batch generation started in background",
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } }
+  );
 }
