@@ -97,10 +97,20 @@ export async function getMarketReportData(params: {
 				: Math.round((validPrices[mid - 1] + validPrices[mid]) / 2);
 	}
 
-	// Calculate Average Days on Market
+	// Calculate Average Days on Market Dynamically (Today - OnMarketDate)
+	const now = new Date().getTime();
 	const doms = properties
-		.map((p) => p.DaysOnMarket)
-		.filter((d): d is number => d !== null && d >= 0);
+		.map((p) => {
+			if (p.OnMarketDate) {
+				const timeDiff = now - new Date(p.OnMarketDate).getTime();
+				const days = Math.floor(timeDiff / (1000 * 3600 * 24));
+				return days >= 0 ? days : 0;
+			}
+			// Fallback to static DaysOnMarket if OnMarketDate is missing
+			return p.DaysOnMarket;
+		})
+		.filter((d): d is number => d !== null && d !== undefined && d >= 0);
+		
 	const avgDaysOnMarket =
 		doms.length > 0
 			? Math.round(doms.reduce((sum, val) => sum + val, 0) / doms.length)
