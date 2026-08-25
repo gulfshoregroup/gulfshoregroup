@@ -22,8 +22,8 @@ export async function getMarketReportData(params: {
 	city?: string;
 	community?: string;
 }): Promise<MarketReportData> {
-	const normalizedCity = params.city?.trim();
-	const normalizedCommunity = params.community?.trim();
+	const normalizedCity = params.city?.trim().replace(/-/g, " ");
+	const normalizedCommunity = params.community?.trim().replace(/-/g, " ");
 
 	const cacheKey = `market_report_v2:${normalizedCity?.toLowerCase() || "all"}:${normalizedCommunity?.toLowerCase() || "all"}`;
 
