@@ -25,7 +25,7 @@ export async function getMarketReportData(params: {
 	const normalizedCity = params.city?.trim();
 	const normalizedCommunity = params.community?.trim();
 
-	const cacheKey = `market_report:${normalizedCity?.toLowerCase() || "all"}:${normalizedCommunity?.toLowerCase() || "all"}`;
+	const cacheKey = `market_report_v2:${normalizedCity?.toLowerCase() || "all"}:${normalizedCommunity?.toLowerCase() || "all"}`;
 
 	// 1. Try Redis Cache
 	try {
@@ -62,6 +62,7 @@ export async function getMarketReportData(params: {
 			DaysOnMarket: true,
 			LivingArea: true,
 			PropertyType: true,
+			OnMarketDate: true,
 		},
 		take: 2000, // Safe sample ceiling for stats calculation
 	});
