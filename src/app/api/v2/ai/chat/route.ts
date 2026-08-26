@@ -132,9 +132,9 @@ CRITICAL NO-FALLBACK RULE WHEN NO PROPERTIES ARE FOUND (FOR BUYERS):
 
 If the user wants to schedule a property tour, viewing, home valuation, or appointment, use the 'scheduleTour' tool. Ask for their name, phone or email, and preferred date before calling the tool. After booking, confirm the appointment and tell them Dimitri will reach out to confirm.
 		
-${currentUrl ? `\nCRITICAL CONTEXT: The user is currently viewing the following URL on the website: ${currentUrl}\nIf the user refers to "this", "this property", "here", or asks a question about distance without specifying an origin address, they are talking about the property located at ${currentUrl}. You should extract the address from the URL (e.g. from /Florida-Real-Estate-Listings/Cape-Coral/Community/123-Main-St/MLS) and use it for tools like 'calculateDistance'.` : ""}
+${currentUrl ? `\nCRITICAL CONTEXT: The user is currently viewing the following URL on the website: ${currentUrl}\nIf the user refers to "this", "this property", "here", or asks a question about distance or nearby places without specifying an origin address, they are talking about the property located at ${currentUrl}. You should extract the address from the URL (e.g. from /Florida-Real-Estate-Listings/Cape-Coral/Community/123-Main-St/MLS) and use it for tools like 'calculateDistance' and 'findNearbyPlaces'.` : ""}
 
-CRITICAL INSTRUCTION FOR ALL TOOLS: Whenever you call a tool (like calculateDistance, searchProperties, etc.), you MUST also write a conversational text response to the user. NEVER return an empty text response.`,
+CRITICAL INSTRUCTION FOR ALL TOOLS: Whenever you call a tool (like calculateDistance, findNearbyPlaces, searchProperties, etc.), you MUST also write a conversational text response to the user. NEVER return an empty text response.`,
 			messages: await convertToModelMessages(activeMessages),
 			tools: {
 				// @ts-ignore
@@ -173,6 +173,48 @@ CRITICAL INSTRUCTION FOR ALL TOOLS: Whenever you call a tool (like calculateDist
 							};
 						} catch (error: any) {
 							return { error: "Error calculating distance: " + error.message };
+						}
+					}
+				}),
+				// @ts-ignore
+				findNearbyPlaces: tool({
+					description: "Search for nearby places like beaches, restaurants, schools, or gyms around a specific location. You MUST generate a polite text response to the user summarizing the top 3 results from this tool.",
+					inputSchema: z.object({
+						location: z.string().describe("The starting address or location (e.g. 100 Bay Rd, Naples)"),
+						query: z.string().describe("The type of place to search for (e.g. 'beaches', 'top schools', 'best restaurants')")
+					}),
+					// @ts-ignore
+					execute: async (args: any) => {
+						const { location, query } = args;
+						const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+						
+						if (!apiKey) return { error: "Google Maps API Key is missing. Cannot search places." };
+						
+						try {
+							const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query + " near " + location)}&key=${apiKey}`;
+							const response = await fetch(searchUrl);
+							const data = await response.json();
+							
+							if (data.status !== "OK") {
+								if (data.status === "ZERO_RESULTS") {
+									return { message: `No ${query} found near ${location}.` };
+								}
+								return { error: `Failed to search places: ${data.status}` };
+							}
+							
+							const topResults = data.results.slice(0, 3).map((place: any) => ({
+								name: place.name,
+								address: place.formatted_address,
+								rating: place.rating ? `${place.rating} ⭐` : "No rating",
+								open_now: place.opening_hours ? place.opening_hours.open_now : "Unknown"
+							}));
+							
+							return {
+								query: `${query} near ${location}`,
+								top_results: topResults
+							};
+						} catch (error: any) {
+							return { error: "Error searching places: " + error.message };
 						}
 					}
 				}),
