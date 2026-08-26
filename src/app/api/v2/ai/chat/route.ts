@@ -132,12 +132,14 @@ CRITICAL NO-FALLBACK RULE WHEN NO PROPERTIES ARE FOUND (FOR BUYERS):
 
 If the user wants to schedule a property tour, viewing, home valuation, or appointment, use the 'scheduleTour' tool. Ask for their name, phone or email, and preferred date before calling the tool. After booking, confirm the appointment and tell them Dimitri will reach out to confirm.
 		
-${currentUrl ? `\nCRITICAL CONTEXT: The user is currently viewing the following URL on the website: ${currentUrl}\nIf the user refers to "this", "this property", "here", or asks a question about distance without specifying an origin address, they are talking about the property located at ${currentUrl}. You should extract the address from the URL (e.g. from /Florida-Real-Estate-Listings/Cape-Coral/Community/123-Main-St/MLS) and use it for tools like 'calculateDistance'.` : ""}`,
+${currentUrl ? `\nCRITICAL CONTEXT: The user is currently viewing the following URL on the website: ${currentUrl}\nIf the user refers to "this", "this property", "here", or asks a question about distance without specifying an origin address, they are talking about the property located at ${currentUrl}. You should extract the address from the URL (e.g. from /Florida-Real-Estate-Listings/Cape-Coral/Community/123-Main-St/MLS) and use it for tools like 'calculateDistance'.` : ""}
+
+CRITICAL INSTRUCTION FOR ALL TOOLS: Whenever you call a tool (like calculateDistance, searchProperties, etc.), you MUST also write a conversational text response to the user. NEVER return an empty text response.`,
 			messages: await convertToModelMessages(activeMessages),
 			tools: {
 				// @ts-ignore
 				calculateDistance: tool({
-					description: "Calculate driving distance and time between two locations (e.g. property to beach, airport, etc.) using Google Maps.",
+					description: "Calculate driving distance and time between two locations (e.g. property to beach, airport, etc.) using Google Maps. You MUST generate a polite text response to the user summarizing the result of this tool (e.g. 'The distance is 5 miles, which takes about 10 minutes by car.'). Do NOT just return the tool result without a conversational text message.",
 					inputSchema: z.object({
 						origin: z.string().describe("The starting address or location"),
 						destination: z.string().describe("The ending address or location")
