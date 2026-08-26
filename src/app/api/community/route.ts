@@ -31,17 +31,35 @@ export async function GET(req: NextRequest) {
 			prisma.community.count({ where: whereClause }),
 		]);
 
-		// Count properties per community by matching SubdivisionName (live count)
-		const propertyCounts = await prisma.property.groupBy({
-			by: ["SubdivisionName"],
-			_count: { id: true },
-		});
+		// Count properties per community by matching Community (live count)
+		const [communityCounts, developmentCounts] = await Promise.all([
+			prisma.property.groupBy({
+				by: ["Community"],
+				_count: { id: true },
+			}),
+			prisma.property.groupBy({
+				by: ["Development"],
+				_count: { id: true },
+			}),
+		]);
 
-		// Build lookup map: lowercase subdivision name → count
+		// Build lookup map: lowercase community name → count
 		const countMap: Record<string, number> = {};
-		for (const row of propertyCounts) {
-			const key = (row.SubdivisionName || "").toLowerCase().trim();
+		
+		for (const row of communityCounts) {
+			const key = (row.Community || "").toLowerCase().trim();
 			if (key) countMap[key] = (countMap[key] || 0) + row._count.id;
+		}
+		
+		for (const row of developmentCounts) {
+			const key = (row.Development || "").toLowerCase().trim();
+			// Only add if not already counted by Community (to avoid double counting if both match, though normally one takes precedence)
+			// Wait, if a property has both Community="A" and Development="A", it's grouped in both!
+			// Grouping by fields doesn't let us deduplicate easily if they have both. But usually they don't have both or they are the same.
+			// Actually, if we just use max it's safer, or we can just stick to this.
+			if (key) {
+				countMap[key] = Math.max(countMap[key] || 0, row._count.id);
+			}
 		}
 
 		// Map to Mongoose shape for compatibility
