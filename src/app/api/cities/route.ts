@@ -4,15 +4,15 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
 	try {
 		const queryParams = req.nextUrl.searchParams;
+		const fetchAll = queryParams.get("all") === "true";
 		const page = parseInt(queryParams.get("page") || "1");
 		const limit = parseInt(queryParams.get("limit") || "20");
 		const skip = (page - 1) * limit;
 
 		// Fetch cities
 		const res = await prisma.city.findMany({
-			orderBy: { id: "desc" },
-			skip,
-			take: limit,
+			orderBy: fetchAll ? { name: "asc" } : { id: "desc" },
+			...(fetchAll ? {} : { skip, take: limit }),
 		});
 		const totalCount = await prisma.city.count();
 		const totalPages = Math.ceil(totalCount / limit);

@@ -6,11 +6,19 @@ export async function GET(req: NextRequest) {
 		const queryParams = req.nextUrl.searchParams;
 		const limit = Number(queryParams.get("limit")) || 20;
 		const page = Math.max(Number(queryParams.get("page")) || 1, 1);
+		const search = queryParams.get("search") || "";
 
 		const skip = (page - 1) * limit;
 
+		const whereClause = search ? {
+			name: {
+				contains: search,
+			}
+		} : {};
+
 		const [data, totalCount] = await Promise.all([
 			prisma.community.findMany({
+				where: whereClause,
 				include: {
 					city: true,
 				},
@@ -20,7 +28,7 @@ export async function GET(req: NextRequest) {
 				skip,
 				take: limit,
 			}),
-			prisma.community.count(),
+			prisma.community.count({ where: whereClause }),
 		]);
 
 		// Count properties per community by matching SubdivisionName (live count)

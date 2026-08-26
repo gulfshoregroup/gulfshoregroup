@@ -122,15 +122,14 @@ export default function CommunitiesPage() {
 	const limit = 20;
 
 	// Fetch communities
-	const fetchCommunities = async (pageNum = 1) => {
+	const fetchCommunities = async (pageNum = 1, searchQuery = searchTerm) => {
 		try {
 			setLoading(true);
 			const res = await axios.get(
-				`/api/community?page=${pageNum}&limit=${limit}`
+				`/api/community?page=${pageNum}&limit=${limit}&search=${encodeURIComponent(searchQuery)}`
 			);
 			setTotalCount(res.data.totalCount || 0);
 			setCommunities(res.data.data || []);
-			console.log(res.data.data);
 		} catch (err: any) {
 			setError(err.message || "Failed to fetch communities");
 		} finally {
@@ -141,7 +140,7 @@ export default function CommunitiesPage() {
 	// Fetch cities
 	const fetchCities = async () => {
 		try {
-			const res = await axios.get("/api/cities");
+			const res = await axios.get("/api/cities?all=true");
 			if (res.data?.data) {
 				const names = res.data.data.map((c: any) => c.City || c.name).filter(Boolean);
 				const uniqueNames = Array.from(new Set(names)) as string[];
@@ -156,38 +155,23 @@ export default function CommunitiesPage() {
 	};
 
 	useEffect(() => {
-		fetchCommunities(page);
 		fetchCities();
 	}, []);
+
+	useEffect(() => {
+		const delayDebounceFn = setTimeout(() => {
+			setPage(1);
+			fetchCommunities(1, searchTerm);
+		}, 500);
+
+		return () => clearTimeout(delayDebounceFn);
+	}, [searchTerm]);
 
 
 	const pageHandler = (pageNum: number) => {
 		setPage(pageNum);
-		fetchCommunities(pageNum);
+		fetchCommunities(pageNum, searchTerm);
 	};
-
-	const handleSearch = (term: string) => {
-		setSearchTerm(term);
-		if (term.trim() === "") {
-			setFilteredCommunities(communities);
-		} else {
-			const filtered = communities.filter((community) =>
-				community.Development.toLowerCase().includes(
-					term.toLowerCase()
-				)
-			);
-			setFilteredCommunities(filtered);
-		}
-	};
-	const filteredRequest = communities?.filter((request) => {
-		const matchesSearch =
-			request.Development.toLowerCase().includes(
-				searchTerm.toLowerCase()
-			) ||
-			request.name.toLowerCase().includes(searchTerm.toLowerCase());
-
-		return matchesSearch;
-	});
 
 	const totalPages = Math.ceil(totalCount / limit);
 
@@ -234,7 +218,7 @@ export default function CommunitiesPage() {
 					</div>
 				) : error ? (
 					<div className="p-6 text-center text-red-500">{error}</div>
-				) : filteredRequest.length === 0 ? (
+				) : communities.length === 0 ? (
 					<div className="p-6 text-center text-muted-foreground">
 						No communities found.
 					</div>
@@ -250,7 +234,7 @@ export default function CommunitiesPage() {
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{filteredRequest.map((community, i) => (
+							{communities.map((community, i) => (
 								<TableRow key={i}>
 									<TableCell>
 										<div className="font-medium">
