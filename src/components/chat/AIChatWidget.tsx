@@ -16,8 +16,7 @@ export default function AIChatWidget() {
 	}, []);
 
 	const { messages, sendMessage, status } = useChat({
-		transport: new DefaultChatTransport({ api: "/api/v2/ai/chat" }),
-		body: { currentUrl }
+		transport: new DefaultChatTransport({ api: `/api/v2/ai/chat${currentUrl ? `?url=${encodeURIComponent(currentUrl)}` : ""}` }),
 	});
 	const isLoading = status === "submitted" || status === "streaming";
 	const messagesEndRef = useRef<HTMLDivElement>(null);

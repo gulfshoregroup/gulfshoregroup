@@ -12,7 +12,16 @@ export const maxDuration = 60; // Allow up to 60 seconds
 
 export async function POST(req: Request) {
 	try {
-		const { messages, currentUrl } = await req.json();
+		const bodyData = await req.json();
+		
+		const reqUrl = new URL(req.url);
+		const queryUrl = reqUrl.searchParams.get("url");
+		
+		const currentUrl = bodyData.currentUrl || queryUrl || "";
+		console.log("AI Chat API hit. Received URL:", currentUrl);
+		console.log("Body keys:", Object.keys(bodyData));
+		
+		const { messages } = bodyData;
 		const lead = await requireLead();
 
 		// Save the user's incoming message to DB
