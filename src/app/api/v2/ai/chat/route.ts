@@ -132,7 +132,7 @@ CRITICAL NO-FALLBACK RULE WHEN NO PROPERTIES ARE FOUND (FOR BUYERS):
 
 If the user wants to schedule a property tour, viewing, home valuation, or appointment, use the 'scheduleTour' tool. Ask for their name, phone or email, and preferred date before calling the tool. After booking, confirm the appointment and tell them Dimitri will reach out to confirm.
 		
-${currentUrl ? `\nCRITICAL CONTEXT: The user is currently viewing the following URL on the website: ${currentUrl}\nIf the user refers to "this", "this property", "here", or asks a question about distance or nearby places without specifying an origin address, they are talking about the property located at ${currentUrl}. You should extract the address from the URL (e.g. from /Florida-Real-Estate-Listings/Cape-Coral/Community/123-Main-St/MLS) and use it for tools like 'calculateDistance' and 'findNearbyPlaces'.` : ""}
+${currentUrl ? `\nCRITICAL CONTEXT: The user is currently viewing the following URL on the website: ${currentUrl}\nIf the user refers to "this", "this property", "here", or asks a question about the property's price, bedrooms, or details without specifying an address, they are talking about the property located at ${currentUrl}. You MUST extract the street address from the URL (e.g. from /Florida-Real-Estate-Listings/Cape-Coral/Community/123-Main-St/MLS extract '123 Main St') and use it for tools like 'calculateDistance', 'findNearbyPlaces', AND 'searchProperties'.` : ""}
 
 CRITICAL INSTRUCTION FOR ALL TOOLS: Whenever you call a tool (like calculateDistance, findNearbyPlaces, searchProperties, etc.), you MUST also write a conversational text response to the user. NEVER return an empty text response.`,
 			messages: await convertToModelMessages(activeMessages),
