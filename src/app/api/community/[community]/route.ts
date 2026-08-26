@@ -21,13 +21,27 @@ export async function GET(
 			},
 		});
 
+		// Fetch live property count
+		let liveCount = res?.propertyCount || 0;
+		if (res) {
+			const count = await prisma.property.count({
+				where: {
+					OR: [
+						{ Community: res.name },
+						{ Development: res.name }
+					]
+				}
+			});
+			liveCount = count;
+		}
+
 		// Map to Mongoose shape for compatibility
 		const mappedData = res ? {
 			...res,
 			_id: res.id,
 			Development: res.name,
 			City: res.city?.name || "",
-			PropertyCount: res.propertyCount,
+			PropertyCount: liveCount,
 			Images: res.images || [],
 		} : null;
 
