@@ -12,7 +12,7 @@ export const maxDuration = 60; // Allow up to 60 seconds
 
 export async function POST(req: Request) {
 	try {
-		const { messages } = await req.json();
+		const { messages, currentUrl } = await req.json();
 		const lead = await requireLead();
 
 		// Save the user's incoming message to DB
@@ -121,9 +121,50 @@ CRITICAL NO-FALLBACK RULE WHEN NO PROPERTIES ARE FOUND (FOR BUYERS):
   2. Explain that Gulfshore Group specializes exclusively in Southwest Florida real estate (including Naples, Bonita Springs, Cape Coral, Fort Myers, Estero, Marco Island, Sanibel, etc.).
   3. Offer to set up a custom property alert for them or help them search within Southwest Florida.
 
-If the user wants to schedule a property tour, viewing, home valuation, or appointment, use the 'scheduleTour' tool. Ask for their name, phone or email, and preferred date before calling the tool. After booking, confirm the appointment and tell them Dimitri will reach out to confirm.`,
+If the user wants to schedule a property tour, viewing, home valuation, or appointment, use the 'scheduleTour' tool. Ask for their name, phone or email, and preferred date before calling the tool. After booking, confirm the appointment and tell them Dimitri will reach out to confirm.
+		
+${currentUrl ? `\nCRITICAL CONTEXT: The user is currently viewing the following URL on the website: ${currentUrl}\nIf the user refers to "this", "this property", "here", or asks a question about distance without specifying an origin address, they are talking about the property located at ${currentUrl}. You should extract the address from the URL (e.g. from /Florida-Real-Estate-Listings/Cape-Coral/Community/123-Main-St/MLS) and use it for tools like 'calculateDistance'.` : ""}`,
 			messages: await convertToModelMessages(activeMessages),
 			tools: {
+				// @ts-ignore
+				calculateDistance: tool({
+					description: "Calculate driving distance and time between two locations (e.g. property to beach, airport, etc.) using Google Maps.",
+					inputSchema: z.object({
+						origin: z.string().describe("The starting address or location"),
+						destination: z.string().describe("The ending address or location")
+					}),
+					// @ts-ignore
+					execute: async (args: any) => {
+						const { origin, destination } = args;
+						const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+						
+						if (!apiKey) return { error: "Google Maps API Key is missing. Cannot calculate distance." };
+						
+						try {
+							const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&units=imperial&key=${apiKey}`;
+							const response = await fetch(url);
+							const data = await response.json();
+							
+							if (data.status !== "OK") {
+								return { error: `Failed to calculate distance: ${data.status}` };
+							}
+							
+							const element = data.rows[0].elements[0];
+							if (element.status !== "OK") {
+								return { error: `No route found between ${origin} and ${destination}.` };
+							}
+							
+							return {
+								origin_address: data.origin_addresses[0],
+								destination_address: data.destination_addresses[0],
+								distance_miles: element.distance.text,
+								duration_traffic: element.duration.text
+							};
+						} catch (error: any) {
+							return { error: "Error calculating distance: " + error.message };
+						}
+					}
+				}),
 				// @ts-ignore
 				checkSellerProperties: tool({
 					description: "Look up a seller's existing property listings or home valuation requests by their email address, and provide an option/link to add a new property for sale on /sell.",

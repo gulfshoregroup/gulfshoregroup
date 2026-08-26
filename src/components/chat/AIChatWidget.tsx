@@ -9,8 +9,15 @@ import { X, MessageSquare, Send } from "lucide-react";
 export default function AIChatWidget() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [localInput, setLocalInput] = useState("");
+	const [currentUrl, setCurrentUrl] = useState("");
+
+	useEffect(() => {
+		setCurrentUrl(window.location.href);
+	}, []);
+
 	const { messages, sendMessage, status } = useChat({
 		transport: new DefaultChatTransport({ api: "/api/v2/ai/chat" }),
+		body: { currentUrl }
 	});
 	const isLoading = status === "submitted" || status === "streaming";
 	const messagesEndRef = useRef<HTMLDivElement>(null);

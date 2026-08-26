@@ -4,6 +4,9 @@ import { Resend } from "resend";
 import UrlMaker from "@/hooks/url-maker";
 import { sendAdminLeadAlertEmail } from "@/lib/email/admin-lead-alert";
 import { recalculateLeadScore } from "@/lib/leads/services/scoring.service";
+import { openai } from "@ai-sdk/openai";
+import { generateObject } from "ai";
+import { z } from "zod";
 
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy");
@@ -76,81 +79,8 @@ const cleanEmailBody = (rawBody: string): string => {
 	return result || rawBody.replace(/<[^>]+>/g, "").trim();
 };
 
-interface ExtractedSearch {
-	city?: string;
-	maxPrice?: number;
-	beds?: number;
-	baths?: number;
-	poolOnly?: boolean;
-	waterfrontOnly?: boolean;
-}
-
-// Extract search parameters strictly from the user's fresh message (ignoring subject lines with old city names)
-function extractSearchParamsFromUserText(text: string): ExtractedSearch {
-	const result: ExtractedSearch = {};
-	if (!text || typeof text !== "string") return result;
-
-	const clean = text.toLowerCase().trim();
-
-	// 1. City extraction (Strictly from user body text)
-	const knownCities = [
-		{ key: "sanibel", name: "SANIBEL" },
-		{ key: "bonita springs", name: "BONITA SPRINGS" },
-		{ key: "bonita", name: "BONITA SPRINGS" },
-		{ key: "cape coral", name: "CAPE CORAL" },
-		{ key: "fort myers", name: "FORT MYERS" },
-		{ key: "ft myers", name: "FORT MYERS" },
-		{ key: "ft. myers", name: "FORT MYERS" },
-		{ key: "estero", name: "ESTERO" },
-		{ key: "marco island", name: "MARCO ISLAND" },
-		{ key: "punta gorda", name: "PUNTA GORDA" },
-		{ key: "lehigh", name: "LEHIGH ACRES" },
-		{ key: "miami", name: "MIAMI" },
-		{ key: "ave maria", name: "AVE MARIA" },
-		{ key: "naples", name: "NAPLES" },
-	];
-
-	for (const item of knownCities) {
-		if (clean.includes(item.key)) {
-			result.city = item.name;
-			break;
-		}
-	}
-
-	// 2. Max Price extraction ($500k, $1m, 500000, under 1M)
-	const priceKMatch = clean.match(/(?:under|below|max|up to|\$)\s*(\d+(?:\.\d+)?)\s*k\b/i);
-	if (priceKMatch && priceKMatch[1]) {
-		result.maxPrice = parseFloat(priceKMatch[1]) * 1000;
-	} else {
-		const priceMMatch = clean.match(/(?:under|below|max|up to|\$)\s*(\d+(?:\.\d+)?)\s*m\b/i);
-		if (priceMMatch && priceMMatch[1]) {
-			result.maxPrice = parseFloat(priceMMatch[1]) * 1000000;
-		} else {
-			const priceRawMatch = clean.match(/(?:under|below|max|price)\s*\$?(\d[\d,]{3,})/i);
-			if (priceRawMatch && priceRawMatch[1]) {
-				result.maxPrice = parseInt(priceRawMatch[1].replace(/,/g, ""), 10);
-			}
-		}
-	}
-
-	// 3. Bedrooms extraction (1 bed, 2 beds, 3 bedrooms, 4 bed)
-	const bedMatch = clean.match(/(\d+)\s*(?:bed|beds|bedroom|bedrooms)\b/i);
-	if (bedMatch && bedMatch[1]) {
-		result.beds = parseInt(bedMatch[1], 10);
-	}
-
-	// 4. Bathrooms extraction (1 bath, 2 baths, 3 bathrooms)
-	const bathMatch = clean.match(/(\d+)\s*(?:bath|baths|bathroom|bathrooms)\b/i);
-	if (bathMatch && bathMatch[1]) {
-		result.baths = parseInt(bathMatch[1], 10);
-	}
-
-	// 5. Pool / Waterfront extraction
-	if (clean.includes("pool")) result.poolOnly = true;
-	if (clean.includes("waterfront") || clean.includes("gulf access")) result.waterfrontOnly = true;
-
-	return result;
-}
+// Remove the old Regex extraction function
+// We will use OpenAI's generateObject directly in the POST route instead.
 
 // Builder for High-End Luxury Property Email Template (Matches User Reference Image)
 function buildHtmlPropertyEmail(
@@ -392,12 +322,55 @@ export async function POST(req: Request) {
 			}
 		});
 
-		// 3. Extract Search Parameters (City, Price, Beds, Baths, Pool) STRICTLY from user's fresh message
-		const searchParams = extractSearchParamsFromUserText(latestUserText);
-		const freshTextLower = latestUserText.toLowerCase();
-
-		const isSellIntent = freshTextLower.includes("sell") || freshTextLower.includes("selling") || freshTextLower.includes("valuation") || freshTextLower.includes("cma");
-		const isBuyIntent = freshTextLower.includes("buy") || freshTextLower.includes("buying") || freshTextLower.includes("property") || freshTextLower.includes("properties") || freshTextLower.includes("home") || freshTextLower.includes("listing") || searchParams.city !== undefined;
+		// 3. Use OpenAI to Extract Intent and Search Parameters smartly from the user's fresh message
+		let searchParams: any = {};
+		let isBuyIntent = false;
+		let isSellIntent = false;
+		let generatedReplyText = "";
+		
+		try {
+			const aiResult = await generateObject({
+				model: openai("gpt-4o-mini"),
+				schema: z.object({
+					intent: z.enum(["buy", "sell", "both", "general"]).describe("The core intent of the user. Are they looking to buy, sell, both, or just asking a general question?"),
+					city: z.string().optional().describe("The city the user wants to search in (e.g., Naples, Cape Coral, Fort Myers, Bonita Springs, Sanibel). Return uppercase."),
+					minPrice: z.number().optional().describe("Minimum price in dollars (e.g. 500000)"),
+					maxPrice: z.number().optional().describe("Maximum price in dollars (e.g. 1000000)"),
+					beds: z.number().optional().describe("Minimum number of bedrooms"),
+					baths: z.number().optional().describe("Minimum number of bathrooms"),
+					poolOnly: z.boolean().optional().describe("Does the user specifically want a pool?"),
+					waterfrontOnly: z.boolean().optional().describe("Does the user specifically want waterfront or gulf access?"),
+					replyText: z.string().describe("A polite, 2-sentence conversational reply to the user's email addressing their query, which will be included at the top of the HTML email.")
+				}),
+				prompt: `Analyze the following email from a real estate lead and extract their intent, search criteria, and generate a polite reply.
+				
+				Email Context:
+				Subject: ${replySubject}
+				Message: ${latestUserText}`
+			});
+			
+			const aiData = aiResult.object;
+			
+			searchParams = {
+				city: aiData.city,
+				minPrice: aiData.minPrice,
+				maxPrice: aiData.maxPrice,
+				beds: aiData.beds,
+				baths: aiData.baths,
+				poolOnly: aiData.poolOnly,
+				waterfrontOnly: aiData.waterfrontOnly
+			};
+			
+			isBuyIntent = aiData.intent === "buy" || aiData.intent === "both";
+			isSellIntent = aiData.intent === "sell" || aiData.intent === "both";
+			generatedReplyText = aiData.replyText;
+			
+			console.log("[OpenAI Intent Extraction] Success:", JSON.stringify(aiData));
+		} catch (aiErr) {
+			console.error("[OpenAI Intent Extraction] Failed, falling back to defaults:", aiErr);
+			generatedReplyText = "Thank you for reaching out to Gulfshore Group!";
+			isBuyIntent = true;
+		}
 
 		// 4. Query Database for Active Properties matching the extracted criteria (default to NAPLES if no city in user message)
 		const targetCity = searchParams.city || "NAPLES";
@@ -408,8 +381,11 @@ export async function POST(req: Request) {
 			City: { contains: targetCity }
 		};
 
+		if (searchParams.minPrice) {
+			dbWhere.ListPrice = { ...dbWhere.ListPrice, gte: searchParams.minPrice };
+		}
 		if (searchParams.maxPrice) {
-			dbWhere.ListPrice = { lte: searchParams.maxPrice };
+			dbWhere.ListPrice = { ...dbWhere.ListPrice, lte: searchParams.maxPrice };
 		}
 		if (searchParams.beds) {
 			dbWhere.BedroomsTotal = { gte: searchParams.beds };
@@ -499,7 +475,7 @@ export async function POST(req: Request) {
 			// SELLER INTENT
 			plainTextSummary = `Hello,
 
-Thank you for reaching out to Gulfshore Group Real Estate!
+${generatedReplyText}
 
 Dimitri Schwarz provides complimentary, high-precision Home Valuations (Comparative Market Analysis) and full listing representation across Southwest Florida.
 
@@ -515,13 +491,15 @@ ${baseUrl}`;
 				targetCity,
 				properties,
 				"COMPLIMENTARY HOME VALUATION & SELLER SERVICES",
-				`Dimitri Schwarz offers full listing representation. Visit <a href="${baseUrl}/sell" style="color: #dc2626; font-weight: bold;">Seller Portal</a> to list your home. Here are active market listings in ${targetCity} for reference:`
+				`${generatedReplyText}<br><br>Dimitri Schwarz offers full listing representation. Visit <a href="${baseUrl}/sell" style="color: #dc2626; font-weight: bold;">Seller Portal</a> to list your home. Here are active market listings in ${targetCity} for reference:`
 			);
 		} else {
 			// BUY INTENT or GENERAL PROPERTY SEARCH
 			plainTextSummary = `Hello,
 
-Thank you for reaching out to Gulfshore Group! Here are top active property listings currently available in ${targetCity}:
+${generatedReplyText}
+
+Here are top active property listings currently available in ${targetCity}:
 
 ${properties.map((p, i) => `${i + 1}. ${p.FullAddress} - $${p.ListPrice?.toLocaleString()} (${baseUrl}${UrlMaker(p.City || "", p.Community || "", p.FullAddress || "", p.MLSNumber || undefined)})`).join("\n")}
 
@@ -534,7 +512,7 @@ ${baseUrl}`;
 				targetCity,
 				properties,
 				`ACTIVE HOMES MATCHING YOUR SEARCH`,
-				`We found ${properties.length} active luxury properties matching your search criteria in ${targetCity}. Each listing has been curated for quality and value.`
+				`${generatedReplyText}<br><br>We found ${properties.length} active luxury properties matching your search criteria in ${targetCity}. Each listing has been curated for quality and value.`
 			);
 		}
 
