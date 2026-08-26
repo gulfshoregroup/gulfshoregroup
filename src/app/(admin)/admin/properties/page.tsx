@@ -299,10 +299,6 @@ export default function PropertiesPage() {
 							: <Database className="h-4 w-4" />}
 						{syncStatus?.loading ? "Syncing..." : "Full MLS Sync"}
 					</Button>
-					<Button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2">
-						<Plus className="h-4 w-4" />
-						Add Property
-					</Button>
 				</div>
 			</div>
 

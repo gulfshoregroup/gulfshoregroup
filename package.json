@@ -80,6 +80,7 @@
 		"mariadb": "^3.5.3",
 		"mongodb": "^7.4.0",
 		"mongoose": "^8.19.2",
+		"mysql2": "^3.24.2",
 		"next": "^16.0.0",
 		"next-cloudinary": "^6.17.5",
 		"next-share": "^0.27.0",
