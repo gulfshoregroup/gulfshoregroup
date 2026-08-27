@@ -247,7 +247,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
 		
 		const lead = await prisma.lead.findUnique({
 			where: { id },
-			select: { userId: true },
+			select: { userId: true, email: true },
 		});
 
 		if (lead?.userId) {
@@ -265,6 +265,17 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
 				});
 			} catch (err) {
 				console.error("Error deleting user from User table:", err);
+			}
+		}
+
+		// Delete associated contact requests using the lead's email
+		if (lead?.email) {
+			try {
+				await prisma.contactRequest.deleteMany({
+					where: { email: lead.email },
+				});
+			} catch (err) {
+				console.error("Error deleting contact requests:", err);
 			}
 		}
 
