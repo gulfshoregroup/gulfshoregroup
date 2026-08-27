@@ -187,68 +187,27 @@ export async function POST(request: Request) {
 				}
 
 				// 5b. Admin Notification Email
-				if (adminEmail) {
-					try {
-						await resendClient.emails.send({
-							from: fromEmail,
-							to: [adminEmail],
-							subject: `[New Lead Alert] ${userRole} Inquiry from ${resolvedName}`,
-							html: `
-								<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
-									<div style="background-color: #d90429; color: #ffffff; padding: 16px 24px; border-radius: 8px 8px 0 0; text-align: center;">
-										<h2 style="margin: 0; font-size: 20px;">New Contact Form Submission</h2>
-									</div>
-									<div style="padding: 20px 0;">
-										<table style="width: 100%; border-collapse: collapse; font-size: 15px;">
-											<tr>
-												<td style="padding: 8px 0; color: #6b7280; width: 35%;"><strong>Name:</strong></td>
-												<td style="padding: 8px 0; color: #111827;">${resolvedName}</td>
-											</tr>
-											<tr>
-												<td style="padding: 8px 0; color: #6b7280;"><strong>Email:</strong></td>
-												<td style="padding: 8px 0; color: #111827;"><a href="mailto:${email}">${email}</a></td>
-											</tr>
-											<tr>
-												<td style="padding: 8px 0; color: #6b7280;"><strong>Phone:</strong></td>
-												<td style="padding: 8px 0; color: #111827;">${phone || "Not provided"}</td>
-											</tr>
-											<tr>
-												<td style="padding: 8px 0; color: #6b7280;"><strong>User Role / Type:</strong></td>
-												<td style="padding: 8px 0; color: #111827;">${userRole} (${resolvedRefType})</td>
-											</tr>
-											${
-												propertyAddress
-													? `<tr>
-												<td style="padding: 8px 0; color: #6b7280;"><strong>Property:</strong></td>
-												<td style="padding: 8px 0; color: #111827;">${propertyAddress} ${MLSNumber ? `(MLS: ${MLSNumber})` : ""}</td>
-											</tr>`
-													: ""
-											}
-											${
-												ref
-													? `<tr>
-												<td style="padding: 8px 0; color: #6b7280;"><strong>Source Page:</strong></td>
-												<td style="padding: 8px 0; color: #111827;">${ref}</td>
-											</tr>`
-													: ""
-											}
-										</table>
-
-										<div style="margin-top: 20px; background-color: #f9fafb; padding: 16px; border-radius: 8px; border-left: 4px solid #d90429;">
-											<p style="margin: 0 0 6px 0; font-size: 14px; color: #6b7280;"><strong>Message:</strong></p>
-											<p style="margin: 0; font-size: 15px; color: #111827; white-space: pre-wrap;">${message || "No message content provided."}</p>
-										</div>
-									</div>
-									<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
-									<p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-										Received at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })} ET
-									</p>
-								</div>
-							`,
-						});
-					} catch (adminEmailErr) {
-						console.error("[Contact API] Admin notification email failed:", adminEmailErr);
-					}
+				try {
+					const { sendAdminLeadAlertEmail } = await import("@/lib/email/admin-lead-alert");
+					await sendAdminLeadAlertEmail({
+						action: "inquiry",
+						leadName: resolvedName,
+						leadEmail: email,
+						timestamp: new Date(),
+						message: message || "No message content provided.",
+						property: propertyAddress ? {
+							FullAddress: propertyAddress,
+							MLSNumber: MLSNumber || "N/A",
+							ListPrice: 0 // ListPrice is unknown in this route
+						} as any : undefined,
+						filters: {
+							role: userRole,
+							phone: phone || "Not provided",
+							sourcePage: ref || "Unknown"
+						}
+					});
+				} catch (adminEmailErr) {
+					console.error("[Contact API] Admin notification email failed:", adminEmailErr);
 				}
 			} catch (emailInitErr) {
 				console.error("[Contact API] Email service error:", emailInitErr);

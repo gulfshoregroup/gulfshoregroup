@@ -148,7 +148,7 @@ export default function SignInPage() {
 										value={email}
 										onChange={(e) => setEmail(e.target.value)}
 										className="block w-full rounded-xl border border-gray-300 pl-10 pr-3 py-2.5 text-gray-900 bg-white placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-[#B89A6A]/20 focus:border-[#B89A6A] sm:text-sm transition-all duration-200"
-										placeholder="admin@gulfshore.com"
+										placeholder="mailbox@gulfshoregroup.com"
 									/>
 								</div>
 							</div>
@@ -212,7 +212,7 @@ export default function SignInPage() {
 						</p>
 						<p>Use the default credentials or configure them from Settings inside the dashboard:</p>
 						<div className="mt-2 space-y-1 font-mono text-[11px] bg-white p-2 rounded-lg border border-amber-100/50">
-							<div>Email: admin@gulfshore.com</div>
+							<div>Email: mailbox@gulfshoregroup.com</div>
 							<div>Pass: admin</div>
 						</div>
 					</div>
