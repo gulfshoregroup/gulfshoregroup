@@ -72,6 +72,8 @@ export function buildAdminLeadAlertHtml(
 			</tr>`
 		: "";
 
+	const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
+
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -82,13 +84,22 @@ export function buildAdminLeadAlertHtml(
 <body style="margin:0;padding:40px 0;background:#F4F4F5;font-family:'Poppins', Arial, sans-serif;color:#1A0A0A;">
 	<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:4px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.08);">
 		<tr>
-			<td style="background:#1A0A0A;padding:40px;text-align:center;border-bottom:3px solid #C9A96E;">
-				<p style="font-size:24px;letter-spacing:0.2em;text-transform:uppercase;color:#FFFFFF;margin:0 0 4px;font-weight:400;">GULFSHORE</p>
-				<p style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:#C9A96E;margin:0;font-weight:600;">Real Estate Group</p>
+			<td style="background:#FFFFFF;padding:40px 40px;">
+				<table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation">
+					<tr>
+						<td style="padding-right:16px;vertical-align:middle;">
+							<img src="${baseUrl}/logored.svg" width="56" height="56" alt="Gulfshore Group Logo" style="display:block;" />
+						</td>
+						<td style="vertical-align:middle;text-align:left;">
+							<p style="font-size:26px;font-weight:700;color:#D90429;margin:0 0 4px 0;font-family:'Poppins', Arial, sans-serif;letter-spacing:0.02em;line-height:1;">GULFSHORE GROUP</p>
+							<p style="font-size:18px;color:#4B5563;margin:0;font-family:'Poppins', Arial, sans-serif;font-weight:500;line-height:1;">London Forster Realty</p>
+						</td>
+					</tr>
+				</table>
 			</td>
 		</tr>
 		<tr>
-			<td style="padding:48px 40px 16px;text-align:center;">
+			<td style="padding:24px 40px 16px;text-align:center;">
 				<h1 style="font-size:22px;font-weight:400;color:#1A0A0A;margin:0 0 12px;line-height:1.4;text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(actionLabel)}</h1>
 				<p style="font-size:14px;color:#666666;margin:0 0 24px;">Gulfshore Group CRM Alert</p>
 				<div style="margin:0 auto 24px;max-width:60px;border-top:1px solid #C9A96E;"></div>

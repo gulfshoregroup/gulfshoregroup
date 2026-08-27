@@ -159,7 +159,7 @@ export async function processSavedSearches() {
 				const propertiesArray = Array.from(allMatchingProperties.values());
 
 				// FORMAT SMS
-				const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshore-fullcode-next-production.up.railway.app";
+				const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
 				const domain = baseUrl.replace(/^https?:\/\//, '');
 				const smsMessage = `Dimitri Schwarz 239.992.9119 ${domain} - You have ${count} New Listing${count > 1 ? 's' : ''} matching your saved searches.`;
 
@@ -197,7 +197,7 @@ export async function processSavedSearches() {
 		// 2. GENERIC BLAST TO ALL OTHER LEADS (Once a day at ~10 AM EDT / 14:00 UTC)
 		// ---------------------------------------------------------
 		const currentUTCHour = new Date().getUTCHours();
-		const isDailyBlastHour = currentUTCHour === 14; 
+		const isDailyBlastHour = currentUTCHour === 12; // 8 AM EDT 
 		
 		// If it's the daily blast hour, send to everyone else
 		if (isDailyBlastHour) {
@@ -227,7 +227,7 @@ export async function processSavedSearches() {
 					// SEND SMS (Generic)
 					if (lead.phone) {
 						let priceStr = newestProperty.ListPrice ? `$${newestProperty.ListPrice.toLocaleString()}` : "";
-						const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshore-fullcode-next-production.up.railway.app";
+						const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
 						const domain = baseUrl.replace(/^https?:\/\//, '');
 						const smsMessage = `Dimitri Schwarz 239.992.9119 ${domain} - Featured New Listing in ${newestProperty.City} ${priceStr}`;
 						await sendSMS(lead.phone, smsMessage).catch(err => console.error("SMS Error:", err));

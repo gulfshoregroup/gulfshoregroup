@@ -10,7 +10,7 @@ import { z } from "zod";
 
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy");
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://gulfshore-fullcode-next-production.up.railway.app";
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://gulfshoregroup.com";
 
 // Helper to extract best cover image URL for property cards
 function getPropertyImageUrl(p: any): string {

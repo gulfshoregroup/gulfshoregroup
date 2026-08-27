@@ -57,6 +57,19 @@ export async function POST(req: Request) {
 			},
 		});
 
+		try {
+			const { sendAdminLeadAlertEmail } = await import("@/lib/email/admin-lead-alert");
+			await sendAdminLeadAlertEmail({
+				action: "inquiry",
+				leadName: `${firstName || ""} ${lastName || ""}`.trim() || "Contact Form Lead",
+				leadEmail: email,
+				timestamp: new Date(),
+				message: message || `Contact request for property ${propertyAddress || ""}`,
+			});
+		} catch (err) {
+			console.error("Contact Form Admin Email trigger failed:", err);
+		}
+
 		const mappedLead = {
 			...lead,
 			_id: lead.id,

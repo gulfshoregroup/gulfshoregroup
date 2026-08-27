@@ -120,7 +120,7 @@ import {
     return (
       process.env.NEXT_PUBLIC_SERVER_URL ||
       process.env.SITE_URL ||
-      "https://gulfshore-fullcode-next-production.up.railway.app"
+      "https://gulfshoregroup.com"
     );
   }
   
@@ -136,20 +136,19 @@ import {
   // ─── Fetch Properties ─────────────────────────────────────────────────────────
   
   async function fetchProperties(): Promise<Property | null> {
-    const url = `${getPropertiesApiBaseUrl()}/api/v2/properties/226019967`;
-
-    const res = await fetch(url, {
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-    });
-    if (!res.ok) throw new Error(`Properties API error ${res.status}: ${await res.text()}`);
-
-    const json: PropertiesApiResponse = await res.json();
-    if (!json.success) {
-      throw new Error("Properties API returned an unsuccessful response");
+    try {
+      const prop = await prisma.property.findFirst({
+        where: {
+          StandardStatus: "Active",
+          ListPrice: { gte: 1000000 }
+        },
+        orderBy: { ListPrice: 'desc' },
+      });
+      return prop as any;
+    } catch (err) {
+      console.error("Failed to fetch fallback property via Prisma:", err);
+      return null;
     }
-
-    return json.data ?? {} as Property | null;
   }
   
   // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -734,15 +733,16 @@ import {
               {/* ── Footer ── */}
               <Section
                 style={{
-                  backgroundColor: DARK,
+                  backgroundColor: "#F9FAFB",
                   padding: "28px 40px",
                   textAlign: "center" as const,
+                  borderTop: `1px solid ${BORDER}`,
                 }}
               >
                 <Text
                   style={{
                     fontSize: "11px",
-                    color: "rgba(255,255,255,0.4)",
+                    color: "#6B7280",
                     margin: "0 0 12px",
                     lineHeight: "1.6",
                     fontFamily: "'Poppins', Arial, sans-serif",
@@ -758,10 +758,11 @@ import {
                     <Link
                       href={unsubscribeUrl}
                       style={{
-                        color: GOLD,
+                        color: PRIMARY,
                         fontSize: "11px",
                         textDecoration: "underline",
                         fontFamily: "'Poppins', Arial, sans-serif",
+                        fontWeight: "500",
                       }}
                     >
                       Manage Preferences
@@ -769,7 +770,7 @@ import {
                     <Text
                       style={{
                         display: "inline",
-                        color: "rgba(255,255,255,0.2)",
+                        color: "#D1D5DB",
                         margin: "0 8px",
                       }}
                     >
@@ -778,7 +779,7 @@ import {
                     <Link
                       href={unsubscribeUrl}
                       style={{
-                        color: "rgba(255,255,255,0.4)",
+                        color: "#6B7280",
                         fontSize: "11px",
                         textDecoration: "underline",
                         fontFamily: "'Poppins', Arial, sans-serif",
@@ -789,18 +790,18 @@ import {
                   </Column>
                 </Row>
   
-                <Hr style={{ borderColor: "rgba(255,255,255,0.1)", margin: "20px 0 16px" }} />
+                <Hr style={{ borderColor: BORDER, margin: "20px 0 16px" }} />
   
                 <Text
                   style={{
                     fontSize: "10px",
-                    color: "rgba(255,255,255,0.25)",
+                    color: "#9CA3AF",
                     margin: 0,
                     letterSpacing: "0.05em",
                     fontFamily: "'Poppins', Arial, sans-serif",
                   }}
                 >
-                  © {new Date().getFullYear()} {getPropertiesApiBaseUrl().replace('https://', '')} · ALL RIGHTS RESERVED
+                  © {new Date().getFullYear()} {getPropertiesApiBaseUrl().replace('https://', '').replace('/', '')} · ALL RIGHTS RESERVED
                 </Text>
               </Section>
             </Container>

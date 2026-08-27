@@ -23,9 +23,11 @@ export async function GET(req: NextRequest) {
 		console.log("[Cron] Daily alerts triggered.");
 
 		// Process Custom Search Alerts for Leads in background
-		processSavedSearches().catch(err => {
-			console.error("[Cron Background] Daily alerts failed:", err);
-		});
+		setTimeout(() => {
+			processSavedSearches().catch(err => {
+				console.error("[Cron Background] Daily alerts failed:", err);
+			});
+		}, 0);
 
 		return Response.json({
 			success: true,
