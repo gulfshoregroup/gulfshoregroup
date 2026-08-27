@@ -306,6 +306,7 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 								mapTypeControl: false,
 								streetViewControl: false,
 								fullscreenControl: true,
+								zoomControl: true,
 							}}
 						>
 							<Marker position={{ lat: Latitude, lng: Longitude }} />
