@@ -733,16 +733,15 @@ import {
               {/* ── Footer ── */}
               <Section
                 style={{
-                  backgroundColor: "#F9FAFB",
+                  backgroundColor: DARK,
                   padding: "28px 40px",
                   textAlign: "center" as const,
-                  borderTop: `1px solid ${BORDER}`,
                 }}
               >
                 <Text
                   style={{
                     fontSize: "11px",
-                    color: "#6B7280",
+                    color: "rgba(255,255,255,0.4)",
                     margin: "0 0 12px",
                     lineHeight: "1.6",
                     fontFamily: "'Poppins', Arial, sans-serif",
@@ -758,11 +757,10 @@ import {
                     <Link
                       href={unsubscribeUrl}
                       style={{
-                        color: PRIMARY,
+                        color: GOLD,
                         fontSize: "11px",
                         textDecoration: "underline",
                         fontFamily: "'Poppins', Arial, sans-serif",
-                        fontWeight: "500",
                       }}
                     >
                       Manage Preferences
@@ -770,7 +768,7 @@ import {
                     <Text
                       style={{
                         display: "inline",
-                        color: "#D1D5DB",
+                        color: "rgba(255,255,255,0.2)",
                         margin: "0 8px",
                       }}
                     >
@@ -779,7 +777,7 @@ import {
                     <Link
                       href={unsubscribeUrl}
                       style={{
-                        color: "#6B7280",
+                        color: "rgba(255,255,255,0.4)",
                         fontSize: "11px",
                         textDecoration: "underline",
                         fontFamily: "'Poppins', Arial, sans-serif",
@@ -790,18 +788,18 @@ import {
                   </Column>
                 </Row>
   
-                <Hr style={{ borderColor: BORDER, margin: "20px 0 16px" }} />
+                <Hr style={{ borderColor: "rgba(255,255,255,0.1)", margin: "20px 0 16px" }} />
   
                 <Text
                   style={{
                     fontSize: "10px",
-                    color: "#9CA3AF",
+                    color: "rgba(255,255,255,0.25)",
                     margin: 0,
                     letterSpacing: "0.05em",
                     fontFamily: "'Poppins', Arial, sans-serif",
                   }}
                 >
-                  © {new Date().getFullYear()} {getPropertiesApiBaseUrl().replace('https://', '').replace('/', '')} · ALL RIGHTS RESERVED
+                  © {new Date().getFullYear()} {getPropertiesApiBaseUrl().replace('https://', '')} · ALL RIGHTS RESERVED
                 </Text>
               </Section>
             </Container>

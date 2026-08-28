@@ -4,7 +4,7 @@ import { hashPassword } from "@/lib/auth-crypto";
 import { cookies } from "next/headers";
 import { sendSMS } from "@/lib/twilio";
 import { sendAdminLeadAlertEmail } from "@/lib/email/admin-lead-alert";
-import { sendPropertyAlert } from "@/lib/leads/services/property-alerts";
+import { sendWelcomeEmail } from "@/lib/email/welcome-email";
 
 export async function POST(req: Request) {
 	try {
@@ -116,11 +116,9 @@ export async function POST(req: Request) {
 			}
 
 			try {
-				await sendPropertyAlert({
+				await sendWelcomeEmail({
 					to: normalizedEmail,
 					recipientName: firstName || "VIP Client",
-					alertTitle: "Welcome to Gulfshore Group VIP Access",
-					alertSubtitle: "Here is your first curated selection of Naples luxury properties",
 				});
 			} catch (err) {
 				console.error("Signup User Welcome Email trigger failed:", err);
