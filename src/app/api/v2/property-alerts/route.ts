@@ -107,7 +107,7 @@ async function runPropertyAlertSend(overrides: AlertOverrides = {}) {
       const searchTitle = overrides.alertTitle || overrides.subject || "Property Matches";
       await sendSMS(
         alertPhone,
-        `Dimitri Schwarz 239.992.9119 GulfShoreGroup.com - ${searchTitle} - New Listing`
+        `${searchTitle} - New Listing on GulfShoreGroup.com - Dimitri Schwarz, Your SW Florida Realtor 239.992.9119`
       );
     } catch (err) {
       console.error("Failed to send property alert SMS:", err);

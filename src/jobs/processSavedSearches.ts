@@ -161,7 +161,7 @@ export async function processSavedSearches() {
 				// FORMAT SMS
 				const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
 				const domain = baseUrl.replace(/^https?:\/\//, '');
-				const smsMessage = `Dimitri Schwarz 239.992.9119 ${domain} - You have ${count} New Listing${count > 1 ? 's' : ''} matching your saved searches.`;
+				const smsMessage = `You have ${count} New Listing${count > 1 ? 's' : ''} matching your saved searches on ${domain} - Dimitri Schwarz, Your SW Florida Realtor 239.992.9119`;
 
 				// SEND SMS
 				if (lead.phone) {
@@ -176,7 +176,7 @@ export async function processSavedSearches() {
 						to: lead.email,
 						recipientName: lead.firstName || "Valued Client",
 						leadId: lead.id,
-						subject: `Dimitri Schwarz 239.992.9119 | ${count} New Property Match${count > 1 ? 'es' : ''} for Your Saved Searches`,
+						subject: `${count} New Property Match${count > 1 ? 'es' : ''} for Your Saved Searches - Dimitri Schwarz, Your SW Florida Realtor 239.992.9119`,
 						alertTitle: "New Homes Matching Your Searches",
 						alertSubtitle: `We found ${count} new propert${count > 1 ? 'ies' : 'y'} that match your saved preferences across all your searches.`,
 						properties: propertiesArray as any,
@@ -229,7 +229,7 @@ export async function processSavedSearches() {
 						let priceStr = newestProperty.ListPrice ? `$${newestProperty.ListPrice.toLocaleString()}` : "";
 						const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
 						const domain = baseUrl.replace(/^https?:\/\//, '');
-						const smsMessage = `Dimitri Schwarz 239.992.9119 ${domain} - Featured New Listing in ${newestProperty.City} ${priceStr}`;
+						const smsMessage = `Featured New Listing in ${newestProperty.City} ${priceStr} on ${domain} - Dimitri Schwarz, Your SW Florida Realtor 239.992.9119`;
 						await sendSMS(lead.phone, smsMessage).catch(err => console.error("SMS Error:", err));
 					}
 
@@ -239,7 +239,7 @@ export async function processSavedSearches() {
 							to: lead.email,
 							recipientName: lead.firstName || "Valued Client",
 							leadId: lead.id,
-							subject: `Dimitri Schwarz 239.992.9119 | Featured New Listing in ${newestProperty.City}`,
+							subject: `Featured New Listing in ${newestProperty.City} - Dimitri Schwarz, Your SW Florida Realtor 239.992.9119`,
 							alertTitle: "A Naples Area Home for You",
 							alertSubtitle: `Here is a brand new listing we think you'll love.`,
 							properties: newestProperty as any,
