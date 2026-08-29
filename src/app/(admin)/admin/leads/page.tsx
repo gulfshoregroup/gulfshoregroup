@@ -107,6 +107,8 @@ export default function LeadsPage() {
 	const [page, setPage] = useState(1);
 	const [totalPages, setTotalPages] = useState(1);
 	const [totalCount, setTotalCount] = useState(0);
+	const [sortBy, setSortBy] = useState("createdAt");
+	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 	const limit = 20;
 
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -217,7 +219,7 @@ export default function LeadsPage() {
 		const fetchLeads = async () => {
 			try {
 				setLoading(true);
-				const res = await fetch(`/api/leads?page=${page}&limit=${limit}`);
+				const res = await fetch(`/api/leads?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`);
 				if (!res.ok) throw new Error("Failed to fetch leads");
 				const json = await res.json();
 				setLeads(json.data || []);
@@ -230,7 +232,7 @@ export default function LeadsPage() {
 			}
 		};
 		fetchLeads();
-	}, [page]);
+	}, [page, sortBy, sortOrder]);
 
 	// -------------------- FILTERS --------------------
 	const filteredLeads = leads.filter((lead) => {
@@ -411,22 +413,23 @@ export default function LeadsPage() {
 						<table className="w-full text-sm">
 							<thead>
 								<tr className="border-b border-border">
-									{[
-										"Name",
-										"Contact",
-										"Status",
-										"Score",
-										"Source",
-										"Tags",
-										"Last Contact",
-										"Action",
-									].map((head) => (
-										<th
-											key={head}
-											className="text-left py-3 px-4 font-semibold text-foreground">
-											{head}
-										</th>
-									))}
+									<th className="text-left py-3 px-4 font-semibold text-foreground">Name</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground">Contact</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground">Score</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setSortBy("viewedProperties"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
+										<div className="flex items-center gap-1">
+											Views {sortBy === "viewedProperties" ? (sortOrder === "desc" ? "↓" : "↑") : ""}
+										</div>
+									</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setSortBy("lastLogin"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
+										<div className="flex items-center gap-1">
+											Last Active {sortBy === "lastLogin" ? (sortOrder === "desc" ? "↓" : "↑") : ""}
+										</div>
+									</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground">Tags</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground">Last Contact</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground">Action</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -457,11 +460,16 @@ export default function LeadsPage() {
 												{lead.scoreLabel || "Cold"} ({lead.score || 0})
 											</Badge>
 										</td>
-										<td className="py-3 px-4">
-											<Badge
-												className={getSourceColor(lead.source || "")}>
-												{lead.source?.replaceAll("_", " ") || "—"}
-											</Badge>
+										<td className="py-3 px-4 text-center">
+											<div className="font-bold text-blue-600">{lead._count?.viewHistory || 0}</div>
+											{lead.viewHistory?.[0]?.lastViewedAt && (
+												<div className="text-[10px] text-muted-foreground mt-0.5">
+													{new Date(lead.viewHistory[0].lastViewedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+												</div>
+											)}
+										</td>
+										<td className="py-3 px-4 text-xs text-muted-foreground">
+											{lead.updatedAt ? new Date(lead.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
 										</td>
 										<td className="py-3 px-4">
 											<div className="flex gap-1 flex-wrap items-center">

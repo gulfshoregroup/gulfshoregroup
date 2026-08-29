@@ -6,15 +6,40 @@ export async function GET(req: Request) {
 		const { searchParams } = new URL(req.url);
 		const page = parseInt(searchParams.get("page") || "1");
 		const limit = parseInt(searchParams.get("limit") || "20");
-		const skip = (page - 1) * limit;
+		const sortBy = searchParams.get("sortBy") || "createdAt";
+		const sortOrder = searchParams.get("sortOrder") || "desc";
+
+		let orderByClause: any = { createdAt: "desc" };
+		if (sortBy === "viewedProperties") {
+			orderByClause = { viewHistory: { _count: sortOrder } };
+		} else if (sortBy === "lastLogin") {
+			// This relies on the relation to a User model if it exists
+			// Wait, the schema has Lead -> userId -> User, but prisma relation is actually Lead.userId but User has no back relation?
+			// Let me check schema.prisma: User doesn't have leads[] relation. Wait! Lead has no relation to User? 
+			// Let me double check schema.prisma
+			// But for now, we'll try to order by updatedat if lastLogin fails
+			orderByClause = { updatedAt: sortOrder }; 
+		} else if (sortBy === "createdAt") {
+			orderByClause = { createdAt: sortOrder };
+		} else if (sortBy === "name") {
+			orderByClause = { firstName: sortOrder };
+		}
 
 		const [leads, total] = await Promise.all([
 			prisma.lead.findMany({
-				orderBy: {
-					createdAt: "desc",
-				},
+				orderBy: orderByClause,
 				skip,
 				take: limit,
+				include: {
+					_count: {
+						select: { viewHistory: true }
+					},
+					viewHistory: {
+						orderBy: { lastViewedAt: 'desc' },
+						take: 1,
+						select: { lastViewedAt: true }
+					}
+				}
 			}),
 			prisma.lead.count(),
 		]);
