@@ -25,6 +25,8 @@ export async function GET(req: Request) {
 			orderByClause = { firstName: sortOrder };
 		}
 
+		const skip = (page - 1) * limit;
+
 		const [leads, total] = await Promise.all([
 			prisma.lead.findMany({
 				orderBy: orderByClause,
