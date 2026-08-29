@@ -413,8 +413,7 @@ export default function LeadsPage() {
 						<table className="w-full text-sm">
 							<thead>
 								<tr className="border-b border-border">
-									<th className="text-left py-3 px-4 font-semibold text-foreground">Name</th>
-									<th className="text-left py-3 px-4 font-semibold text-foreground">Contact</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground">Lead Info</th>
 									<th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
 									<th className="text-left py-3 px-4 font-semibold text-foreground">Score</th>
 									<th className="text-left py-3 px-4 font-semibold text-foreground cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setSortBy("viewedProperties"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
@@ -428,6 +427,11 @@ export default function LeadsPage() {
 										</div>
 									</th>
 									<th className="text-left py-3 px-4 font-semibold text-foreground">Tags</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setSortBy("createdAt"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
+										<div className="flex items-center gap-1">
+											Created At {sortBy === "createdAt" ? (sortOrder === "desc" ? "↓" : "↑") : ""}
+										</div>
+									</th>
 									<th className="text-left py-3 px-4 font-semibold text-foreground">Last Contact</th>
 									<th className="text-left py-3 px-4 font-semibold text-foreground">Action</th>
 								</tr>
@@ -437,16 +441,16 @@ export default function LeadsPage() {
 									<tr
 										key={i}
 										className="border-b border-border hover:bg-muted/50 transition-colors">
-										<td className="py-3 px-4 font-medium text-foreground">
-											{lead.firstName} {lead.lastName}
-										</td>
 										<td className="py-3 px-4">
+											<div className="font-medium text-foreground mb-1">
+												{lead.firstName || lead.lastName ? `${lead.firstName || ""} ${lead.lastName || ""}` : lead.email}
+											</div>
 											<div className="space-y-1 text-xs text-muted-foreground">
 												<div className="flex items-center gap-1">
 													<Mail className="h-3 w-3" /> {lead.email}
 												</div>
 												<div className="flex items-center gap-1">
-													<Phone className="h-3 w-3" /> {lead.phone}
+													<Phone className="h-3 w-3" /> {lead.phone || "—"}
 												</div>
 											</div>
 										</td>
@@ -506,6 +510,9 @@ export default function LeadsPage() {
 													)}
 												</div>
 											</div>
+										</td>
+										<td className="py-3 px-4 text-xs text-muted-foreground">
+											{new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
 										</td>
 
 										<td className="py-3 px-4 text-xs text-muted-foreground">
