@@ -413,6 +413,7 @@ export default function LeadsPage() {
 						<table className="w-full text-sm">
 							<thead>
 								<tr className="border-b border-border">
+									<th className="text-left py-3 px-4 font-semibold text-foreground w-12">#</th>
 									<th className="text-left py-3 px-4 font-semibold text-foreground">Lead Info</th>
 									<th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
 									<th className="text-left py-3 px-4 font-semibold text-foreground">Score</th>
@@ -441,6 +442,9 @@ export default function LeadsPage() {
 									<tr
 										key={i}
 										className="border-b border-border hover:bg-muted/50 transition-colors">
+										<td className="py-3 px-4 font-medium text-muted-foreground text-xs">
+											{(page - 1) * limit + i + 1}
+										</td>
 										<td className="py-3 px-4">
 											<div className="font-medium text-foreground mb-1">
 												{lead.firstName || lead.lastName ? `${lead.firstName || ""} ${lead.lastName || ""}` : lead.email}
