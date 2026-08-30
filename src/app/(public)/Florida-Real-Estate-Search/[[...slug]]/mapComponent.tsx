@@ -243,18 +243,24 @@ export default function MapComponent({
 					const tileLng = (coord.x / Math.pow(2, zoom)) * 360 - 180;
 
 					// Restrict to Southwest Florida roughly
-					// Lat: ~25.5 (South) to ~27.5 (North)
-					// Lng: ~-82.6 (West) to ~-81.0 (East)
 					if (tileLat < 25.5 || tileLat > 27.5 || tileLng < -82.6 || tileLng > -81.0) {
 						return null; // Don't load FEMA map outside SW Florida
 					}
 
-					// ESRI USA Flood Hazard Reduced Set — fully public, no API key needed
-					// Shows FEMA NFHL flood zones: red=high risk, orange=moderate, green=low
-					return `https://server.arcgisonline.com/ArcGIS/rest/services/USA_Flood_Hazard_Reduced_Set/MapServer/tile/${zoom}/${coord.y}/${coord.x}`;
+					// Use official FEMA API with transparent background instead of ESRI solid tiles
+					const initialResolution = 2 * Math.PI * 6378137 / 256;
+					const originShift = 2 * Math.PI * 6378137 / 2;
+					const zoomResolution = initialResolution / Math.pow(2, zoom);
+					const tileWidth = 256 * zoomResolution;
+					const minX = coord.x * tileWidth - originShift;
+					const maxX = (coord.x + 1) * tileWidth - originShift;
+					const minY = originShift - (coord.y + 1) * tileWidth;
+					const maxY = originShift - coord.y * tileWidth;
+					const bbox = `${minX},${minY},${maxX},${maxY}`;
+					return `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/export?bbox=${bbox}&bboxSR=3857&layers=show:28&size=256,256&imageSR=3857&format=png32&transparent=true&f=image`;
 				},
 				tileSize: new google.maps.Size(256, 256),
-				opacity: 0.7,
+				opacity: 0.5,
 				name: "FEMA Flood Zone Map",
 			});
 			femaOverlayRef.current = femaType;
