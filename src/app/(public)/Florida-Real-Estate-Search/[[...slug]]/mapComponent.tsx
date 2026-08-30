@@ -514,15 +514,15 @@ export default function MapComponent({
 					</div>
 					<div className="flex flex-col gap-2 text-[11px] text-gray-700">
 						<div className="flex items-center gap-2">
-							<div className="w-3.5 h-3.5 rounded bg-[#FF0000]/70 border border-[#CC0000] shrink-0"></div>
-							<span><strong>Zone AE / VE:</strong> High Risk (Insurance Required)</span>
+							<div className="w-3.5 h-3.5 rounded bg-[#00FFFF]/50 border border-[#00BFFF] shrink-0"></div>
+							<span><strong>Zone AE / VE / A:</strong> High Risk (1% Chance)</span>
 						</div>
 						<div className="flex items-center gap-2">
-							<div className="w-3.5 h-3.5 rounded bg-[#FFA500]/70 border border-[#CC8400] shrink-0"></div>
+							<div className="w-3.5 h-3.5 rounded bg-[#FFA500]/50 border border-[#FF8C00] shrink-0"></div>
 							<span><strong>Zone X (Shaded):</strong> Moderate Risk (0.2% Chance)</span>
 						</div>
 						<div className="flex items-center gap-2">
-							<div className="w-3.5 h-3.5 rounded bg-[#008000]/70 border border-[#006600] shrink-0"></div>
+							<div className="w-3.5 h-3.5 rounded bg-transparent border border-gray-300 shrink-0"></div>
 							<span><strong>Zone X (Unshaded):</strong> Low Risk (Minimal Hazard)</span>
 						</div>
 					</div>
