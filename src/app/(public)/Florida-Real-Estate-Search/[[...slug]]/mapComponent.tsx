@@ -236,6 +236,19 @@ export default function MapComponent({
 			const femaType = new google.maps.ImageMapType({
 				getTileUrl: (coord, zoom) => {
 					if (zoom < 9) return null;
+					
+					// Convert tile coordinates to approximate Latitude/Longitude
+					const n = Math.PI - 2 * Math.PI * coord.y / Math.pow(2, zoom);
+					const tileLat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+					const tileLng = (coord.x / Math.pow(2, zoom)) * 360 - 180;
+
+					// Restrict to Southwest Florida roughly
+					// Lat: ~25.5 (South) to ~27.5 (North)
+					// Lng: ~-82.6 (West) to ~-81.0 (East)
+					if (tileLat < 25.5 || tileLat > 27.5 || tileLng < -82.6 || tileLng > -81.0) {
+						return null; // Don't load FEMA map outside SW Florida
+					}
+
 					// ESRI USA Flood Hazard Reduced Set — fully public, no API key needed
 					// Shows FEMA NFHL flood zones: red=high risk, orange=moderate, green=low
 					return `https://server.arcgisonline.com/ArcGIS/rest/services/USA_Flood_Hazard_Reduced_Set/MapServer/tile/${zoom}/${coord.y}/${coord.x}`;

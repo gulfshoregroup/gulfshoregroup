@@ -58,6 +58,15 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 			setFemaLoading(true);
 			const femaType = new google.maps.ImageMapType({
 				getTileUrl: (coord, zoom) => {
+					// Convert tile coordinates to approximate Latitude/Longitude for SW FL bounds check
+					const n = Math.PI - 2 * Math.PI * coord.y / Math.pow(2, zoom);
+					const tileLat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+					const tileLng = (coord.x / Math.pow(2, zoom)) * 360 - 180;
+
+					if (tileLat < 25.5 || tileLat > 27.5 || tileLng < -82.6 || tileLng > -81.0) {
+						return null; // Don't load FEMA map outside SW Florida
+					}
+
 					const initialResolution = 2 * Math.PI * 6378137 / 256;
 					const originShift = 2 * Math.PI * 6378137 / 2;
 					const zoomResolution = initialResolution / Math.pow(2, zoom);
