@@ -150,7 +150,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: \`Successfully seeded drip campaigns! Created: \${createdCount}, Updated: \${updatedCount}\`
+      message: `Successfully seeded drip campaigns! Created: ${createdCount}, Updated: ${updatedCount}`
     });
   } catch (error: any) {
     console.error("Error seeding drip campaigns:", error);
