@@ -123,6 +123,17 @@ function ScheduleNotificationContent() {
 	const [showPropertyCriteria, setShowPropertyCriteria] =
 		useState(false);
 	const [priceRange, setPriceRange] = useState({ min: "", max: "" });
+	const [yearBuiltRange, setYearBuiltRange] = useState({ min: "", max: "" });
+	const [sqftRange, setSqftRange] = useState({ min: "" });
+	const [acresRange, setAcresRange] = useState({ min: "", max: "" });
+	const [hoa, setHoa] = useState("");
+	const [locationDetails, setLocationDetails] = useState({
+		subdivision: "",
+		school: "",
+		address: "",
+		postalCode: ""
+	});
+
 	const [selectedLocations, setSelectedLocations] = useState<
 		string[]
 	>([]);
@@ -171,6 +182,24 @@ function ScheduleNotificationContent() {
 							min: data.propertyCriteria.minPrice || "",
 							max: data.propertyCriteria.maxPrice || "",
 						});
+						setYearBuiltRange({
+							min: data.propertyCriteria.builtYearMin || "",
+							max: data.propertyCriteria.builtYearMax || "",
+						});
+						setSqftRange({
+							min: data.propertyCriteria.minSqft || "",
+						});
+						setAcresRange({
+							min: data.propertyCriteria.minAcres || "",
+							max: data.propertyCriteria.maxAcres || "",
+						});
+						setHoa(data.propertyCriteria.hoa || "");
+						setLocationDetails({
+							subdivision: data.propertyCriteria.subdivision || "",
+							school: data.propertyCriteria.school || "",
+							address: data.propertyCriteria.address || "",
+							postalCode: data.propertyCriteria.postalCode || "",
+						});
 						setBedroomRange({
 							min: data.propertyCriteria.beds || "",
 							max: "",
@@ -184,6 +213,16 @@ function ScheduleNotificationContent() {
 						if (
 							data.propertyCriteria.minPrice ||
 							data.propertyCriteria.maxPrice ||
+							data.propertyCriteria.builtYearMin ||
+							data.propertyCriteria.builtYearMax ||
+							data.propertyCriteria.minSqft ||
+							data.propertyCriteria.minAcres ||
+							data.propertyCriteria.maxAcres ||
+							data.propertyCriteria.subdivision ||
+							data.propertyCriteria.school ||
+							data.propertyCriteria.address ||
+							data.propertyCriteria.postalCode ||
+							data.propertyCriteria.hoa ||
 							data.propertyCriteria.beds ||
 							data.propertyCriteria.baths ||
 							(data.propertyCriteria.propertyTypes && data.propertyCriteria.propertyTypes.length > 0) ||
@@ -254,6 +293,16 @@ function ScheduleNotificationContent() {
 					propertyCriteria: {
 						minPrice: priceRange.min,
 						maxPrice: priceRange.max,
+						builtYearMin: yearBuiltRange.min,
+						builtYearMax: yearBuiltRange.max,
+						minSqft: sqftRange.min,
+						minAcres: acresRange.min,
+						maxAcres: acresRange.max,
+						hoa: hoa,
+						subdivision: locationDetails.subdivision,
+						school: locationDetails.school,
+						address: locationDetails.address,
+						postalCode: locationDetails.postalCode,
 						beds: bedroomRange.min,
 						baths: bathroomRange.min,
 						propertyTypes: selectedPropertyTypes,
@@ -557,6 +606,141 @@ function ScheduleNotificationContent() {
 															}
 														/>
 													</div>
+												</div>
+											</div>
+
+											<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+												<div className="space-y-2">
+													<Label>Year Built</Label>
+													<div className="flex gap-2">
+														<Input
+															placeholder="Min Year"
+															type="number"
+															value={yearBuiltRange.min}
+															onChange={(e) =>
+																setYearBuiltRange({
+																	...yearBuiltRange,
+																	min: e.target.value,
+																})
+															}
+														/>
+														<Input
+															placeholder="Max Year"
+															type="number"
+															value={yearBuiltRange.max}
+															onChange={(e) =>
+																setYearBuiltRange({
+																	...yearBuiltRange,
+																	max: e.target.value,
+																})
+															}
+														/>
+													</div>
+												</div>
+												<div className="space-y-2">
+													<Label>Size & Acres</Label>
+													<div className="flex gap-2">
+														<Input
+															placeholder="Min Sqft"
+															type="number"
+															value={sqftRange.min}
+															onChange={(e) =>
+																setSqftRange({
+																	...sqftRange,
+																	min: e.target.value,
+																})
+															}
+														/>
+														<Input
+															placeholder="Min Acres"
+															type="number"
+															value={acresRange.min}
+															onChange={(e) =>
+																setAcresRange({
+																	...acresRange,
+																	min: e.target.value,
+																})
+															}
+														/>
+														<Input
+															placeholder="Max Acres"
+															type="number"
+															value={acresRange.max}
+															onChange={(e) =>
+																setAcresRange({
+																	...acresRange,
+																	max: e.target.value,
+																})
+															}
+														/>
+													</div>
+												</div>
+											</div>
+
+											<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+												<div className="space-y-2">
+													<Label>Location Details</Label>
+													<div className="grid grid-cols-2 gap-2">
+														<Input
+															placeholder="Subdivision"
+															value={locationDetails.subdivision}
+															onChange={(e) =>
+																setLocationDetails({
+																	...locationDetails,
+																	subdivision: e.target.value,
+																})
+															}
+														/>
+														<Input
+															placeholder="School"
+															value={locationDetails.school}
+															onChange={(e) =>
+																setLocationDetails({
+																	...locationDetails,
+																	school: e.target.value,
+																})
+															}
+														/>
+														<Input
+															placeholder="Address"
+															value={locationDetails.address}
+															onChange={(e) =>
+																setLocationDetails({
+																	...locationDetails,
+																	address: e.target.value,
+																})
+															}
+														/>
+														<Input
+															placeholder="Zip Code"
+															value={locationDetails.postalCode}
+															onChange={(e) =>
+																setLocationDetails({
+																	...locationDetails,
+																	postalCode: e.target.value,
+																})
+															}
+														/>
+													</div>
+												</div>
+												<div className="space-y-2">
+													<Label>HOA Fees</Label>
+													<Select
+														value={hoa || "Any"}
+														onValueChange={(v) =>
+															setHoa(v === "Any" ? "" : v)
+														}>
+														<SelectTrigger>
+															<SelectValue placeholder="HOA Fees" />
+														</SelectTrigger>
+														<SelectContent>
+															{["Any", "No HOA", "Up to $100/mo", "Up to $300/mo", "Up to $500/mo"].map((v) => (
+																<SelectItem key={v} value={v}>
+																	{v}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
 												</div>
 											</div>
 

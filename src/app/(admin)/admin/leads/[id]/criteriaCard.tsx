@@ -46,6 +46,16 @@ export default function PropertyCriteria({
 	const [criteria, setCriteria] = useState({
 		city: "",
 		developmentName: "",
+		subdivision: "",
+		school: "",
+		postalCode: "",
+		address: "",
+		hoa: "",
+		builtYearMin: "",
+		builtYearMax: "",
+		minSqft: "",
+		minAcres: "",
+		maxAcres: "",
 		beds: "",
 		baths: "",
 		minPrice: "",
@@ -114,6 +124,16 @@ export default function PropertyCriteria({
 			setCriteria({
 				city: "",
 				developmentName: "",
+				subdivision: "",
+				school: "",
+				postalCode: "",
+				address: "",
+				hoa: "",
+				builtYearMin: "",
+				builtYearMax: "",
+				minSqft: "",
+				minAcres: "",
+				maxAcres: "",
 				beds: "",
 				baths: "",
 				minPrice: "",
@@ -277,6 +297,92 @@ export default function PropertyCriteria({
 						/>
 					</div>
 
+					{/* Year Built */}
+					<div className="grid grid-cols-2 gap-2">
+						<Input
+							name="builtYearMin"
+							value={criteria.builtYearMin}
+							onChange={handleChange}
+							placeholder="Min Year Built"
+						/>
+						<Input
+							name="builtYearMax"
+							value={criteria.builtYearMax}
+							onChange={handleChange}
+							placeholder="Max Year Built"
+						/>
+					</div>
+
+					{/* Size & Acres */}
+					<div className="grid grid-cols-3 gap-2">
+						<Input
+							name="minSqft"
+							value={criteria.minSqft}
+							onChange={handleChange}
+							placeholder="Min Sqft"
+						/>
+						<Input
+							name="minAcres"
+							value={criteria.minAcres}
+							onChange={handleChange}
+							placeholder="Min Acres"
+						/>
+						<Input
+							name="maxAcres"
+							value={criteria.maxAcres}
+							onChange={handleChange}
+							placeholder="Max Acres"
+						/>
+					</div>
+
+					{/* Location Details */}
+					<div className="grid grid-cols-2 gap-2">
+						<Input
+							name="subdivision"
+							value={criteria.subdivision}
+							onChange={handleChange}
+							placeholder="Subdivision"
+						/>
+						<Input
+							name="school"
+							value={criteria.school}
+							onChange={handleChange}
+							placeholder="School"
+						/>
+						<Input
+							name="address"
+							value={criteria.address}
+							onChange={handleChange}
+							placeholder="Address"
+						/>
+						<Input
+							name="postalCode"
+							value={criteria.postalCode}
+							onChange={handleChange}
+							placeholder="Postal Code"
+						/>
+					</div>
+
+					{/* HOA */}
+					<div className="grid grid-cols-1 gap-2">
+						<Select
+							value={criteria.hoa || "Any"}
+							onValueChange={(v) =>
+								setCriteria({ ...criteria, hoa: v === "Any" ? "" : v })
+							}>
+							<SelectTrigger>
+								<SelectValue placeholder="HOA Fees" />
+							</SelectTrigger>
+							<SelectContent>
+								{["Any", "No HOA", "Up to $100/mo", "Up to $300/mo", "Up to $500/mo"].map((v) => (
+									<SelectItem key={v} value={v}>
+										{v}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+
 					{/* Property Types */}
 					<div>
 						<p className="text-sm font-medium mb-2">Property Types</p>
@@ -373,8 +479,19 @@ export default function PropertyCriteria({
 										{c.beds} Beds / {c.baths} Baths
 									</p>
 									<p>
-										${c.minPrice} - ${c.maxPrice}
+										${c.minPrice || "0"} - ${c.maxPrice || "Any"}
 									</p>
+									{(c.builtYearMin || c.builtYearMax) && (
+										<p>Year Built: {c.builtYearMin || "Any"} - {c.builtYearMax || "Any"}</p>
+									)}
+									{c.minSqft && <p>Min Sqft: {c.minSqft}</p>}
+									{(c.minAcres || c.maxAcres) && (
+										<p>Acres: {c.minAcres || "0"} - {c.maxAcres || "Any"}</p>
+									)}
+									{c.hoa && <p>HOA: {c.hoa}</p>}
+									{c.subdivision && <p>Subdivision: {c.subdivision}</p>}
+									{c.school && <p>School: {c.school}</p>}
+									{c.postalCode && <p>Zip: {c.postalCode}</p>}
 									{c.propertyTypes?.length > 0 && (
 										<p>Types: {Array.isArray(c.propertyTypes) ? c.propertyTypes.join(", ") : c.propertyTypes}</p>
 									)}
