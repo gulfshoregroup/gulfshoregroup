@@ -74,31 +74,13 @@ export async function GET(req: NextRequest) {
 	</div>
 </div>`;
   } else if (type === "contact") {
-      const resolvedFirstName = "Jane";
-      html = `<div style="background-color: #F4F4F5; margin: 0; padding: 40px 0; font-family: 'Poppins', Arial, sans-serif;">
-	<div style="max-width: 640px; margin: 0 auto; background-color: #FFFFFF; border-radius: 4px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.08);">
-		<div style="background: #1A0A0A; padding: 40px 40px; text-align: center; border-bottom: 3px solid #C9A96E;">
-			<p style="font-size: 24px; letter-spacing: 0.2em; text-transform: uppercase; color: #FFFFFF; margin: 0 0 4px; font-weight: 400; margin-top:0;">GULFSHORE</p>
-			<p style="font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #C9A96E; margin: 0; font-weight: 600;">Real Estate Group</p>
-		</div>
-		<div style="padding: 48px 40px; text-align: center;">
-			<h1 style="font-size: 22px; font-weight: 400; color: #1A0A0A; margin: 0 0 12px; line-height: 1.4; text-transform: uppercase; letter-spacing: 0.05em;">Inquiry Received</h1>
-			<p style="font-size: 14px; color: #666666; margin: 0 0 24px;">Thank you for reaching out to us.</p>
-			<div style="margin: 0 auto 24px; max-width: 60px; border-top: 1px solid #C9A96E;"></div>
-			
-			<div style="text-align: left; font-size: 15px; color: #1A0A0A; line-height: 1.6;">
-				<p>Dear \${resolvedFirstName},</p>
-				<p>We have successfully received your message and our team will get back to you shortly.</p>
-				<p style="margin-bottom: 32px;">For immediate assistance, please feel free to reply to this email or call us directly.</p>
-			</div>
-			
-			<div style="background-color: #FAF7F2; padding: 24px; border: 1px solid #E8DDD8; border-radius: 4px; text-align: left;">
-				<h3 style="font-size: 13px; color: #666666; margin-top: 0; text-transform: uppercase; letter-spacing: 0.1em;">Your Message</h3>
-				<p style="font-size: 14px; color: #1A0A0A; margin-bottom: 0;"><em>"I want to know more about the property."</em></p>
-			</div>
-		</div>
-	</div>
-</div>`;
+    const { InquiryEmail } = await import("@/lib/email/inquiry-email");
+    html = await render(
+      InquiryEmail({
+        recipientName: "Jane",
+        message: "I want to know more about the property."
+      })
+    );
   } else if (type === "drip") {
       const personalizedMessage = "<p>Hi Jane, welcome to Gulfshore Group!</p><p>We are excited to help you find your dream home in Naples. Check out our latest listings on the website.</p>";
       html = `<div style="background-color: #F4F4F5; margin: 0; padding: 40px 0; font-family: 'Poppins', Arial, sans-serif;">

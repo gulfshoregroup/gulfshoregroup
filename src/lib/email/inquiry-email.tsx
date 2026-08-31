@@ -110,17 +110,19 @@ export function TourEmail({ recipientName = "Client", propertyAddress }: TourEma
                           fontWeight: "500",
                           lineHeight: "1",
                         }}
-                      >
-                        London Forster Realty
-                      </Text>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            {/* ── Header ── */}
+            <Section style={{ backgroundColor: DARK, padding: "40px", textAlign: "center" as const }}>
+              <Img
+                src={`${getPropertiesApiBaseUrl()}/images/logo-light.png`}
+                width="200"
+                height="auto"
+                alt="Gulfshore Group"
+                style={{ margin: "0 auto" }}
+              />
             </Section>
 
             {/* ── Title Area ── */}
-            <Section style={{ backgroundColor: "#FFFFFF", padding: "48px 40px 0", textAlign: "center" as const }}>
+            <Section style={{ backgroundColor: "#FFF", padding: "48px 40px 16px", textAlign: "center" as const }}>
               <Heading
                 as="h1"
                 style={{
@@ -134,109 +136,98 @@ export function TourEmail({ recipientName = "Client", propertyAddress }: TourEma
                   letterSpacing: "0.05em",
                 }}
               >
-                Tour Request Received
+                Inquiry Received
               </Heading>
 
               <Text
                 style={{
                   fontSize: "14px",
                   color: "#666666",
-                  margin: "0 0 24px",
+                  margin: "0",
                   fontFamily: "'Poppins', Arial, sans-serif",
                 }}
               >
-                We have received your request to tour the property.
+                Thank you for reaching out to us.
               </Text>
 
-              <Section style={{ margin: "0 auto", maxWidth: "60px" }}>
-                <Hr style={{ borderColor: GOLD, borderWidth: "1px", margin: "0" }} />
-              </Section>
+              <Hr
+                style={{
+                  borderColor: GOLD,
+                  borderTopWidth: "1px",
+                  width: "60px",
+                  margin: "24px auto",
+                }}
+              />
             </Section>
 
             {/* ── Content ── */}
-            <Section style={{ backgroundColor: "#FFF", padding: "32px 40px 16px" }}>
+            <Section style={{ backgroundColor: "#FFF", padding: "16px 40px 32px" }}>
               <Text
                 style={{
-                  fontSize: "16px",
+                  fontSize: "15px",
                   color: DARK,
-                  margin: 0,
+                  margin: "0 0 16px",
                   fontFamily: "'Poppins', Arial, sans-serif",
                 }}
               >
-                Dear <strong>{recipientName}</strong>,
+                Dear {recipientName},
               </Text>
               <Text
                 style={{
-                  fontSize: "14px",
-                  color: "#444444",
-                  margin: "12px 0 0",
+                  fontSize: "15px",
+                  color: "#1A0A0A",
+                  margin: "0 0 16px",
                   lineHeight: "1.6",
                   fontFamily: "'Poppins', Arial, sans-serif",
                 }}
               >
-                Thank you for your interest! We have successfully received your request to tour the property{propertyAddress ? ` at ${propertyAddress}` : ""}.
+                We have successfully received your message and our team will get back to you shortly.
               </Text>
               <Text
                 style={{
-                  fontSize: "14px",
-                  color: "#444444",
-                  margin: "12px 0 0",
+                  fontSize: "15px",
+                  color: "#1A0A0A",
+                  margin: "0 0 32px",
                   lineHeight: "1.6",
                   fontFamily: "'Poppins', Arial, sans-serif",
                 }}
               >
-                One of our luxury real estate advisors will be in touch with you shortly to confirm the exact date, time, and details for your private showing.
+                For immediate assistance, please feel free to reply to this email or call us directly.
               </Text>
-            </Section>
 
-            {/* ── CTA Section ── */}
-            <Section
-              style={{
-                backgroundColor: "#FFF",
-                padding: "32px 40px",
-                textAlign: "center" as const,
-                borderTop: `3px solid ${PRIMARY}`,
-              }}
-            >
-              <Text
+              <Section
                 style={{
-                  fontSize: "18px",
-                  fontWeight: "700",
-                  color: DARK,
-                  margin: "0 0 8px",
-                  fontFamily: "'Poppins', Arial, sans-serif",
+                  backgroundColor: "#FAF7F2",
+                  padding: "24px",
+                  border: "1px solid #E8DDD8",
+                  borderRadius: "4px",
                 }}
               >
-                Questions?
-              </Text>
-              <Text
-                style={{
-                  fontSize: "13px",
-                  color: "#000000",
-                  margin: "0 0 24px",
-                  fontFamily: "'Poppins', Arial, sans-serif",
-                }}
-              >
-                Our concierge team is available 7 days a week for exclusive tours and inquiries.
-              </Text>
-              <Button
-                href={`${getPropertiesApiBaseUrl()}/contact`}
-                style={{
-                  backgroundColor: MID,
-                  color: "#FFFFFF",
-                  padding: "14px 36px",
-                  borderRadius: "6px",
-                  fontSize: "13px",
-                  fontWeight: "700",
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  textDecoration: "none",
-                  display: "inline-block",
-                  fontFamily: "'Poppins', Arial, sans-serif",
-                }}
-              >
-                Contact Our Team
-              </Button>
+                <Heading
+                  as="h3"
+                  style={{
+                    fontSize: "13px",
+                    color: "#666666",
+                    margin: "0 0 8px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    fontFamily: "'Poppins', Arial, sans-serif",
+                  }}
+                >
+                  Your Message
+                </Heading>
+                <Text
+                  style={{
+                    fontSize: "14px",
+                    color: DARK,
+                    margin: "0",
+                    fontStyle: "italic",
+                    fontFamily: "'Poppins', Arial, sans-serif",
+                  }}
+                >
+                  "{message || 'No additional message provided.'}"
+                </Text>
+              </Section>
             </Section>
 
             {/* ── Footer ── */}
@@ -256,7 +247,7 @@ export function TourEmail({ recipientName = "Client", propertyAddress }: TourEma
                   fontFamily: "'Poppins', Arial, sans-serif",
                 }}
               >
-                You're receiving this alert because you subscribed to property notifications.<br />
+                You're receiving this because you contacted us through our website.<br />
                 All listings courtesy of respective brokerages. Equal Housing Opportunity.
               </Text>
               
@@ -295,23 +286,23 @@ export function TourEmail({ recipientName = "Client", propertyAddress }: TourEma
 
 // ─── Send Function ────────────────────────────────────────────────────────────
 
-interface SendTourEmailOptions {
+interface SendInquiryEmailOptions {
   resendApiKey?: string;
   to: string;
   recipientName?: string;
-  propertyAddress?: string;
+  message?: string;
   from?: string;
   subject?: string;
 }
 
-export async function sendTourEmail(
-  options: SendTourEmailOptions
+export async function sendInquiryEmail(
+  options: SendInquiryEmailOptions
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   const apiKey = options.resendApiKey ?? process.env.RESEND_API_KEY;
   if (!apiKey) return { success: false, error: "No Resend API key provided" };
 
   const html = await render(
-    <TourEmail recipientName={options.recipientName} propertyAddress={options.propertyAddress} />
+    <InquiryEmail recipientName={options.recipientName} message={options.message} />
   );
 
   const resend = new Resend(apiKey);
@@ -319,15 +310,15 @@ export async function sendTourEmail(
   const { data, error } = await resend.emails.send({
     from: options.from ?? process.env.RESEND_FROM_EMAIL!,
     to: options.to,
-    subject: options.subject ?? "Tour Request Received - Gulfshore Group",
+    subject: options.subject ?? "Thank you for reaching out to Gulfshore Group",
     html,
   });
 
   if (error) {
-    console.error("Resend error (Tour Email):", error);
+    console.error("Resend error (Inquiry Email):", error);
     return { success: false, error: error.message };
   }
 
-  console.log(`Tour email sent. ID: ${data?.id}`);
+  console.log(`Inquiry email sent. ID: ${data?.id}`);
   return { success: true, id: data?.id };
 }

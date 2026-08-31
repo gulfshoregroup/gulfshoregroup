@@ -231,34 +231,47 @@ export function WelcomeEmail({ recipientName = "VIP Client" }: WelcomeEmailProps
             <Section
               style={{
                 backgroundColor: DARK,
-                padding: "28px 40px",
+                padding: "32px 40px",
                 textAlign: "center" as const,
               }}
             >
               <Text
                 style={{
                   fontSize: "11px",
-                  color: "rgba(255,255,255,0.4)",
-                  margin: "0 0 12px",
+                  color: "rgba(255,255,255,0.5)",
+                  margin: "0 0 8px",
                   lineHeight: "1.6",
                   fontFamily: "'Poppins', Arial, sans-serif",
                 }}
               >
-                Gulfshore Group | London Forster Realty
+                You're receiving this alert because you subscribed to property notifications.<br />
+                All listings courtesy of respective brokerages. Equal Housing Opportunity.
+              </Text>
+              
+              <Text
+                style={{
+                  fontSize: "12px",
+                  margin: "0 0 16px",
+                  fontFamily: "'Poppins', Arial, sans-serif",
+                }}
+              >
+                <Link href={`${getPropertiesApiBaseUrl()}/unsubscribe`} style={{ color: "#C9A96E", textDecoration: "none" }}>Manage Preferences</Link>
+                <span style={{ color: "rgba(255,255,255,0.3)", margin: "0 8px" }}>|</span>
+                <Link href={`${getPropertiesApiBaseUrl()}/unsubscribe`} style={{ color: "#C9A96E", textDecoration: "none" }}>Unsubscribe</Link>
               </Text>
 
-              <Hr style={{ borderColor: "rgba(255,255,255,0.1)", margin: "20px 0 16px" }} />
+              <Hr style={{ borderColor: "rgba(255,255,255,0.1)", margin: "16px 0" }} />
 
               <Text
                 style={{
                   fontSize: "10px",
-                  color: "rgba(255,255,255,0.25)",
+                  color: "rgba(255,255,255,0.3)",
                   margin: 0,
                   letterSpacing: "0.05em",
                   fontFamily: "'Poppins', Arial, sans-serif",
                 }}
               >
-                © {new Date().getFullYear()} {getPropertiesApiBaseUrl().replace('https://', '')} · ALL RIGHTS RESERVED
+                © {new Date().getFullYear()} {getPropertiesApiBaseUrl().replace('https://', '').replace(/\/$/, '')} - ALL RIGHTS RESERVED
               </Text>
             </Section>
           </Container>
