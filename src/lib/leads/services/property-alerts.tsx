@@ -199,12 +199,13 @@ import {
               src={imgSrc}
               alt={property.FullAddress}
               width="600"
-              height="320"
               style={{
                 width: "100%",
-                height: "320px",
-                objectFit: "cover",
+                maxWidth: "100%",
+                height: "auto",
+                border: "0",
                 display: "block",
+                margin: "0 auto",
               }}
             />
           </Link>
