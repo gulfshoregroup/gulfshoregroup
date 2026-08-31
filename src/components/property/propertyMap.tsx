@@ -58,6 +58,15 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 			setFemaLoading(true);
 			const femaType = new google.maps.ImageMapType({
 				getTileUrl: (coord, zoom) => {
+					// Convert tile coordinates to approximate Latitude/Longitude for SW FL bounds check
+					const n = Math.PI - 2 * Math.PI * coord.y / Math.pow(2, zoom);
+					const tileLat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+					const tileLng = (coord.x / Math.pow(2, zoom)) * 360 - 180;
+
+					if (tileLat < 25.5 || tileLat > 27.5 || tileLng < -82.6 || tileLng > -81.0) {
+						return null; // Don't load FEMA map outside SW Florida
+					}
+
 					const initialResolution = 2 * Math.PI * 6378137 / 256;
 					const originShift = 2 * Math.PI * 6378137 / 2;
 					const zoomResolution = initialResolution / Math.pow(2, zoom);
@@ -272,15 +281,15 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 						</div>
 						<div className="flex flex-col gap-1.5 text-[11px] text-gray-700">
 							<div className="flex items-center gap-2">
-								<div className="w-3.5 h-3.5 rounded bg-[#FF0000]/70 border border-[#CC0000] shrink-0"></div>
-								<span><strong>Zone AE / VE:</strong> High Risk (Insurance Required)</span>
+								<div className="w-3.5 h-3.5 rounded bg-[#00FFFF]/50 border border-[#00BFFF] shrink-0"></div>
+								<span><strong>Zone AE / VE / A:</strong> High Risk (1% Chance)</span>
 							</div>
 							<div className="flex items-center gap-2">
-								<div className="w-3.5 h-3.5 rounded bg-[#FFA500]/70 border border-[#CC8400] shrink-0"></div>
+								<div className="w-3.5 h-3.5 rounded bg-[#FFA500]/50 border border-[#FF8C00] shrink-0"></div>
 								<span><strong>Zone X (Shaded):</strong> Moderate Risk (0.2% Chance)</span>
 							</div>
 							<div className="flex items-center gap-2">
-								<div className="w-3.5 h-3.5 rounded bg-[#008000]/70 border border-[#006600] shrink-0"></div>
+								<div className="w-3.5 h-3.5 rounded bg-transparent border border-gray-300 shrink-0"></div>
 								<span><strong>Zone X (Unshaded):</strong> Low Risk (Minimal Hazard)</span>
 							</div>
 						</div>

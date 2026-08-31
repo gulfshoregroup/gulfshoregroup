@@ -236,12 +236,31 @@ export default function MapComponent({
 			const femaType = new google.maps.ImageMapType({
 				getTileUrl: (coord, zoom) => {
 					if (zoom < 9) return null;
-					// ESRI USA Flood Hazard Reduced Set — fully public, no API key needed
-					// Shows FEMA NFHL flood zones: red=high risk, orange=moderate, green=low
-					return `https://server.arcgisonline.com/ArcGIS/rest/services/USA_Flood_Hazard_Reduced_Set/MapServer/tile/${zoom}/${coord.y}/${coord.x}`;
+					
+					// Convert tile coordinates to approximate Latitude/Longitude
+					const n = Math.PI - 2 * Math.PI * coord.y / Math.pow(2, zoom);
+					const tileLat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+					const tileLng = (coord.x / Math.pow(2, zoom)) * 360 - 180;
+
+					// Restrict to Southwest Florida roughly
+					if (tileLat < 25.5 || tileLat > 27.5 || tileLng < -82.6 || tileLng > -81.0) {
+						return null; // Don't load FEMA map outside SW Florida
+					}
+
+					// Use official FEMA API with transparent background instead of ESRI solid tiles
+					const initialResolution = 2 * Math.PI * 6378137 / 256;
+					const originShift = 2 * Math.PI * 6378137 / 2;
+					const zoomResolution = initialResolution / Math.pow(2, zoom);
+					const tileWidth = 256 * zoomResolution;
+					const minX = coord.x * tileWidth - originShift;
+					const maxX = (coord.x + 1) * tileWidth - originShift;
+					const minY = originShift - (coord.y + 1) * tileWidth;
+					const maxY = originShift - coord.y * tileWidth;
+					const bbox = `${minX},${minY},${maxX},${maxY}`;
+					return `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/export?bbox=${bbox}&bboxSR=3857&layers=show:28&size=256,256&imageSR=3857&format=png32&transparent=true&f=image`;
 				},
 				tileSize: new google.maps.Size(256, 256),
-				opacity: 0.7,
+				opacity: 0.5,
 				name: "FEMA Flood Zone Map",
 			});
 			femaOverlayRef.current = femaType;
@@ -495,15 +514,15 @@ export default function MapComponent({
 					</div>
 					<div className="flex flex-col gap-2 text-[11px] text-gray-700">
 						<div className="flex items-center gap-2">
-							<div className="w-3.5 h-3.5 rounded bg-[#FF0000]/70 border border-[#CC0000] shrink-0"></div>
-							<span><strong>Zone AE / VE:</strong> High Risk (Insurance Required)</span>
+							<div className="w-3.5 h-3.5 rounded bg-[#00FFFF]/50 border border-[#00BFFF] shrink-0"></div>
+							<span><strong>Zone AE / VE / A:</strong> High Risk (1% Chance)</span>
 						</div>
 						<div className="flex items-center gap-2">
-							<div className="w-3.5 h-3.5 rounded bg-[#FFA500]/70 border border-[#CC8400] shrink-0"></div>
+							<div className="w-3.5 h-3.5 rounded bg-[#FFA500]/50 border border-[#FF8C00] shrink-0"></div>
 							<span><strong>Zone X (Shaded):</strong> Moderate Risk (0.2% Chance)</span>
 						</div>
 						<div className="flex items-center gap-2">
-							<div className="w-3.5 h-3.5 rounded bg-[#008000]/70 border border-[#006600] shrink-0"></div>
+							<div className="w-3.5 h-3.5 rounded bg-transparent border border-gray-300 shrink-0"></div>
 							<span><strong>Zone X (Unshaded):</strong> Low Risk (Minimal Hazard)</span>
 						</div>
 					</div>
