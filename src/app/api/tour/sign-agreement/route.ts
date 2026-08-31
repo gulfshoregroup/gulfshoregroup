@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import { PDFDocument } from "pdf-lib";
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
 import { v2 as cloudinary } from "cloudinary";
-
-const prisma = new PrismaClient();
 
 // Configure cloudinary
 cloudinary.config({

@@ -19,8 +19,7 @@ export const sendSMS = async (to: string, body: string) => {
 		});
 
 		try {
-			const { PrismaClient } = require('@prisma/client');
-			const prisma = new PrismaClient();
+			const prisma = require('@/lib/prisma').default;
 			await prisma.communicationLog.create({
 				data: {
 					type: "SMS",
