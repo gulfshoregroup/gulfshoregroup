@@ -82,20 +82,12 @@ export async function GET(req: NextRequest) {
       })
     );
   } else if (type === "drip") {
-      const personalizedMessage = "<p>Hi Jane, welcome to Gulfshore Group!</p><p>We are excited to help you find your dream home in Naples. Check out our latest listings on the website.</p>";
-      html = `<div style="background-color: #F4F4F5; margin: 0; padding: 40px 0; font-family: 'Poppins', Arial, sans-serif;">
-	<div style="max-width: 640px; margin: 0 auto; background-color: #FFFFFF; border-radius: 4px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.08);">
-		<div style="background: #1A0A0A; padding: 40px 40px; text-align: center; border-bottom: 3px solid #C9A96E;">
-			<p style="font-size: 24px; letter-spacing: 0.2em; text-transform: uppercase; color: #FFFFFF; margin: 0 0 4px; font-weight: 400; margin-top:0;">GULFSHORE</p>
-			<p style="font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #C9A96E; margin: 0; font-weight: 600;">Real Estate Group</p>
-		</div>
-		<div style="padding: 48px 40px; text-align: left;">
-			<div style="font-size: 15px; color: #1A0A0A; line-height: 1.6;">
-				\${personalizedMessage}
-			</div>
-		</div>
-	</div>
-</div>`;
+    const { WelcomeEmail } = await import("@/lib/email/welcome-email");
+    html = await render(
+      WelcomeEmail({
+        recipientName: "Jane"
+      })
+    );
   }
 
   return new Response(html, {

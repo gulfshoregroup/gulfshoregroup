@@ -30,13 +30,13 @@ function getPropertiesApiBaseUrl(): string {
   );
 }
 
-interface TourEmailProps {
+interface InquiryEmailProps {
   recipientName?: string;
-  propertyAddress?: string;
+  message?: string;
 }
 
-export function TourEmail({ recipientName = "Client", propertyAddress }: TourEmailProps) {
-  const previewText = "Tour Request Received - Gulfshore Group";
+export function InquiryEmail({ recipientName = "Valued Client", message = "" }: InquiryEmailProps) {
+  const previewText = "Thank you for your inquiry - Gulfshore Group";
 
   return (
     <Html lang="en">
@@ -110,19 +110,17 @@ export function TourEmail({ recipientName = "Client", propertyAddress }: TourEma
                           fontWeight: "500",
                           lineHeight: "1",
                         }}
-            {/* ── Header ── */}
-            <Section style={{ backgroundColor: DARK, padding: "40px", textAlign: "center" as const }}>
-              <Img
-                src={`${getPropertiesApiBaseUrl()}/images/logo-light.png`}
-                width="200"
-                height="auto"
-                alt="Gulfshore Group"
-                style={{ margin: "0 auto" }}
-              />
+                      >
+                        London Forster Realty
+                      </Text>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </Section>
 
             {/* ── Title Area ── */}
-            <Section style={{ backgroundColor: "#FFF", padding: "48px 40px 16px", textAlign: "center" as const }}>
+            <Section style={{ backgroundColor: "#FFFFFF", padding: "48px 40px 0", textAlign: "center" as const }}>
               <Heading
                 as="h1"
                 style={{
@@ -143,21 +141,16 @@ export function TourEmail({ recipientName = "Client", propertyAddress }: TourEma
                 style={{
                   fontSize: "14px",
                   color: "#666666",
-                  margin: "0",
+                  margin: "0 0 24px",
                   fontFamily: "'Poppins', Arial, sans-serif",
                 }}
               >
                 Thank you for reaching out to us.
               </Text>
 
-              <Hr
-                style={{
-                  borderColor: GOLD,
-                  borderTopWidth: "1px",
-                  width: "60px",
-                  margin: "24px auto",
-                }}
-              />
+              <Section style={{ margin: "0 auto", maxWidth: "60px" }}>
+                <Hr style={{ borderColor: GOLD, borderWidth: "1px", margin: "0" }} />
+              </Section>
             </Section>
 
             {/* ── Content ── */}
