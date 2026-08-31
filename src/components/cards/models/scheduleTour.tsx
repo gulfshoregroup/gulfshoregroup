@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useUser } from "@clerk/nextjs";
-import { Clock } from "lucide-react";
+import { Clock, ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import SignatureCanvas from "react-signature-canvas";
 
 const ScheduleTourForm = ({
 	propertyAddress,
@@ -39,6 +40,13 @@ const ScheduleTourForm = ({
 
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [successMessage, setSuccessMessage] = useState("");
+	
+	// Signature flow states
+	const [step, setStep] = useState(1);
+	const [signatureData, setSignatureData] = useState<string | null>(null);
+	let sigPad: any = {};
+	const formType = propertyId && propertyId !== MLSNumber ? "Property-Specific" : "General";
+	const pdfUrl = formType === "Property-Specific" ? "/forms/bb-spec.pdf" : "/forms/bb-ex.pdf";
 
 	const handleChange = (e: { target: { name: any; value: any } }) => {
 		setFormData({
@@ -61,10 +69,38 @@ const ScheduleTourForm = ({
 			return;
 		}
 
+		if (step === 1) {
+			setStep(2);
+			return;
+		}
+
+		if (step === 2 && !signatureData) {
+			alert("Please sign the agreement before submitting.");
+			return;
+		}
+
 		setIsSubmitting(true);
 
 		try {
-			// Replace this URL with your API endpoint
+			// First, process the signature
+			const signaturePayload = {
+				signatureData,
+				name: `${formData.firstName} ${formData.lastName}`,
+				email: formData.email,
+				phone: formData.phone,
+				formType,
+				propertyId: formData.propertyId,
+			};
+			
+			const signRes = await axios.post(`/api/tour/sign-agreement`, signaturePayload);
+			
+			if (!signRes.data.success) {
+				toast.error("Error signing agreement. Please try again.");
+				setIsSubmitting(false);
+				return;
+			}
+
+			// Then, schedule the tour
 			const response = await axios.post(`/api/v2/tour`, formData);
 
 			if (response.data && response.data.success) {
@@ -108,7 +144,9 @@ const ScheduleTourForm = ({
 				)}
 
 				<form onSubmit={handleSubmit}>
-					<div className="mb-4">
+					{step === 1 && (
+						<>
+							<div className="mb-4">
 						<label className="block text-gray-900 font-medium mb-2">
 							First Name
 						</label>
@@ -174,27 +212,68 @@ const ScheduleTourForm = ({
 							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-800"
 							rows={4}></textarea>
 					</div>
+						</>
+					)}
 
-					<div className="flex justify-between">
-						<button
-							type="button"
-							onClick={onClose}
-							className="bg-gray-600 text-white px-4 py-2 rounded-lg  hover:bg-gray-700 focus:outline-none">
-							Cancel
-						</button>
-						<button
-							type="submit"
-							className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-accent focus:outline-none"
-							disabled={isSubmitting}>
-							{isSubmitting ? (
-								"Submitting..."
-							) : (
-								<span className="flex flex-nowrap gap-2 justify-center font-medium text-sm items-center text-center">
-									<Clock />
-									Schedule Tour
-								</span>
-							)}
-						</button>
+					{step === 2 && (
+						<div className="mb-4 space-y-4">
+							<div className="bg-gray-50 border rounded-lg p-2 h-64 overflow-hidden">
+								<iframe src={pdfUrl} width="100%" height="100%" className="rounded" title="Buyer Broker Agreement" />
+							</div>
+							<div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+								<div className="bg-gray-100 px-3 py-2 border-b text-sm font-medium flex justify-between items-center">
+									<span>Sign Here</span>
+									<button type="button" onClick={() => sigPad.clear()} className="text-xs text-blue-600 hover:underline">Clear</button>
+								</div>
+								<SignatureCanvas 
+									penColor="black"
+									canvasProps={{className: "w-full h-32 cursor-crosshair"}}
+									ref={(ref) => { sigPad = ref }}
+									onEnd={() => setSignatureData(sigPad.getTrimmedCanvas().toDataURL('image/png'))}
+								/>
+							</div>
+							<p className="text-xs text-gray-500">By signing, you agree to the terms of the Buyer Broker Agreement.</p>
+						</div>
+					)}
+
+					<div className="flex justify-between mt-6">
+						{step === 1 ? (
+							<button
+								type="button"
+								onClick={onClose}
+								className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 focus:outline-none transition-colors">
+								Cancel
+							</button>
+						) : (
+							<button
+								type="button"
+								onClick={() => setStep(1)}
+								className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 focus:outline-none transition-colors flex items-center gap-2">
+								<ArrowLeft className="w-4 h-4" /> Back
+							</button>
+						)}
+						
+						{step === 1 ? (
+							<button
+								type="submit"
+								className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-accent focus:outline-none transition-colors flex items-center gap-2">
+								Next <ArrowRight className="w-4 h-4" />
+							</button>
+						) : (
+							<button
+								type="submit"
+								className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-accent focus:outline-none transition-colors"
+								disabled={isSubmitting || !signatureData}>
+								{isSubmitting ? (
+									"Submitting..."
+								) : (
+									<span className="flex flex-nowrap gap-2 justify-center font-medium text-sm items-center text-center">
+										<Clock className="w-4 h-4" />
+										Confirm & Schedule
+									</span>
+								)}
+							</button>
+						)}
 					</div>
 				</form>
 			</div>

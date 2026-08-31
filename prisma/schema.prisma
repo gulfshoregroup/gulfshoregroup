@@ -160,6 +160,7 @@ model Lead {
   savedProperties SavedProperty[]
   tasks           Task[]
   aiChats         AIChatHistory[]
+  signedAgreements SignedAgreement[]
 
   @@map("lead")
 }
@@ -706,4 +707,19 @@ model CommunicationLog {
   updatedAt  DateTime @updatedAt
   
   @@map("communicationlog")
+}
+
+model SignedAgreement {
+  id             String       @id @default(cuid())
+  leadId         String
+  formType       String       // "General" or "Property-Specific"
+  propertyId     String?      // Optional, only for property-specific forms
+  
+  signatureData  String?      @db.Text // Base64 image of the signature
+  signedPdfUrl   String?      // URL of the final generated PDF with the signature on it
+  status         String       @default("Completed") // Pending, Completed
+  
+  createdAt      DateTime     @default(now())
+  
+  lead           Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
 }
