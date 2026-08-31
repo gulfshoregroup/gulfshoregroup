@@ -12,6 +12,7 @@ import {
   Section,
   Tailwind,
   Text,
+  Link,
 } from "@react-email/components";
 import { render } from "@react-email/render";
 import * as React from "react";
