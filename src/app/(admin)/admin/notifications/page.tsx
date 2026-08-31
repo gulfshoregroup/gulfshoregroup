@@ -319,8 +319,8 @@ export default function NotificationsPage() {
 
 			{viewingNotification && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-					<Card className="w-full max-w-lg bg-card shadow-lg border border-border">
-						<CardHeader className="flex flex-row items-start justify-between pb-4 border-b border-border">
+					<Card className="w-full max-w-lg bg-card shadow-lg border border-border flex flex-col max-h-[90vh]">
+						<CardHeader className="flex-none flex flex-row items-start justify-between pb-4 border-b border-border">
 							<div>
 								<CardTitle className="text-xl font-bold">
 									Notification Details
@@ -333,7 +333,7 @@ export default function NotificationsPage() {
 								{viewingNotification.status}
 							</Badge>
 						</CardHeader>
-						<CardContent className="space-y-4 pt-4">
+						<CardContent className="flex-1 overflow-y-auto space-y-4 pt-4">
 							<div className="grid grid-cols-2 gap-4">
 								<div>
 									<p className="text-xs text-muted-foreground font-semibold">Title</p>
