@@ -174,9 +174,9 @@ function buildHtmlPropertyEmail(
 		<!-- PROPERTY CARD -->
 		<div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
 			<!-- COVER IMAGE -->
-			<div style="width: 100%; height: 220px; background-color: #f3f4f6; overflow: hidden;">
-				<a href="${fullUrl}" target="_blank" style="text-decoration: none;">
-					<img src="${imgUrl}" alt="${p.FullAddress}" style="width: 100%; height: 220px; object-fit: cover; border: 0; display: block;" />
+			<div style="width: 100%; background-color: #f3f4f6; overflow: hidden; text-align: center;">
+				<a href="${fullUrl}" target="_blank" style="text-decoration: none; display: block;">
+					<img src="${imgUrl}" alt="${p.FullAddress}" width="600" style="width: 100%; max-width: 100%; height: auto; border: 0; display: block; margin: 0 auto;" />
 				</a>
 			</div>
 
