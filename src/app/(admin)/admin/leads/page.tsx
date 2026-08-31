@@ -527,7 +527,7 @@ export default function LeadsPage() {
 													: new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
 											</div>
 										</td>
-										<td className="py-3 px-4 sticky right-0 bg-card group-hover:bg-muted/50 transition-colors z-10 shadow-[-4px_0_10px_-5px_rgba(0,0,0,0.05)]">
+										<td className="py-3 px-4 sticky right-0 bg-card group-hover:bg-muted transition-colors z-10 shadow-[-4px_0_10px_-5px_rgba(0,0,0,0.05)]">
 											<div className="flex items-center gap-1">
 												<Button
 													title="Quick View"
