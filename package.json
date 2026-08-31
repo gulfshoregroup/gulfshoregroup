@@ -64,6 +64,7 @@
 		"@types/react-signature-canvas": "^1.0.7",
 		"ai": "^7.0.37",
 		"axios": "^1.13.0",
+		"caniuse-lite": "^1.0.30001810",
 		"class-variance-authority": "^0.7.1",
 		"cloudinary": "^2.10.0",
 		"clsx": "^2.1.1",
