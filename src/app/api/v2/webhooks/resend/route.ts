@@ -277,8 +277,8 @@ export async function POST(req: Request) {
 		// Support Resend SVIX inbound payload structure (body.data or root body)
 		const payloadData = body.data || body;
 
-		const fromEmail = payloadData.From || payloadData.from || payloadData.email || body.From || body.from || body.headers?.from;
-		const textBody = payloadData.TextBody || payloadData.text || payloadData.html || body.TextBody || body.text || body.html || "";
+		const fromEmail = payloadData.From || payloadData.from || payloadData.email || payloadData.sender || body.From || body.from || body.sender || body.headers?.from;
+		const textBody = payloadData.TextBody || payloadData.text || payloadData["body-plain"] || payloadData.text_body || payloadData.plain || payloadData.html || payloadData.HtmlBody || payloadData["body-html"] || body.TextBody || body.text || body.html || "";
 		const rawSubject = payloadData.Subject || payloadData.subject || body.Subject || body.subject || "Real Estate Inquiry";
 
 		// Robust Extraction of Message-ID for email threading (In-Reply-To / References)
@@ -317,6 +317,8 @@ export async function POST(req: Request) {
 
 		// Extract ONLY the latest fresh user message from the email (completely strip old thread history)
 		const latestUserText = cleanEmailBody(textBody);
+		const finalSavedMessage = latestUserText || textBody || `[Warning: Empty Email Body Received]. Payload Keys: ${Object.keys(payloadData).join(", ")}`;
+
 		console.log(`[Resend Webhook Processed] Sender: ${cleanFromEmail} | Reply Subject: "${replySubject}" | Latest Fresh Text: "${latestUserText}" | Msg ID: "${messageId}"`);
 
 		// 1. Find or create lead by email
@@ -339,7 +341,7 @@ export async function POST(req: Request) {
 				leadId: lead.id,
 				channel: "email",
 				role: "user",
-				message: `Subject: ${replySubject}\n\n${latestUserText || textBody}`,
+				message: `Subject: ${replySubject}\n\n${finalSavedMessage}`,
 			}
 		});
 
