@@ -413,35 +413,35 @@ export default function LeadsPage() {
 						<table className="w-full text-sm">
 							<thead>
 								<tr className="border-b border-border">
-									<th className="text-left py-3 px-4 font-semibold text-foreground w-12">#</th>
-									<th className="text-left py-3 px-4 font-semibold text-foreground">Lead Info</th>
-									<th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
-									<th className="text-left py-3 px-4 font-semibold text-foreground">Score</th>
-									<th className="text-left py-3 px-4 font-semibold text-foreground cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setSortBy("viewedProperties"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
+									<th className="text-left py-3 px-4 font-semibold text-foreground whitespace-nowrap w-12">#</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground whitespace-nowrap">Lead Info</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground whitespace-nowrap">Status</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground whitespace-nowrap">Score</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground whitespace-nowrap cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setSortBy("viewedProperties"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
 										<div className="flex items-center gap-1">
 											Views {sortBy === "viewedProperties" ? (sortOrder === "desc" ? "↓" : "↑") : ""}
 										</div>
 									</th>
-									<th className="text-left py-3 px-4 font-semibold text-foreground cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setSortBy("lastLogin"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
+									<th className="text-left py-3 px-4 font-semibold text-foreground whitespace-nowrap cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setSortBy("lastLogin"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
 										<div className="flex items-center gap-1">
 											Last Active {sortBy === "lastLogin" ? (sortOrder === "desc" ? "↓" : "↑") : ""}
 										</div>
 									</th>
-									<th className="text-left py-3 px-4 font-semibold text-foreground">Tags</th>
-									<th className="text-left py-3 px-4 font-semibold text-foreground cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setSortBy("createdAt"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
+									<th className="text-left py-3 px-4 font-semibold text-foreground whitespace-nowrap">Tags</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground whitespace-nowrap cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setSortBy("createdAt"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
 										<div className="flex items-center gap-1">
 											Created At {sortBy === "createdAt" ? (sortOrder === "desc" ? "↓" : "↑") : ""}
 										</div>
 									</th>
-									<th className="text-left py-3 px-4 font-semibold text-foreground">Last Contact</th>
-									<th className="text-left py-3 px-4 font-semibold text-foreground">Action</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground whitespace-nowrap">Last Contact</th>
+									<th className="text-left py-3 px-4 font-semibold text-foreground whitespace-nowrap sticky right-0 bg-card z-10 shadow-[-4px_0_10px_-5px_rgba(0,0,0,0.05)]">Action</th>
 								</tr>
 							</thead>
 							<tbody>
 								{filteredLeads.map((lead, i) => (
 									<tr
 										key={i}
-										className="border-b border-border hover:bg-muted/50 transition-colors">
+										className="group border-b border-border hover:bg-muted/50 transition-colors">
 										<td className="py-3 px-4 font-medium text-muted-foreground text-xs">
 											{(page - 1) * limit + i + 1}
 										</td>
@@ -527,7 +527,7 @@ export default function LeadsPage() {
 													: new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
 											</div>
 										</td>
-										<td className="py-3 px-4">
+										<td className="py-3 px-4 sticky right-0 bg-card group-hover:bg-muted/50 transition-colors z-10 shadow-[-4px_0_10px_-5px_rgba(0,0,0,0.05)]">
 											<div className="flex items-center gap-1">
 												<Button
 													title="Quick View"

@@ -171,7 +171,10 @@ function ScheduleNotificationContent() {
 					setSelectedChannel(data.channel?.toLowerCase() || "");
 					setSelectedSegment(data.segment || "");
 					
-					if (data.scheduledFor) {
+					if (data.isDrip) {
+						setScheduleType("drip");
+						setDaysAfterSignup(data.daysAfterSignup?.toString() || "");
+					} else if (data.scheduledFor) {
 						const d = new Date(data.scheduledFor);
 						setDate(d);
 						setTime(format(d, "HH:mm"));
@@ -248,21 +251,25 @@ function ScheduleNotificationContent() {
 				return;
 			}
 			try {
-				const response = await fetch("/api/v2/drip-campaigns", {
-					method: "POST",
+				const url = id ? `/api/notifications/${id}` : "/api/v2/drip-campaigns";
+				const method = id ? "PUT" : "POST";
+				const response = await fetch(url, {
+					method: method,
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
+						title: title,
 						name: title,
 						channel: selectedChannel,
 						daysAfterSignup: parseInt(daysAfterSignup, 10),
+						message: message,
 						messageTemplate: message,
 					}),
 				});
 				if (response.ok) {
-					alert("Automated campaign created successfully!");
+					alert(id ? "Automated campaign updated successfully!" : "Automated campaign created successfully!");
 					router.push("/admin/notifications");
 				} else {
-					alert("Failed to create automated campaign");
+					alert(id ? "Failed to update automated campaign" : "Failed to create automated campaign");
 				}
 			} catch (error) {
 				console.error("Error saving campaign:", error);

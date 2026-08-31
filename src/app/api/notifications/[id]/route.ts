@@ -6,9 +6,36 @@ export async function GET(
 ) {
 	try {
 		const { id } = await params;
+		
+		// First check if it's a drip campaign
+		const drip = await prisma.dripCampaign.findUnique({
+			where: { id },
+		});
+		
+		if (drip) {
+			const mappedDrip = {
+				_id: drip.id,
+				type: "welcome", // Drip campaigns are usually welcome/onboarding
+				channel: drip.channel,
+				segment: "Users (Automated Drip)",
+				title: drip.name,
+				message: drip.messageTemplate,
+				scheduledFor: null,
+				status: drip.status === "active" ? "Scheduled" : "Draft",
+				isDrip: true,
+				dripLabel: `Automated: ${drip.daysAfterSignup === 0 ? 'Immediately' : drip.daysAfterSignup + ' Days After'}`,
+				daysAfterSignup: drip.daysAfterSignup,
+				createdAt: drip.createdAt,
+				updatedAt: drip.updatedAt,
+			};
+			return Response.json(mappedDrip);
+		}
+
+		// Otherwise check scheduled notification
 		const notification = await prisma.scheduledNotification.findUnique({
 			where: { id },
 		});
+		
 		if (!notification) {
 			return Response.json(
 				{ error: "Notification not found" },
@@ -49,7 +76,36 @@ export async function PUT(
 		const { id } = await params;
 		const body = await req.json();
 
-		// Normalize fields if body contains Mongoose fields
+		// Check if it's a drip campaign
+		const existingDrip = await prisma.dripCampaign.findUnique({
+			where: { id },
+		});
+
+		if (existingDrip) {
+			const updatedDrip = await prisma.dripCampaign.update({
+				where: { id },
+				data: {
+					name: body.title || existingDrip.name,
+					messageTemplate: body.message || existingDrip.messageTemplate,
+					channel: body.channel || existingDrip.channel,
+					...(body.daysAfterSignup !== undefined && { daysAfterSignup: body.daysAfterSignup })
+				},
+			});
+
+			return Response.json({
+				_id: updatedDrip.id,
+				type: "welcome",
+				channel: updatedDrip.channel,
+				segment: "Users (Automated Drip)",
+				title: updatedDrip.name,
+				message: updatedDrip.messageTemplate,
+				status: updatedDrip.status === "active" ? "Scheduled" : "Draft",
+				isDrip: true,
+				daysAfterSignup: updatedDrip.daysAfterSignup,
+			});
+		}
+
+		// Otherwise update scheduled notification
 		const prismaBody: any = {};
 		if (body.type) prismaBody.notificationType = body.type;
 		if (body.channel) prismaBody.channel = body.channel;
