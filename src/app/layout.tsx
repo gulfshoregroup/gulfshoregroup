@@ -19,6 +19,7 @@ const poppins = Poppins({
 
 import UtmTracker from "../components/global/utmTracker";
 import ForcedLoginModal from "../components/auth/ForcedLoginModal";
+import MissingPhoneModal from "../components/auth/MissingPhoneModal";
 import AIChatWidget from "../components/chat/AIChatWidget";
 
 export const metadata: Metadata = {
@@ -111,6 +112,7 @@ export default function RootLayout({
 					<StoreProvider>
 						<UtmTracker />
 						<ForcedLoginModal />
+						<MissingPhoneModal />
 						{children}
 						<AIChatWidget />
 					</StoreProvider>

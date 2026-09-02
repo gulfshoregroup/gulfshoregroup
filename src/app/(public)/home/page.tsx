@@ -148,7 +148,7 @@ export default async function Home() {
 				<AboutSection />
 			</div>
             <BlogSection category="others" title="Real Estate Blogs" subtitle="Tips, trends, and insights from real estate experts" />
-            <BlogSection category="facebook" title="Social Updates" subtitle="Latest market updates from our social media" />
+            {/* <BlogSection category="facebook" title="Social Updates" subtitle="Latest market updates from our social media" /> */}
 			<CityFAQ city="Naples" />
 			<script
 				async

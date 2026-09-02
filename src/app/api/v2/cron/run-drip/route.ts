@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import twilio from "twilio";
 import { Resend } from "resend";
+import { sendDripEmail } from "@/lib/email/drip-campaign-email";
 
 export const dynamic = "force-dynamic";
 
@@ -95,17 +96,42 @@ export async function GET() {
 							const isEmail = campaign.channel === "Email" || campaign.channel === "email" || campaign.channel === "Both";
 							const isSMS = campaign.channel === "SMS" || campaign.channel === "text" || campaign.channel === "Both";
 
+							// Extract prefix (e.g. "Day 5 - Financing Follow-Up") to remove it from the email body
+							// Most campaigns start with the campaign name as the first line.
+							let cleanMessage = personalizedMessage;
+							let subjectTitle = "";
+							
+							// If the message starts with "Day X - " or "Day X: ", or the exact campaign name, we remove it from the start
+							const firstLineBreak = cleanMessage.indexOf("\n");
+							if (firstLineBreak !== -1) {
+								const firstLine = cleanMessage.substring(0, firstLineBreak).trim();
+								if (firstLine.toLowerCase().includes("day") || firstLine === campaign.name.trim()) {
+									cleanMessage = cleanMessage.substring(firstLineBreak).trim();
+									// Also extract "Financing Follow-Up" from "Day 5: Financing Follow-Up"
+									const parts = firstLine.split(/[:-]/);
+									if (parts.length > 1) {
+										subjectTitle = parts.slice(1).join("-").trim();
+									} else {
+										subjectTitle = firstLine;
+									}
+								}
+							}
+							
+							// Also strip duplicate greetings if they exist right after
+							cleanMessage = cleanMessage.replace(/^(Hi! 👋 Just following up from GULFSHORE Group\.|Hi! 👋 It’s GULFSHORE Group, just checking in\.|Hi! 👋 It’s GULFSHORE Group checking in\.|Welcome to GULFSHORE Group)/i, "").trim();
+
 							if (isEmail && lead.email) {
 								try {
-									const result = await resend.emails.send({
-										from: process.env.RESEND_FROM_EMAIL || "Gulfshore Group <noreply@updates.gulfshoregroup.com>",
+									const result = await sendDripEmail({
 										to: lead.email,
 										subject: campaign.name,
-										html: `<p>${personalizedMessage.replace(/\\n/g, "<br/>")}</p>`,
+										subjectTitle: subjectTitle || campaign.name,
+										messageContent: cleanMessage.replace(/\\n/g, "<br/>").replace(/\n/g, "<br/>"),
+										recipientName: lead.firstName || "there",
 									});
 									sent = true;
 									
-									if (result.data?.id) {
+									if (result.success && result.id) {
 										try {
 											await prisma.communicationLog.create({
 												data: {
@@ -113,7 +139,7 @@ export async function GET() {
 													to: lead.email,
 													subject: campaign.name,
 													status: "sent",
-													providerId: result.data.id,
+													providerId: result.id,
 												}
 											});
 										} catch (logErr) {
