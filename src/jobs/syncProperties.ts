@@ -248,9 +248,33 @@ export async function syncTodaysActiveProperties({
 		"Pending"
 	);
 
-	const totalFetched = pass1.totalFetched + pass2.totalFetched + pass3.totalFetched + pass4.totalFetched + pass5.totalFetched;
-	const totalSuccess = pass1.totalSuccess + pass2.totalSuccess + pass3.totalSuccess + pass4.totalSuccess + pass5.totalSuccess;
-	const totalFailed = pass1.totalFailed + pass2.totalFailed + pass3.totalFailed + pass4.totalFailed + pass5.totalFailed;
+	// --- Pass 6: Withdrawn properties ---
+	const pass6 = await runSyncPass(
+		"BridgeModificationTimestamp_Withdrawn",
+		fetchBridgeBatch,
+		modificationDate,
+		"Withdrawn"
+	);
+
+	// --- Pass 7: Canceled properties ---
+	const pass7 = await runSyncPass(
+		"BridgeModificationTimestamp_Canceled",
+		fetchBridgeBatch,
+		modificationDate,
+		"Canceled"
+	);
+
+	// --- Pass 8: Expired properties ---
+	const pass8 = await runSyncPass(
+		"BridgeModificationTimestamp_Expired",
+		fetchBridgeBatch,
+		modificationDate,
+		"Expired"
+	);
+
+	const totalFetched = pass1.totalFetched + pass2.totalFetched + pass3.totalFetched + pass4.totalFetched + pass5.totalFetched + pass6.totalFetched + pass7.totalFetched + pass8.totalFetched;
+	const totalSuccess = pass1.totalSuccess + pass2.totalSuccess + pass3.totalSuccess + pass4.totalSuccess + pass5.totalSuccess + pass6.totalSuccess + pass7.totalSuccess + pass8.totalSuccess;
+	const totalFailed = pass1.totalFailed + pass2.totalFailed + pass3.totalFailed + pass4.totalFailed + pass5.totalFailed + pass6.totalFailed + pass7.totalFailed + pass8.totalFailed;
 
 	console.log(`[Sync] === Bridge Sync Completed ===`);
 	console.log(`[Sync] Total fetched: ${totalFetched}, success: ${totalSuccess}, failed: ${totalFailed}`);
