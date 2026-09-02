@@ -82,10 +82,12 @@ export async function GET(req: NextRequest) {
       })
     );
   } else if (type === "drip") {
-    const { WelcomeEmail } = await import("@/lib/email/welcome-email");
+    const { DripCampaignEmail } = await import("@/lib/email/drip-campaign-email");
     html = await render(
-      WelcomeEmail({
-        recipientName: "Jane"
+      DripCampaignEmail({
+        recipientName: "VIP Client",
+        subjectTitle: "Financing Follow-Up",
+        messageContent: "Thank you for exploring our luxury listings.<br/><br/>If you have any questions about financing or mortgage options in Southwest Florida, I am here to help. We work with the best lenders in the area to secure optimal rates for our clients.<br/><br/>Let's schedule a quick call to discuss your goals."
       })
     );
   }
