@@ -21,6 +21,11 @@ const nextConfig = {
 			},
 			{
 				protocol: "https",
+				hostname: "maps.googleapis.com",
+				pathname: "/**",
+			},
+			{
+				protocol: "https",
 				hostname: "*.cloudinary.com",
 				pathname: "/**",
 			},

@@ -74,9 +74,14 @@ export default function ListingLabels({
 								<div className="w-2 h-2 rounded bg-green-600"></div>
 							</>
 						)}
+						{["Withdrawn", "Canceled", "Expired"].includes(Status) && (
+							<>
+								<div className="w-2 h-2 rounded bg-gray-500"></div>
+							</>
+						)}
 					</span>
 					<span className="lg:lg:font-semibold  text-xs font-normal md:font-medium ">
-						{Status === "Active" ? "Active" : Status}
+						{Status === "Active" ? "Active" : ["Withdrawn", "Canceled", "Expired"].includes(Status) ? "Off-Market" : Status}
 					</span>
 				</div>
 			)}

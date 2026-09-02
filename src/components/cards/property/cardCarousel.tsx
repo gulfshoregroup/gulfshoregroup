@@ -32,7 +32,14 @@ export default function CardCarousel({
 
 	const media = property.images as any;
 	let images: string[] = [];
-	if (Array.isArray(media) && media.length > 0) {
+	const isOffMarket = ["Withdrawn", "Canceled", "Expired"].includes(property.StandardStatus || "");
+
+	if (isOffMarket) {
+		const lat = property.Latitude || 26.142;
+		const lng = property.Longitude || -81.7948;
+		const mapApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+		images = [`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=19&size=600x400&maptype=satellite&key=${mapApiKey}`];
+	} else if (Array.isArray(media) && media.length > 0) {
 		images = media
 			.map((item: any) => {
 				// Handle plain URL strings

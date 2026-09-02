@@ -83,7 +83,14 @@ export default async function Listing({
 		}
 	}
 	let images: string[] = [];
-	if (media && Array.isArray(media) && media.length > 0) {
+	const isOffMarket = ["Withdrawn", "Canceled", "Expired"].includes(property.StandardStatus || "");
+
+	if (isOffMarket) {
+		const lat = property.Latitude || 26.142;
+		const lng = property.Longitude || -81.7948;
+		const mapApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+		images = [`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=19&size=800x400&maptype=satellite&key=${mapApiKey}`];
+	} else if (media && Array.isArray(media) && media.length > 0) {
 		images = media
 			.filter((item: any) => item.MediaCategory === "Photo")
 			.map((item: any) => item.MediaURL);
@@ -298,11 +305,15 @@ export default async function Listing({
 								<span className="font-medium">Source:</span>{" "}
 								NAPLESMLS#
 								{property.MLSNumber}
-								<br />
-								<span className="font-medium">
-									Listing Office:
-								</span>{" "}
-								{property.ListOfficeName || (property.raw as any)?.ListOfficeName || "N/A"}
+								{!isOffMarket && (
+									<>
+										<br />
+										<span className="font-medium">
+											Listing Office:
+										</span>{" "}
+										{property.ListOfficeName || (property.raw as any)?.ListOfficeName || "N/A"}
+									</>
+								)}
 								<br />
 								<span className="font-medium">
 									Showing Office:
