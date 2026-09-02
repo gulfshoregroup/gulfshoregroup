@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 			return new NextResponse("Missing bbox", { status: 400 });
 		}
 
-		const url = `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/export?bbox=${bbox}&bboxSR=3857&layers=show:28&size=256,256&imageSR=3857&format=png8&transparent=true&f=image`;
+		const url = `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/export?bbox=${bbox}&bboxSR=3857&layers=show:28&size=256,256&imageSR=3857&format=png32&transparent=true&f=image`;
 
 		const response = await fetch(url, {
 			headers: {
