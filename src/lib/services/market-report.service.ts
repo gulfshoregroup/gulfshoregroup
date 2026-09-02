@@ -25,7 +25,7 @@ export async function getMarketReportData(params: {
 	const normalizedCity = params.city?.trim().replace(/-/g, " ");
 	const normalizedCommunity = params.community?.trim().replace(/-/g, " ");
 
-	const cacheKey = `market_report_v2:${normalizedCity?.toLowerCase() || "all"}:${normalizedCommunity?.toLowerCase() || "all"}`;
+	const cacheKey = `market_report_v3:${normalizedCity?.toLowerCase() || "all"}:${normalizedCommunity?.toLowerCase() || "all"}`;
 
 	// 1. Try Redis Cache
 	try {
@@ -41,6 +41,9 @@ export async function getMarketReportData(params: {
 	// 2. Query DB using select (optimizing fields)
 	const whereCondition: any = {
 		StandardStatus: "Active",
+		PropertyType: {
+			not: "Residential Lease"
+		}
 	};
 
 	if (normalizedCity) {
