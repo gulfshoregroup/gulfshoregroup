@@ -5,8 +5,9 @@ import UrlMaker from "@/hooks/url-maker";
 import { sendAdminLeadAlertEmail } from "@/lib/email/admin-lead-alert";
 import { recalculateLeadScore } from "@/lib/leads/services/scoring.service";
 import { openai } from "@ai-sdk/openai";
-import { generateObject } from "ai";
+import { generateText } from "ai";
 import { z } from "zod";
+import { AI_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy");
@@ -142,11 +143,6 @@ function buildHtmlPropertyEmail(
 							<td width="25%"><strong>${poolText}</strong></td>
 						</tr>
 					</table>
-				</div>
-
-				<!-- LISTING OFFICE -->
-				<div style="font-size: 11px; color: #9ca3af; margin-bottom: 14px;">
-					Source: MLS Listing • Listing Office: ${officeName}
 				</div>
 
 				<!-- RED VIEW DETAILS BUTTON -->
@@ -470,51 +466,44 @@ export async function POST(req: Request) {
 
 		console.log(`[Resend Webhook DB Query] Found ${properties.length} active properties in ${targetCity}`);
 
-		let plainTextSummary = "";
+		// Generate Smart AI Reply
+		const aiPrompt = `
+${AI_SYSTEM_PROMPT}
+
+You are replying to an email inquiry. 
+USER EMAIL MESSAGE: "${latestUserText}"
+INTENT DETECTED: ${isSellIntent ? "Selling" : "Buying"}
+PROPERTIES FOUND IN DATABASE TO SEND TO USER: ${properties.length} properties.
+
+Write a polite, professional, and concise email reply to the user. 
+- Acknowledge their message.
+- If properties were found, mention that you have attached some active properties matching their criteria below.
+- If no properties were found, apologize and offer to set up a custom alert.
+- NEVER mention any listing agents.
+- Sign off as "Dimitri Schwarz & AI Concierge Team, Gulfshore Group Real Estate".
+`;
+
+		const aiResponse = await generateText({
+			model: openai("gpt-4o-mini"),
+			prompt: aiPrompt,
+		});
+
+		let plainTextSummary = aiResponse.text;
 		let htmlContent = "";
 
 		if (isSellIntent && !isBuyIntent) {
-			// SELLER INTENT
-			plainTextSummary = `Hello,
-
-${generatedReplyText}
-
-Dimitri Schwarz provides complimentary, high-precision Home Valuations (Comparative Market Analysis) and full listing representation across Southwest Florida.
-
-To list your property for sale or get a free home market valuation immediately, please visit our seller portal:
-${baseUrl}/sell
-
-Best regards,
-Dimitri Schwarz & AI Team
-Gulfshore Group Real Estate
-${baseUrl}`;
-
 			htmlContent = buildHtmlPropertyEmail(
 				targetCity,
 				properties,
 				"COMPLIMENTARY HOME VALUATION & SELLER SERVICES",
-				`${generatedReplyText}<br><br>Dimitri Schwarz offers full listing representation. Visit <a href="${baseUrl}/sell" style="color: #dc2626; font-weight: bold;">Seller Portal</a> to list your home. Here are active market listings in ${targetCity} for reference:`
+				plainTextSummary.replace(/\n/g, "<br>")
 			);
 		} else {
-			// BUY INTENT or GENERAL PROPERTY SEARCH
-			plainTextSummary = `Hello,
-
-${generatedReplyText}
-
-Here are top active property listings currently available in ${targetCity}:
-
-${properties.map((p, i) => `${i + 1}. ${p.FullAddress} - $${p.ListPrice?.toLocaleString()} (${baseUrl}${UrlMaker(p.City || "", p.Community || "", p.FullAddress || "", p.MLSNumber || undefined)})`).join("\n")}
-
-Best regards,
-Dimitri Schwarz & AI Team
-Gulfshore Group Real Estate
-${baseUrl}`;
-
 			htmlContent = buildHtmlPropertyEmail(
 				targetCity,
 				properties,
 				`ACTIVE HOMES MATCHING YOUR SEARCH`,
-				`${generatedReplyText}<br><br>We found ${properties.length} active luxury properties matching your search criteria in ${targetCity}. Each listing has been curated for quality and value.`
+				plainTextSummary.replace(/\n/g, "<br>")
 			);
 		}
 

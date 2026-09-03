@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import prisma from "@/lib/prisma";
+import { AI_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 
 export async function POST(req: NextRequest) {
 	try {
@@ -56,7 +57,9 @@ export async function POST(req: NextRequest) {
 		// 4. Generate AI Response
 		const { text } = await generateText({
 			model: openai("gpt-4o-mini"),
-			system: `You are an expert AI Real Estate Concierge for Gulfshore Group, working on behalf of Dimitri Schwarz. 
+			system: `${AI_SYSTEM_PROMPT}
+
+CRITICAL SMS INSTRUCTIONS:
 You are texting with a lead via SMS. Keep your responses short, friendly, and conversational (under 160 characters if possible).
 Ask qualifying questions about budget, location, and timeline to buy/sell.`,
 			messages,
