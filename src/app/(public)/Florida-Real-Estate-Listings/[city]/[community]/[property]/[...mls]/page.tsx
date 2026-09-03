@@ -474,15 +474,33 @@ export default async function Listing({
 										</div>
 
 										<div className="prose prose-gray max-w-none lg:max-h-[480px] overflow-y-auto">
-											{Meta?.content?.infoText && Meta.content.infoText.trim().length > 0 ? (
-												<ReadMore className="text-gray-500 leading-relaxed">
-													{Meta.content.infoText
-															.replaceAll("*", "")
-															.replaceAll("###", "•")
-															.replaceAll("##", "•")
-															.replaceAll("#", "")}
-												</ReadMore>
-											) : (
+											{(() => {
+												let cleanInfoText = Meta?.content?.infoText || "";
+												if (cleanInfoText && cleanInfoText.trim().length > 0) {
+													try {
+														if (cleanInfoText.trim().startsWith("{")) {
+															const parsed = JSON.parse(cleanInfoText);
+															if (parsed.InfoText) cleanInfoText = parsed.InfoText;
+															else if (parsed.infoText) cleanInfoText = parsed.infoText;
+														}
+													} catch (e) {}
+													
+													// Strip HTML tags and markdown
+													cleanInfoText = cleanInfoText.replace(/<[^>]*>?/gm, '');
+													cleanInfoText = cleanInfoText
+														.replaceAll("*", "")
+														.replaceAll("###", "•")
+														.replaceAll("##", "•")
+														.replaceAll("#", "");
+														
+													return (
+														<ReadMore className="text-gray-500 leading-relaxed">
+															{cleanInfoText}
+														</ReadMore>
+													);
+												}
+												return null;
+											})() || (
 												<ReadMore className="text-gray-500 leading-relaxed">
 													{Meta?.community
 														? `Welcome to ${Meta.community} in ${Meta.city || "Florida"}. An exceptional community offering a premier lifestyle with access to world-class amenities and the natural beauty of Southwest Florida's Gulf Coast.`

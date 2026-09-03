@@ -179,12 +179,33 @@ export default async function RootLayout({
 															</div>
 
 															<div className="prose prose-gray max-w-none lg:max-h-[500px] overflow-y-auto pr-2 prose-p:text-gray-500 prose-headings:text-primary custom-scrollbar">
-																{seoData?.content?.infoText && seoData.content.infoText.trim().length > 0 ? (
-																	<div 
-																		className="text-gray-500 leading-relaxed space-y-4"
-																		dangerouslySetInnerHTML={{ __html: seoData.content.infoText }} 
-																	/>
-																) : (
+																{(() => {
+																	let cleanInfoText = seoData?.content?.infoText || "";
+																	if (cleanInfoText && cleanInfoText.trim().length > 0) {
+																		try {
+																			if (cleanInfoText.trim().startsWith("{")) {
+																				const parsed = JSON.parse(cleanInfoText);
+																				if (parsed.InfoText) cleanInfoText = parsed.InfoText;
+																				else if (parsed.infoText) cleanInfoText = parsed.infoText;
+																			}
+																		} catch (e) {}
+																		
+																		// Strip HTML tags and markdown
+																		cleanInfoText = cleanInfoText.replace(/<[^>]*>?/gm, '');
+																		cleanInfoText = cleanInfoText
+																			.replaceAll("*", "")
+																			.replaceAll("###", "•")
+																			.replaceAll("##", "•")
+																			.replaceAll("#", "");
+																			
+																		return (
+																			<ReadMore className="text-gray-500 leading-relaxed">
+																				{cleanInfoText}
+																			</ReadMore>
+																		);
+																	}
+																	return null;
+																})() || (
 																	<ReadMore className="text-gray-500 leading-relaxed">
 																		{(seoData?.community || filtersParams.developmentName)
 																			? `Welcome to ${seoData?.community || capitalizeWords(filtersParams.developmentName || "")} in ${capitalizeWords(filtersParams.city || "Naples")}, Florida. An exceptional community offering a premier lifestyle with access to world-class amenities and the natural beauty of Southwest Florida's Gulf Coast.`
