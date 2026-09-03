@@ -100,7 +100,7 @@ export default function PropertiesPage() {
 		const fetchOptions = async () => {
 			try {
 				const [citiesRes, commsRes] = await Promise.all([
-					fetch("/api/cities").then((r) => r.json()).catch(() => ({})),
+					fetch("/api/cities?all=true").then((r) => r.json()).catch(() => ({})),
 					fetch("/api/community?limit=2000").then((r) => r.json()).catch(() => ({})),
 				]);
 

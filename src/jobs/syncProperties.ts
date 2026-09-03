@@ -208,12 +208,12 @@ export async function syncTodaysActiveProperties({
 	console.log(`[Sync] New listings (OnMarketDate) pass date: ${newListingsDate}`);
 	console.log(`[Sync] Sold listings pass date: ${soldDate}`);
 
-	// --- Pass 1: Modification timestamp (updates + existing listings) ---
+	// --- Pass 1: Modification timestamp (ALL statuses: Active, Pending, Closed, Withdrawn, etc.) ---
 	const pass1 = await runSyncPass(
-		"BridgeModificationTimestamp",
+		"BridgeModificationTimestamp_All",
 		fetchBridgeBatch,
 		modificationDate,
-		"Active"
+		"All"
 	);
 
 	// --- Pass 2: OnMarketDate (brand new listings that came to market recently) ---
@@ -224,57 +224,224 @@ export async function syncTodaysActiveProperties({
 		"Active"
 	);
 
-	// --- Pass 3: Closed properties (recently sold) ---
-	const pass3 = await runSyncPass(
-		"BridgeModificationTimestamp_Closed",
-		fetchBridgeBatch,
-		soldDate,
-		"Closed"
-	);
+	// --- Pass 3: Closed properties (Fallback for forceAll mode which uses soldDate = 1 year ago) ---
+	// We only need this if soldDate is different from modificationDate (which happens in forceAll mode)
+	let pass3 = { totalFetched: 0, totalSuccess: 0, totalFailed: 0 };
+	if (soldDate !== modificationDate) {
+		pass3 = await runSyncPass(
+			"BridgeModificationTimestamp_Closed_Deep",
+			fetchBridgeBatch,
+			soldDate,
+			"Closed"
+		);
+	}
 
-	// --- Pass 4: Pending properties (recently pending) ---
+	// --- Pass 4: OnMarketDate Pending (brand new pending listings) ---
 	const pass4 = await runSyncPass(
-		"BridgeModificationTimestamp_Pending",
+		"OnMarketDate_Pending",
+						where: { ListingId: item.ListingId },
+						select: { id: true, ListingKey: true },
+					});
+
+					if (existingByListingId) {
+						await prisma.property.update({
+							where: { id: existingByListingId.id },
+							data: mapped,
+						});
+						return;
+					}
+				} catch (innerErr: any) {
+					console.error(
+						`[Sync] Fallback update failed for ${item.ListingId}: ${innerErr?.message}`
+					);
+				}
+				return; // Don't retry further for this type of error
+			}
+
+			// --- Handle: transaction/connection errors — retry with back-off ---
+			if (
+				msg.includes("Transaction already closed") ||
+				msg.includes("connection closed") ||
+				msg.includes("ECONNRESET") ||
+				msg.includes("ER_CON_COUNT_ERROR")
+			) {
+				if (attempt < RETRY_LIMIT) {
+					const delay = RETRY_DELAY_MS * attempt;
+					console.warn(
+						`[Sync] Connection error for ${item.ListingId} (attempt ${attempt}/${RETRY_LIMIT}), retrying in ${delay}ms...`
+					);
+					await sleep(delay);
+					continue;
+				}
+			}
+
+			// Final attempt failed or unrecognized error — log and skip
+			if (attempt === RETRY_LIMIT) {
+				console.error(
+					`[Sync] Failed to sync property ${item.ListingId} after ${RETRY_LIMIT} attempts: ${msg}`
+				);
+			} else if (attempt === 1) {
+				console.error(`[Sync] Failed to sync property ${item.ListingId}: ${msg}`);
+				return;
+			}
+		}
+	}
+}
+
+/**
+ * Process a chunk of listings sequentially to avoid overwhelming the connection pool.
+ */
+async function processChunk(
+	listings: any[],
+): Promise<{ success: number; failed: number }> {
+	let success = 0;
+	let failed = 0;
+
+	for (const item of listings) {
+		try {
+			await upsertPropertyWithRetry(item);
+			success++;
+		} catch {
+			failed++;
+		}
+	}
+
+	return { success, failed };
+}
+
+/**
+ * Run a paginated sync pass against the Bridge API.
+ * `fetchFn` is either the BridgeModificationTimestamp or OnMarketDate fetcher.
+ */
+export async function runSyncPass(
+	passName: string,
+	fetchFn: (offset: number, limit: number, date: string, status: string) => Promise<any>,
+	date: string,
+	status: string
+): Promise<{ totalFetched: number; totalSuccess: number; totalFailed: number }> {
+	let offset = 0;
+	let totalFetched = 0;
+	let totalSuccess = 0;
+	let totalFailed = 0;
+
+	console.log(`[Sync] Starting ${passName} pass from: ${date}`);
+
+	while (true) {
+		let data: any;
+		try {
+			data = await fetchFn(offset, BATCH_SIZE, date, status);
+		} catch (fetchErr: any) {
+			console.error(`[Sync] ${passName} fetch failed at offset ${offset}: ${fetchErr?.message}`);
+			break;
+		}
+
+		const listings: any[] = data.bundle || [];
+		if (listings.length === 0) break;
+
+		// Write to DB in smaller sub-chunks to protect the connection pool
+		for (let i = 0; i < listings.length; i += DB_CHUNK_SIZE) {
+			const chunk = listings.slice(i, i + DB_CHUNK_SIZE);
+			const { success, failed } = await processChunk(chunk);
+			totalSuccess += success;
+			totalFailed += failed;
+
+			// Brief pause between DB chunks to let the connection pool breathe
+			if (i + DB_CHUNK_SIZE < listings.length) {
+				await sleep(100);
+			}
+		}
+
+		totalFetched += listings.length;
+		offset += BATCH_SIZE;
+
+		console.log(
+			`[Sync] ${passName} — fetched: ${totalFetched}, success: ${totalSuccess}, failed: ${totalFailed}`
+		);
+
+		if (listings.length < BATCH_SIZE) break;
+
+		// Brief pause between Bridge API page fetches
+		await sleep(200);
+	}
+
+	return { totalFetched, totalSuccess, totalFailed };
+}
+
+/**
+ * Main sync entry point.
+ *
+ * Runs TWO passes:
+ *  1. BridgeModificationTimestamp pass — catches price changes, status updates, etc.
+ *  2. OnMarketDate pass (always last 2 days) — catches NEW listings that just hit the MLS
+ *     and may have an older BridgeModificationTimestamp.
+ */
+export async function syncTodaysActiveProperties({
+	count,
+	date,
+	forceAll = false,
+}: {
+	count: number;
+	date?: string;
+	forceAll?: boolean;
+}) {
+	// Use the provided date from the cron router (which correctly looks back to last sync)
+	// or fallback to 7 days ago for safety.
+	const fallbackDate = new Date();
+	fallbackDate.setDate(fallbackDate.getDate() - 7);
+	const defaultDate = fallbackDate.toISOString().split("T")[0];
+	
+	const modificationDate = forceAll ? "2000-01-01" : (date || defaultDate);
+	const newListingsDate = forceAll ? "2000-01-01" : (date || defaultDate);
+	
+	const oneYearAgoDate = new Date();
+	oneYearAgoDate.setFullYear(oneYearAgoDate.getFullYear() - 1);
+	const soldDate = forceAll ? oneYearAgoDate.toISOString().split("T")[0] : modificationDate;
+
+	console.log(`[Sync] === Bridge Sync Started ===`);
+	console.log(`[Sync] forceAll mode: ${forceAll}`);
+	console.log(`[Sync] Modification pass date: ${modificationDate}`);
+	console.log(`[Sync] New listings (OnMarketDate) pass date: ${newListingsDate}`);
+	console.log(`[Sync] Sold listings pass date: ${soldDate}`);
+
+	// --- Pass 1: Modification timestamp (ALL statuses: Active, Pending, Closed, Withdrawn, etc.) ---
+	const pass1 = await runSyncPass(
+		"BridgeModificationTimestamp_All",
 		fetchBridgeBatch,
 		modificationDate,
-		"Pending"
+		"All"
 	);
 
-	// --- Pass 5: OnMarketDate Pending (brand new pending listings) ---
-	const pass5 = await runSyncPass(
+	// --- Pass 2: OnMarketDate (brand new listings that came to market recently) ---
+	const pass2 = await runSyncPass(
+		"OnMarketDate",
+		fetchBridgeBatchByOnMarketDate,
+		newListingsDate,
+		"Active"
+	);
+
+	// --- Pass 3: Closed properties (Fallback for forceAll mode which uses soldDate = 1 year ago) ---
+	// We only need this if soldDate is different from modificationDate (which happens in forceAll mode)
+	let pass3 = { totalFetched: 0, totalSuccess: 0, totalFailed: 0 };
+	if (soldDate !== modificationDate) {
+		pass3 = await runSyncPass(
+			"BridgeModificationTimestamp_Closed_Deep",
+			fetchBridgeBatch,
+			soldDate,
+			"Closed"
+		);
+	}
+
+	// --- Pass 4: OnMarketDate Pending (brand new pending listings) ---
+	const pass4 = await runSyncPass(
 		"OnMarketDate_Pending",
 		fetchBridgeBatchByOnMarketDate,
 		newListingsDate,
 		"Pending"
 	);
 
-	// --- Pass 6: Withdrawn properties ---
-	const pass6 = await runSyncPass(
-		"BridgeModificationTimestamp_Withdrawn",
-		fetchBridgeBatch,
-		modificationDate,
-		"Withdrawn"
-	);
-
-	// --- Pass 7: Canceled properties ---
-	const pass7 = await runSyncPass(
-		"BridgeModificationTimestamp_Canceled",
-		fetchBridgeBatch,
-		modificationDate,
-		"Canceled"
-	);
-
-	// --- Pass 8: Expired properties ---
-	const pass8 = await runSyncPass(
-		"BridgeModificationTimestamp_Expired",
-		fetchBridgeBatch,
-		modificationDate,
-		"Expired"
-	);
-
-	const totalFetched = pass1.totalFetched + pass2.totalFetched + pass3.totalFetched + pass4.totalFetched + pass5.totalFetched + pass6.totalFetched + pass7.totalFetched + pass8.totalFetched;
-	const totalSuccess = pass1.totalSuccess + pass2.totalSuccess + pass3.totalSuccess + pass4.totalSuccess + pass5.totalSuccess + pass6.totalSuccess + pass7.totalSuccess + pass8.totalSuccess;
-	const totalFailed = pass1.totalFailed + pass2.totalFailed + pass3.totalFailed + pass4.totalFailed + pass5.totalFailed + pass6.totalFailed + pass7.totalFailed + pass8.totalFailed;
+	const totalFetched = pass1.totalFetched + pass2.totalFetched + pass3.totalFetched + pass4.totalFetched;
+	const totalSuccess = pass1.totalSuccess + pass2.totalSuccess + pass3.totalSuccess + pass4.totalSuccess;
+	const totalFailed = pass1.totalFailed + pass2.totalFailed + pass3.totalFailed + pass4.totalFailed;
 
 	console.log(`[Sync] === Bridge Sync Completed ===`);
 	console.log(`[Sync] Total fetched: ${totalFetched}, success: ${totalSuccess}, failed: ${totalFailed}`);

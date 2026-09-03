@@ -14,9 +14,12 @@ export async function fetchBridgeBatch(
 	offset: number,
 	limit: number,
 	date: string,
-	status: string
+	status?: string | null
 ) {
-	const filter = `StandardStatus.eq=${status}&BridgeModificationTimestamp.gte=${date}`;
+	let filter = `BridgeModificationTimestamp.gte=${date}`;
+	if (status && status !== "All") {
+		filter += `&StandardStatus.eq=${status}`;
+	}
 
 	const url =
 		`${BASE_URL}/${SOURCE}/listings` +
