@@ -67,7 +67,6 @@ export async function getMarketReportData(params: {
 			PropertyType: true,
 			OnMarketDate: true,
 		},
-		take: 2000, // Safe sample ceiling for stats calculation
 	});
 
 	const activeListings = properties.length;
