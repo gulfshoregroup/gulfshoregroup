@@ -118,7 +118,7 @@ export async function GET() {
 							}
 							
 							// Also strip duplicate greetings if they exist right after
-							cleanMessage = cleanMessage.replace(/^(Hi! 👋 Just following up from GULFSHORE Group\.|Hi! 👋 It’s GULFSHORE Group, just checking in\.|Hi! 👋 It’s GULFSHORE Group checking in\.|Welcome to GULFSHORE Group)/i, "").trim();
+							cleanMessage = cleanMessage.replace(/^(Hi! 👋 Just following up from GULFSHORE Group\.|Hi! 👋 It’s GULFSHORE Group, just checking in\.|Hi! 👋 It’s GULFSHORE Group checking in\.)/i, "").trim();
 
 							if (isEmail && lead.email) {
 								try {
