@@ -194,16 +194,11 @@ export async function processSavedSearches() {
 		}
 
 		// ---------------------------------------------------------
-		// 2. GENERIC BLAST TO ALL OTHER LEADS (Once a day at ~10 AM EDT / 14:00 UTC)
+		// 2. GENERIC BLAST TO ALL OTHER LEADS
 		// ---------------------------------------------------------
-		const currentUTCHour = new Date().getUTCHours();
-		const isDailyBlastHour = currentUTCHour === 12; // 8 AM EDT 
-		
-		// If it's the daily blast hour, send to everyone else
-		if (isDailyBlastHour) {
-			console.log("[SavedSearch] Running Daily Generic Blast for all other leads...");
+		console.log("[SavedSearch] Running Daily Generic Blast for all other leads...");
 			
-			// Find the absolute newest active property from the last 24 hours
+		// Find the absolute newest active property from the last 24 hours
 			const newestProperty = await prisma.property.findFirst({
 				where: { 
 					StandardStatus: "Active",
@@ -250,7 +245,6 @@ export async function processSavedSearches() {
 			} else {
 				console.log("[SavedSearch] No new properties in the last 24h for the generic blast.");
 			}
-		}
 
 		console.log("[SavedSearch] Finished processing saved searches and alerts.");
 	} catch (error) {

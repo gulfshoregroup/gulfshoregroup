@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-export default function middleware(req: NextRequest) {
+export default clerkMiddleware((auth, req: NextRequest) => {
 	const { pathname } = req.nextUrl;
 	const origin = req.headers.get("origin") || "*";
 
@@ -20,7 +21,7 @@ export default function middleware(req: NextRequest) {
 	}
 
 	return NextResponse.next();
-}
+});
 
 export const config = {
 	matcher: [
