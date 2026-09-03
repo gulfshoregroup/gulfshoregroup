@@ -88,15 +88,19 @@ async function getMappedLead(id: string) {
 		}),
 	]);
 
+	// Fetch all campaigns to map names to logs
+	const campaigns = await prisma.dripCampaign.findMany();
+	const campaignMap = new Map(campaigns.map(c => [c.id, c.name]));
+
 	const sentAlerts = [
 		...dripLogs.map((log) => ({
 			id: log.id,
 			sentAt: log.sentAt,
-			subject: "Automated Property Match Digest",
-			campaignName: "Property Drip Campaign",
-			type: "Property Alert",
+			subject: campaignMap.get(log.campaignId) || "Drip Campaign Email",
+			campaignName: campaignMap.get(log.campaignId) || "Property Drip Campaign",
+			type: "Drip Campaign",
 			status: log.status === "sent" ? "Delivered" : log.status,
-			propertiesCount: 3,
+			propertiesCount: 0,
 		})),
 		...sequenceSteps.map((step) => ({
 			id: step.id,

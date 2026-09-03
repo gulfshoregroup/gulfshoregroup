@@ -378,7 +378,15 @@ export async function POST(req: Request) {
 								.trim();
 								
 							if (safeAddress) {
-								where.FullAddress = { contains: safeAddress };
+								const addressWords = safeAddress.split(/\s+/).filter(Boolean);
+								if (addressWords.length > 0) {
+									where.AND = where.AND || [];
+									addressWords.forEach((word: string) => {
+										where.AND.push({
+											FullAddress: { contains: word }
+										});
+									});
+								}
 							}
 						}
 						if (propertyType) {

@@ -194,57 +194,11 @@ export async function processSavedSearches() {
 		}
 
 		// ---------------------------------------------------------
-		// 2. GENERIC BLAST TO ALL OTHER LEADS
+		// 2. GENERIC BLAST TO ALL OTHER LEADS (DISABLED)
 		// ---------------------------------------------------------
-		console.log("[SavedSearch] Running Daily Generic Blast for all other leads...");
-			
-		// Find the absolute newest active property from the last 24 hours
-			const newestProperty = await prisma.property.findFirst({
-				where: { 
-					StandardStatus: "Active",
-					createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-					OR: [
-						{ DaysOnMarket: { lte: 14 } },
-						{ OnMarketDate: { gt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) } }
-					]
-				},
-				orderBy: { createdAt: 'desc' }
-			});
-
-			if (newestProperty) {
-				const allLeads = await prisma.lead.findMany({
-					where: {
-						id: { notIn: Array.from(alertedLeadIds) }, // Skip leads who already got a personalized alert today
-					}
-				});
-
-				for (const lead of allLeads) {
-					// SEND SMS (Generic)
-					if (lead.phone) {
-						let priceStr = newestProperty.ListPrice ? `$${newestProperty.ListPrice.toLocaleString()}` : "";
-						const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
-						const domain = baseUrl.replace(/^https?:\/\//, '');
-						const smsMessage = `Featured New Listing in ${newestProperty.City} ${priceStr} on ${domain} - Dimitri Schwarz, Your SW Florida Realtor 239.992.9119`;
-						await sendSMS(lead.phone, smsMessage).catch(err => console.error("SMS Error:", err));
-					}
-
-					// SEND EMAIL (Generic)
-					if (lead.email) {
-						await sendPropertyAlert({
-							to: lead.email,
-							recipientName: lead.firstName || "Valued Client",
-							leadId: lead.id,
-							subject: `Featured New Listing in ${newestProperty.City} - Dimitri Schwarz, Your SW Florida Realtor 239.992.9119`,
-							alertTitle: "A Naples Area Home for You",
-							alertSubtitle: `Here is a brand new listing we think you'll love.`,
-							properties: newestProperty as any,
-						}).catch(err => console.error("Email Error:", err));
-					}
-				}
-				console.log(`[SavedSearch] Sent generic daily blast to ${allLeads.length} leads.`);
-			} else {
-				console.log("[SavedSearch] No new properties in the last 24h for the generic blast.");
-			}
+		// Client requested: "only if there is a property criteria".
+		// Generic blasts to leads without saved searches are now disabled.
+		console.log("[SavedSearch] Generic daily blast is disabled based on client requirements.");
 
 		console.log("[SavedSearch] Finished processing saved searches and alerts.");
 	} catch (error) {
