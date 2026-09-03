@@ -371,23 +371,14 @@ export async function POST(req: Request) {
 						}
 
 						if (finalAddress) {
-							const words = finalAddress.trim().split(' ').filter(Boolean);
-							const houseNumber = words[0];
-							const streetName = words.slice(1, 3).join(" ");
-
-							if (houseNumber && /^\d+/.test(houseNumber)) {
-								// Match starting with the house number, which is very fast in MySQL
-								where.FullAddress = { startsWith: houseNumber };
-								if (streetName) {
-									const streetNameClean = streetName.replace(/\b(ave|ln|dr|rd|ct|st|pl|ter|cir)\b/gi, "").trim();
-									if (streetNameClean) {
-										where.AND = where.AND || [];
-										where.AND.push({ FullAddress: { contains: streetNameClean } });
-									}
-								}
-							} else {
-								// Fallback standard contains lookup
-								where.FullAddress = { contains: finalAddress };
+							// Strip out city, state, zip if the AI accidentally included them
+							const safeAddress = finalAddress
+								.replace(/,\s*(naples|bonita|cape coral|florida|fl).*$/i, "")
+								.replace(/\b(fl|florida)\b/gi, "")
+								.trim();
+								
+							if (safeAddress) {
+								where.FullAddress = { contains: safeAddress };
 							}
 						}
 						if (propertyType) {
