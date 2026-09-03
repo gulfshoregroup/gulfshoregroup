@@ -510,7 +510,7 @@ export default function LeadProfilePage() {
 								<Send className="w-5 h-5 text-primary" /> 📬 Listings Sent to Lead
 							</CardTitle>
 							<CardDescription>
-								Automated property match digests & drip email alerts sent to this lead
+								Property Criteria - New Properties Next Day & drip email alerts sent to this lead
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
