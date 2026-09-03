@@ -36,10 +36,14 @@ export default function MissingPhoneModal() {
 		// Check if user has a phone number in Clerk
 		const hasPhone = user.phoneNumbers && user.phoneNumbers.length > 0;
         
+        // Check if user signed up with Google
+        const isGoogleAuth = user.externalAccounts && user.externalAccounts.some((acc: any) => acc.provider === "oauth_google");
+        
         // Also check localStorage in case they just added it during this session
         const phoneStored = localStorage.getItem(`phone_collected_${user.id}`);
 
-		if (!hasPhone && !phoneStored) {
+		// Client requested: "Pop up for phone number only needed when signing up with google."
+		if (!hasPhone && !phoneStored && isGoogleAuth) {
 			setIsOpen(true);
 		} else {
             setIsOpen(false);
