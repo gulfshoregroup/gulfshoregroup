@@ -25,11 +25,19 @@ export async function POST(req: Request) {
 		const lead = await requireLead();
 
 		// If frontend didn't pass propertyContext, try to fetch it from the URL
-		if (!propertyContext && currentUrl.includes("/MLS/")) {
+		if (!propertyContext && currentUrl) {
 			try {
-				const urlParts = currentUrl.split("/MLS/");
-				if (urlParts.length > 1) {
-					const mlsNumber = urlParts[1].split(/[?#]/)[0]; // Remove query params or hashes
+				let pathStr = currentUrl;
+				try {
+					const urlObj = new URL(currentUrl.startsWith("http") ? currentUrl : \`http://localhost\${currentUrl}\`);
+					pathStr = urlObj.pathname;
+				} catch(e) {}
+				
+				const pathSegments = pathStr.split("/").filter(Boolean);
+				
+				// Ensure it's a property page: /Florida-Real-Estate-Listings/[City]/[Community]/[Address]/[MLS]
+				if (pathSegments.length >= 4 && pathSegments[0] === "Florida-Real-Estate-Listings") {
+					const mlsNumber = pathSegments[pathSegments.length - 1];
 					if (mlsNumber) {
 						propertyContext = await prisma.property.findUnique({
 							where: { MLSNumber: mlsNumber },
