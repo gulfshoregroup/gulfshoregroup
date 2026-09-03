@@ -99,3 +99,11 @@ export const clerkClient = async () => ({
 		}
 	}
 });
+
+export async function verifyToken(token: string, options: any) {
+    if (token === "dummy-token") {
+        const userId = await getMockUserIdServer();
+        return { sub: userId || "user_dummy_123" };
+    }
+    throw new Error("Invalid mock token");
+}
