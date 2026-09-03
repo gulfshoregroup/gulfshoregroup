@@ -52,7 +52,6 @@ const nextConfig = {
 	compress: true,
 
 	turbopack: {
-		root: __dirname,
 		...(process.env.NEXT_PUBLIC_USE_REAL_CLERK !== "true" ? {
 			resolveAlias: {
 				"@clerk/nextjs/server": "./src/lib/mock-clerk-server.ts",
