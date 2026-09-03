@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { usePathname } from "next/navigation";
 
 export default function MissingPhoneModal() {
 	const { user, isLoaded, isSignedIn } = useUser();
+	const { getToken } = useAuth();
 	const pathname = usePathname();
 	const [isOpen, setIsOpen] = useState(false);
 	const [phone, setPhone] = useState("");
@@ -56,12 +57,14 @@ export default function MissingPhoneModal() {
 		setError("");
 
 		try {
+			const token = await getToken();
 			const res = await fetch("/api/v2/user/update-phone", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
+					"Authorization": `Bearer ${token}`
 				},
-				body: JSON.stringify({ phone }),
+				body: JSON.stringify({ phone, email: user?.primaryEmailAddress?.emailAddress }),
 			});
 
 			if (res.ok) {
