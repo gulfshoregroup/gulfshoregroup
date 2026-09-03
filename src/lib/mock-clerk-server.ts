@@ -1,10 +1,9 @@
-// Import dynamically or inside functions to avoid Edge runtime module evaluation crash
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 async function getIsSignedInServer() {
 	try {
-		const { cookies } = await import("next/headers");
 		const cookieStore = await cookies();
 		const mockCookie = cookieStore.get("mock_signed_in");
 		return mockCookie ? mockCookie.value !== "false" : false;
@@ -15,7 +14,6 @@ async function getIsSignedInServer() {
 
 async function getMockEmailServer() {
 	try {
-		const { cookies } = await import("next/headers");
 		const cookieStore = await cookies();
 		const mockEmail = cookieStore.get("mock_user_email");
 		return mockEmail && mockEmail.value !== "false" ? decodeURIComponent(mockEmail.value) : "";
@@ -26,7 +24,6 @@ async function getMockEmailServer() {
 
 async function getMockUserIdServer() {
 	try {
-		const { cookies } = await import("next/headers");
 		const cookieStore = await cookies();
 		const mockUserId = cookieStore.get("mock_user_id");
 		return mockUserId && mockUserId.value !== "false" ? mockUserId.value : null;
