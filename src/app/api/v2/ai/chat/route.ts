@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 			try {
 				let pathStr = currentUrl;
 				try {
-					const urlObj = new URL(currentUrl.startsWith("http") ? currentUrl : \`http://localhost\${currentUrl}\`);
+					const urlObj = new URL(currentUrl.startsWith("http") ? currentUrl : `http://localhost${currentUrl}`);
 					pathStr = urlObj.pathname;
 				} catch(e) {}
 				
