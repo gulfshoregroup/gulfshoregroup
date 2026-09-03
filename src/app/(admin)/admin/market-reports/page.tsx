@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MarketReportSection from "@/components/search/marketReportSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export default function AdminMarketReportsPage() {
 	const [cityInput, setCityInput] = useState("");
 	const [activeCity, setActiveCity] = useState("Naples"); // Default city
+	const [cities, setCities] = useState<{name: string}[]>([]);
+
+	useEffect(() => {
+		fetch("/api/v2/cities?limit=100")
+			.then(res => res.json())
+			.then(data => {
+				if (Array.isArray(data)) {
+					setCities(data);
+				} else if (data && Array.isArray(data.data)) {
+					setCities(data.data);
+				}
+			})
+			.catch(err => console.error("Error fetching cities", err));
+	}, []);
 
 	const handleSearch = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -36,15 +50,12 @@ export default function AdminMarketReportsPage() {
 								<SelectValue placeholder="Select a city..." />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="Naples">Naples</SelectItem>
-								<SelectItem value="Fort Myers">Fort Myers</SelectItem>
-								<SelectItem value="Cape Coral">Cape Coral</SelectItem>
-								<SelectItem value="Bonita Springs">Bonita Springs</SelectItem>
-								<SelectItem value="Estero">Estero</SelectItem>
-								<SelectItem value="Marco Island">Marco Island</SelectItem>
-								<SelectItem value="Lehigh Acres">Lehigh Acres</SelectItem>
-								<SelectItem value="Punta Gorda">Punta Gorda</SelectItem>
-								<SelectItem value="Ave Maria">Ave Maria</SelectItem>
+								<SelectItem value="All">All Cities</SelectItem>
+								{cities.map((city) => (
+									<SelectItem key={city.name} value={city.name}>
+										{city.name}
+									</SelectItem>
+								))}
 							</SelectContent>
 						</Select>
 					</div>

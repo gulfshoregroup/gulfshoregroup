@@ -20,7 +20,7 @@ export default function MarketReportSection({ city, community }: MarketReportSec
 		setError(false);
 
 		const params = new URLSearchParams();
-		if (city) params.set("city", city);
+		if (city && city !== "All") params.set("city", city);
 		if (community) params.set("community", community);
 
 		fetch(`/api/v2/market-report?${params.toString()}`)
