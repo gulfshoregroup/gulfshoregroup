@@ -213,6 +213,7 @@ model Property {
   BridgeModificationTimestamp DateTime?
   MajorChangeType             String?
   MajorChangeTimestamp        DateTime?
+  verificationPendingAt       DateTime?
 
   // ---- Pricing ----
   ListPrice            Int?
