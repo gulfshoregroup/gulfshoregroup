@@ -31,6 +31,9 @@ async function getMappedLead(id: string) {
 				orderBy: { lastViewedAt: "desc" },
 				include: { property: true },
 			},
+			signedAgreements: {
+				orderBy: { createdAt: "desc" },
+			},
 		},
 	});
 

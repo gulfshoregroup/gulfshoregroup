@@ -42,7 +42,7 @@ export default function AIChatWidget() {
 		}
 	};
 	return (
-		<div className="fixed bottom-20 right-4 z-50 md:bottom-24 md:right-6">
+		<div className="fixed bottom-20 right-4 z-50 md:bottom-24 md:right-6 flex flex-col items-end">
 			{/* Chat Button */}
 			{!isOpen && (
 				<button
@@ -60,7 +60,7 @@ export default function AIChatWidget() {
 
 			{/* Chat Window */}
 			{isOpen && (
-				<div className="bg-white rounded-2xl shadow-2xl w-[350px] sm:w-[400px] h-[500px] flex flex-col border border-gray-200 overflow-hidden animate-in slide-in-from-bottom-5">
+				<div className="bg-white rounded-2xl shadow-2xl w-[90vw] sm:w-[400px] max-w-[400px] h-[500px] max-h-[80vh] flex flex-col border border-gray-200 overflow-hidden animate-in slide-in-from-bottom-5 origin-bottom-right">
 					{/* Header */}
 					<div className="bg-primary text-white p-4 flex justify-between items-center">
 						<div>

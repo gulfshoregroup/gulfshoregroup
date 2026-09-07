@@ -489,6 +489,25 @@ export default function LeadProfilePage() {
 															{inquiry.message}
 														</p>
 													)}
+													
+													{isTour && lead.signedAgreements?.length > 0 && (
+														<div className="mt-2 p-3 bg-blue-100/50 dark:bg-blue-900/20 rounded-lg border border-blue-200/50 flex flex-col gap-2">
+															<p className="text-xs font-semibold text-blue-800 dark:text-blue-300">📝 Signed Agreements by this Lead:</p>
+															<div className="flex flex-wrap gap-2">
+																{lead.signedAgreements.map((sa: any) => (
+																	<a 
+																		key={sa.id} 
+																		href={sa.signedPdfUrl} 
+																		target="_blank" 
+																		rel="noreferrer" 
+																		className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 shadow-sm transition-colors font-medium flex items-center gap-1"
+																	>
+																		📄 View {sa.formType} Agreement
+																	</a>
+																))}
+															</div>
+														</div>
+													)}
 												</div>
 											</div>
 										);
