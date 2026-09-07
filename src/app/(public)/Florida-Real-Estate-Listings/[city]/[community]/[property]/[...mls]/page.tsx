@@ -181,7 +181,7 @@ export default async function Listing({
 							<div className="flex justify-between items-start mb-4">
 								<ListingLabels
 									CreatedDate={property.OnMarketDate || ""}
-									Status={property.StandardStatus || ""}
+									Status={isOffMarket ? "Off Market" : property.StandardStatus || ""}
 									StatusType={property.StatusType || ""}
 								/>
 								<div className="flex gap-3 items-center">
@@ -202,17 +202,19 @@ export default async function Listing({
 							</div>
 
 							{/* Price with enhanced styling */}
-							<div className="mb-3">
-								<span className="text-3xl inline-flex gap-2 lg:text-4xl font-bold text-gray-900 tracking-tight">
-									$
-									{Number(property.ListPrice).toLocaleString("en-US")}{" "}
-									{property.PropertyType === "Residential Lease" && (
-										<span className="text-gray-800 my-auto h-full text-sm font-medium">
-											- For Lease
-										</span>
-									)}
-								</span>
-							</div>
+							{!isOffMarket && (
+								<div className="mb-3">
+									<span className="text-3xl inline-flex gap-2 lg:text-4xl font-bold text-gray-900 tracking-tight">
+										$
+										{Number(property.ListPrice).toLocaleString("en-US")}{" "}
+										{property.PropertyType === "Residential Lease" && (
+											<span className="text-gray-800 my-auto h-full text-sm font-medium">
+												- For Lease
+											</span>
+										)}
+									</span>
+								</div>
+							)}
 
 							{/* Property address with better typography */}
 							<h1 className="text-lg lg:text-xl font-medium text-gray-700 mb-4 leading-relaxed">

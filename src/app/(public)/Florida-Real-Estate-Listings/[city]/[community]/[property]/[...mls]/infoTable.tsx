@@ -194,7 +194,8 @@ export default function PropertyDetailsTable({
 		? `${formatNumber(property.LotSizeSquareFeet)} sq ft`
 		: null;
 
-	const description = (property as any)?.Description || (property.raw as any)?.PublicRemarks || null;
+	const isOffMarket = ["Withdrawn", "Canceled", "Expired"].includes(property.StandardStatus || "");
+	const description = isOffMarket ? null : ((property as any)?.Description || (property.raw as any)?.PublicRemarks || null);
 
 	// Parse features from JSON fields
 	const exteriorList = parseList(
