@@ -134,7 +134,7 @@ const ScheduleTourForm = ({
 
 	return (
 		<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50">
-			<div className="bg-white rounded-lg shadow-lg w-11/12 md:w-1/3 p-6">
+			<div className="bg-white rounded-lg shadow-lg w-11/12 md:max-w-4xl max-h-[95vh] overflow-y-auto p-6">
 				<h2 className="text-xl font-medium mb-4">Schedule a Tour</h2>
 
 				{successMessage && (
@@ -217,7 +217,7 @@ const ScheduleTourForm = ({
 
 					{step === 2 && (
 						<div className="mb-4 space-y-4">
-							<div className="bg-gray-50 border rounded-lg p-2 h-64 overflow-hidden">
+							<div className="bg-gray-50 border rounded-lg p-2 h-[50vh] overflow-hidden">
 								<iframe src={pdfUrl} width="100%" height="100%" className="rounded" title="Buyer Broker Agreement" />
 							</div>
 							<div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
