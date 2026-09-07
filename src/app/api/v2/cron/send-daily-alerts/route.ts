@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { processSavedSearches } from "@/jobs/processSavedSearches";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // 60 seconds (or more if on Vercel Pro/Enterprise)
 
 /**
  * Daily Alerts cron endpoint.
@@ -22,16 +23,12 @@ export async function GET(req: NextRequest) {
 	try {
 		console.log("[Cron] Daily alerts triggered.");
 
-		// Process Custom Search Alerts for Leads in background
-		setTimeout(() => {
-			processSavedSearches().catch(err => {
-				console.error("[Cron Background] Daily alerts failed:", err);
-			});
-		}, 0);
+		// Await the function so Vercel does not terminate it prematurely
+		await processSavedSearches();
 
 		return Response.json({
 			success: true,
-			message: "Daily alerts processing started in background",
+			message: "Daily alerts processing completed successfully",
 			triggeredAt: new Date().toISOString(),
 		});
 	} catch (err: any) {
