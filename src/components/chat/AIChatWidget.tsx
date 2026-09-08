@@ -86,112 +86,159 @@ export default function AIChatWidget() {
 								<p className="text-sm">Hi! How can I help you find your dream home in Southwest Florida today?</p>
 							</div>
 						)}
-						{messages.map((m) => (
-							<div
-								key={m.id}
-								className={`flex ${
-									m.role === "user" ? "justify-end" : "justify-start"
-								}`}
-							>
+						{messages.map((m) => {
+							const hasTextContent = Boolean(m.content && m.content.trim().length > 0);
+							const hasRenderableParts = Boolean(
+								m.parts &&
+								m.parts.some((part: any) => {
+									if (part.type === "text" && part.text && part.text.trim().length > 0) return true;
+									if (part.type === "tool-searchProperties" && "output" in part && part.output) return true;
+									if (part.type === "tool-checkSellerProperties" && "output" in part && part.output) return true;
+									if (part.type === "tool-calculateDistance" && "output" in part && part.output) return true;
+									if (part.type === "tool-findNearbyPlaces" && "output" in part && part.output) return true;
+									if (part.type === "tool-scheduleTour" && "output" in part && part.output) return true;
+									return false;
+								})
+							);
+
+							// Do not render empty white dot bubble if there's no text content or renderable parts
+							if (!hasTextContent && !hasRenderableParts && m.role === "assistant") {
+								return null;
+							}
+
+							return (
 								<div
-									className={`max-w-[85%] rounded-2xl p-3 text-sm shadow-sm ${
-										m.role === "user"
-											? "bg-primary text-white rounded-tr-sm"
-											: "bg-white text-gray-800 border border-gray-100 rounded-tl-sm"
+									key={m.id}
+									className={`flex ${
+										m.role === "user" ? "justify-end" : "justify-start"
 									}`}
 								>
-									{m.content && <span>{m.content}</span>}
-									{m.parts?.map((part, index) => {
-										if (part.type === "text" && !m.content) {
-											return <span key={index}>{part.text}</span>;
-										}
-										if (part.type === "tool-searchProperties" && "output" in part && part.output) {
-											const result: any = part.output;
-											if (Array.isArray(result)) {
-												if (result.length === 0) {
+									<div
+										className={`max-w-[85%] rounded-2xl p-3 text-sm shadow-sm ${
+											m.role === "user"
+												? "bg-primary text-white rounded-tr-sm"
+												: "bg-white text-gray-800 border border-gray-100 rounded-tl-sm"
+										}`}
+									>
+										{m.content && <span>{m.content}</span>}
+										{m.parts?.map((part: any, index: number) => {
+											if (part.type === "text" && !m.content) {
+												return <span key={index}>{part.text}</span>;
+											}
+											if (part.type === "tool-calculateDistance" && "output" in part && part.output) {
+												const res: any = part.output;
+												if (res.distance_miles && res.duration_traffic) {
 													return (
-														<div key={part.toolCallId} className="mt-3 text-xs italic text-gray-600 bg-gray-50 border border-gray-100 p-2 rounded">
-															I searched the database but couldn't find any active listings matching your criteria. Let me know if you want to try a different area or set up an alert.
+														<div key={part.toolCallId || index} className="mt-2 p-2.5 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-900 shadow-xs">
+															📍 <strong>{res.origin_address || "Origin"}</strong> to <strong>{res.destination_address || "Destination"}</strong>: <strong>{res.distance_miles}</strong> ({res.duration_traffic})
 														</div>
 													);
 												}
-												return (
-													<div key={part.toolCallId} className="mt-3 space-y-2">
-														<p className="text-xs font-semibold text-primary border-b pb-1">Found Properties:</p>
-														{result.map((prop: any, i: number) => (
-															<a href={prop.link} target="_blank" rel="noreferrer" key={i} className="block bg-gray-50 p-2.5 rounded border border-gray-200 hover:border-primary transition-colors text-xs text-gray-700 shadow-sm hover:shadow-md">
-																<span className="font-bold text-gray-900 block truncate">{prop.address}</span>
-																<span className="text-primary font-bold text-sm block mt-0.5">{prop.price}</span> 
-																<div className="flex flex-wrap gap-1 mt-1 text-gray-600">
-																	{(prop.beds != null || prop.baths != null) && (
-																		<span className="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">{prop.beds ?? 0} Beds, {prop.baths ?? 0} Baths</span>
-																	)}
-																	{prop.sqft && <span className="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">{prop.sqft} Sqft</span>}
-																	{prop.yearBuilt && <span className="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">Built {prop.yearBuilt}</span>}
+											}
+											if (part.type === "tool-findNearbyPlaces" && "output" in part && part.output) {
+												const res: any = part.output;
+												if (res.top_results && Array.isArray(res.top_results)) {
+													return (
+														<div key={part.toolCallId || index} className="mt-2 space-y-1 bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-xs">
+															<p className="font-semibold text-primary">Nearby Places ({res.query}):</p>
+															{res.top_results.map((place: any, pIdx: number) => (
+																<div key={pIdx} className="border-b border-gray-100 last:border-0 pb-1 pt-1">
+																	<span className="font-medium text-gray-900 block">{place.name}</span>
+																	<span className="text-[11px] text-gray-500 block">{place.address} ({place.rating})</span>
 																</div>
-																<div className="flex flex-wrap gap-1 mt-1">
-																	{prop.pool === "Yes" && <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full border border-blue-100">Pool</span>}
-																	{prop.waterfront === "Yes" && <span className="text-[10px] bg-cyan-50 text-cyan-600 px-1.5 py-0.5 rounded-full border border-cyan-100">Waterfront</span>}
-																	{prop.gulfAccess === "Yes" && <span className="text-[10px] bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded-full border border-teal-100">Gulf Access</span>}
+															))}
+														</div>
+													);
+												}
+											}
+											if (part.type === "tool-searchProperties" && "output" in part && part.output) {
+												const result: any = part.output;
+												if (Array.isArray(result)) {
+													if (result.length === 0) {
+														return (
+															<div key={part.toolCallId || index} className="mt-3 text-xs italic text-gray-600 bg-gray-50 border border-gray-100 p-2 rounded">
+																I searched the database but couldn't find any active listings matching your criteria. Let me know if you want to try a different area or set up an alert.
+															</div>
+														);
+													}
+													return (
+														<div key={part.toolCallId || index} className="mt-3 space-y-2">
+															<p className="text-xs font-semibold text-primary border-b pb-1">Found Properties:</p>
+															{result.map((prop: any, i: number) => (
+																<a href={prop.link} target="_blank" rel="noreferrer" key={i} className="block bg-gray-50 p-2.5 rounded border border-gray-200 hover:border-primary transition-colors text-xs text-gray-700 shadow-sm hover:shadow-md">
+																	<span className="font-bold text-gray-900 block truncate">{prop.address}</span>
+																	<span className="text-primary font-bold text-sm block mt-0.5">{prop.price}</span> 
+																	<div className="flex flex-wrap gap-1 mt-1 text-gray-600">
+																		{(prop.beds != null || prop.baths != null) && (
+																			<span className="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">{prop.beds ?? 0} Beds, {prop.baths ?? 0} Baths</span>
+																		)}
+																		{prop.sqft && <span className="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">{prop.sqft} Sqft</span>}
+																		{prop.yearBuilt && <span className="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">Built {prop.yearBuilt}</span>}
+																	</div>
+																	<div className="flex flex-wrap gap-1 mt-1">
+																		{prop.pool === "Yes" && <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full border border-blue-100">Pool</span>}
+																		{prop.waterfront === "Yes" && <span className="text-[10px] bg-cyan-50 text-cyan-600 px-1.5 py-0.5 rounded-full border border-cyan-100">Waterfront</span>}
+																		{prop.gulfAccess === "Yes" && <span className="text-[10px] bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded-full border border-teal-100">Gulf Access</span>}
+																	</div>
+																</a>
+															))}
+															<div className="pt-2 border-t border-gray-200 mt-2 flex flex-col items-center gap-1 text-[11px] text-gray-500">
+																<span>Looking to sell your current property too?</span>
+																<a
+																	href="/sell"
+																	className="w-full text-center bg-gray-100 text-gray-800 font-semibold py-1.5 px-2 rounded border border-gray-300 hover:bg-gray-200 hover:text-primary transition-colors block text-xs"
+																>
+																	+ Add New Property to Sell
+																</a>
+															</div>
+														</div>
+													);
+												}
+											}
+											if (part.type === "tool-checkSellerProperties" && "output" in part && part.output) {
+												const result: any = part.output;
+												if (result.found) {
+													return (
+														<div key={part.toolCallId || index} className="mt-3 space-y-2">
+															<p className="text-xs font-semibold text-primary border-b pb-1">
+																Your Listed Properties / Valuations ({result.email}):
+															</p>
+															{result.properties.map((prop: any, i: number) => (
+																<div key={i} className="bg-gray-50 p-2.5 rounded border border-gray-200 text-xs text-gray-700 space-y-1">
+																	<span className="font-bold text-gray-900 block truncate">{prop.address}</span>
+																	<span className="text-gray-500 text-[10px] block">
+																		{prop.createdAt ? new Date(prop.createdAt).toLocaleDateString() : ""}
+																	</span>
 																</div>
-															</a>
-														))}
-														<div className="pt-2 border-t border-gray-200 mt-2 flex flex-col items-center gap-1 text-[11px] text-gray-500">
-															<span>Looking to sell your current property too?</span>
+															))}
 															<a
 																href="/sell"
-																className="w-full text-center bg-gray-100 text-gray-800 font-semibold py-1.5 px-2 rounded border border-gray-300 hover:bg-gray-200 hover:text-primary transition-colors block text-xs"
+																className="block text-center bg-primary text-white font-bold py-2 px-3 rounded-lg text-xs hover:bg-primary/90 transition-colors shadow-xs mt-2"
 															>
 																+ Add New Property to Sell
 															</a>
 														</div>
-													</div>
-												);
+													);
+												} else {
+													return (
+														<div key={part.toolCallId || index} className="mt-3 space-y-2 bg-gray-50 border border-gray-200 p-3 rounded-lg text-xs">
+															<p className="text-gray-700">{result.message || `No existing properties found for ${result.email}.`}</p>
+															<a
+																href="/sell"
+																className="block text-center bg-primary text-white font-bold py-2 px-3 rounded-lg text-xs hover:bg-primary/90 transition-colors shadow-xs mt-2"
+															>
+																+ Add New Property to Sell
+															</a>
+														</div>
+													);
+												}
 											}
-										}
-										if (part.type === "tool-checkSellerProperties" && "output" in part && part.output) {
-											const result: any = part.output;
-											if (result.found) {
-												return (
-													<div key={part.toolCallId} className="mt-3 space-y-2">
-														<p className="text-xs font-semibold text-primary border-b pb-1">
-															Your Listed Properties / Valuations ({result.email}):
-														</p>
-														{result.properties.map((prop: any, i: number) => (
-															<div key={i} className="bg-gray-50 p-2.5 rounded border border-gray-200 text-xs text-gray-700 space-y-1">
-																<span className="font-bold text-gray-900 block truncate">{prop.address}</span>
-																<span className="text-gray-500 text-[10px] block">
-																	{prop.createdAt ? new Date(prop.createdAt).toLocaleDateString() : ""}
-																</span>
-															</div>
-														))}
-														<a
-															href="/sell"
-															className="block text-center bg-primary text-white font-bold py-2 px-3 rounded-lg text-xs hover:bg-primary/90 transition-colors shadow-xs mt-2"
-														>
-															+ Add New Property to Sell
-														</a>
-													</div>
-												);
-											} else {
-												return (
-													<div key={part.toolCallId} className="mt-3 space-y-2 bg-gray-50 border border-gray-200 p-3 rounded-lg text-xs">
-														<p className="text-gray-700">{result.message || `No existing properties found for ${result.email}.`}</p>
-														<a
-															href="/sell"
-															className="block text-center bg-primary text-white font-bold py-2 px-3 rounded-lg text-xs hover:bg-primary/90 transition-colors shadow-xs mt-2"
-														>
-															+ Add New Property to Sell
-														</a>
-													</div>
-												);
-											}
-										}
-										return null;
-									})}
+											return null;
+										})}
+									</div>
 								</div>
-							</div>
-						))}
+							);
+						})}
 						{isLoading && (
 							<div className="flex justify-start">
 								<div className="bg-white border border-gray-100 text-gray-800 rounded-2xl rounded-tl-sm p-4 shadow-sm flex items-center gap-1">
