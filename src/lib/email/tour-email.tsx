@@ -303,6 +303,7 @@ interface SendTourEmailOptions {
   propertyAddress?: string;
   from?: string;
   subject?: string;
+  attachments?: any[];
 }
 
 export async function sendTourEmail(
@@ -322,6 +323,7 @@ export async function sendTourEmail(
     to: options.to,
     subject: options.subject ?? "Tour Request Received - Gulfshore Group",
     html,
+    attachments: options.attachments,
   });
 
   if (error) {

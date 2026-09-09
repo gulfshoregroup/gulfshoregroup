@@ -155,6 +155,7 @@ export async function sendAdminLeadAlertEmail(
 				to: [to],
 				subject,
 				html,
+				attachments: payload.attachments,
 			});
 
 			if (result.error) {

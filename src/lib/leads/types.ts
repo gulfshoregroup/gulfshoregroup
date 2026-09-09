@@ -21,6 +21,7 @@ export type AdminLeadAlertPayload = {
 	property?: PropertySummary | null;
 	searchName?: string;
 	filters?: Record<string, unknown>;
+	attachments?: any[];
 };
 
 export type TrackViewedPropertyResult = {

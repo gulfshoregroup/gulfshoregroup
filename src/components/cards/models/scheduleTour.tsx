@@ -101,7 +101,11 @@ const ScheduleTourForm = ({
 			}
 
 			// Then, schedule the tour
-			const response = await axios.post(`/api/v2/tour`, formData);
+			const tourPayload = {
+				...formData,
+				signedPdfUrl: signRes.data.signedAgreement?.signedPdfUrl || null
+			};
+			const response = await axios.post(`/api/v2/tour`, tourPayload);
 
 			if (response.data && response.data.success) {
 				setSuccessMessage(

@@ -16,6 +16,7 @@ export async function POST(req: Request) {
 			MLSNumber,
 			date,
 			propertyId,
+			signedPdfUrl,
 		} = body;
 
 		if (!email || !phone)
@@ -83,6 +84,22 @@ export async function POST(req: Request) {
 			},
 		});
 
+		let emailAttachments: any[] | undefined = undefined;
+		if (signedPdfUrl) {
+			try {
+				const pdfRes = await fetch(signedPdfUrl);
+				if (pdfRes.ok) {
+					const arrayBuffer = await pdfRes.arrayBuffer();
+					emailAttachments = [{
+						filename: `Signed_Buyer_Broker_Agreement_${resolvedName.replace(/\s+/g, '_')}.pdf`,
+						content: Buffer.from(arrayBuffer),
+					}];
+				}
+			} catch (err) {
+				console.error("[Tour API] Failed to fetch signed PDF for attachment:", err);
+			}
+		}
+
 		// 4. Send Email Notifications
 		// 4a. User Confirmation Email
 		if (email) {
@@ -91,6 +108,7 @@ export async function POST(req: Request) {
 					to: email,
 					recipientName: resolvedName,
 					propertyAddress: propertyAddress || undefined,
+					attachments: emailAttachments,
 				});
 			} catch (userErr) {
 				console.error("[Tour API] User email failed:", userErr);
@@ -114,7 +132,8 @@ export async function POST(req: Request) {
 					phone: phone || "Not provided",
 					requestedDate: parsedDate.toLocaleString(),
 					source: "Tour_Request"
-				}
+				},
+				attachments: emailAttachments,
 			});
 		} catch (adminErr) {
 			console.error("[Tour API] Admin email failed:", adminErr);
