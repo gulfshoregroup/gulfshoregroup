@@ -58,9 +58,42 @@ export default function NewBlogPage() {
 		}
 	}, [formData.defaultImage]);
 
+	const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
+	const handleGenerateAIImage = async () => {
+		if (!formData.title) {
+			toast.error("Please enter a blog title first.");
+			return;
+		}
+
+		setIsGeneratingImage(true);
+		try {
+			const res = await fetch("/api/ai/generate-image", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					title: formData.title,
+					description: formData.description,
+				}),
+			});
+
+			const data = await res.json();
+			if (res.ok && data.url) {
+				setFormData({ ...formData, coverImage: data.url });
+				toast.success("AI Image generated successfully!");
+			} else {
+				toast.error(data.error || "Failed to generate AI image.");
+			}
+		} catch (error) {
+			toast.error("Error connecting to AI service.");
+		} finally {
+			setIsGeneratingImage(false);
+		}
+	};
+
 	const handleSave = async () => {
-		if (!formData.title.trim()) {
-			toast.error("Blog title is required");
+		if (!formData.title || !formData.slug) {
+			toast.error("Title and slug are required.");
 			return;
 		}
 		if (!formData.slug.trim()) {
@@ -349,6 +382,21 @@ export default function NewBlogPage() {
 								formData={formData}
 								setFormData={setFormData}
 							/>
+
+							<div className="pt-2 border-t border-border mt-4">
+								<Button 
+									type="button" 
+									variant="secondary" 
+									className="w-full flex items-center justify-center gap-2 font-medium"
+									onClick={handleGenerateAIImage}
+									disabled={isGeneratingImage || !formData.title}
+								>
+									{isGeneratingImage ? "✨ Generating Image..." : "✨ Generate AI Image (DALL-E)"}
+								</Button>
+								<p className="text-xs text-muted-foreground mt-2 text-center">
+									Automatically generates a custom cover image based on your blog title.
+								</p>
+							</div>
 							<p className="text-xs text-muted-foreground">
 								Recommended size: 1200x630px
 							</p>
