@@ -15,18 +15,18 @@ export async function GET(request: Request) {
 		const lead = await prisma.lead.findFirst({
 			where: {
 				OR: [
-					{ clerkUserId: user.id },
+					{ userId: user.id },
 					...(email ? [{ email: email }] : [])
 				]
 			},
 		});
 
 		if (lead) {
-			// If lead found by email but doesn't have clerkUserId, we can link them
-			if (!lead.clerkUserId) {
+			// If lead found by email but doesn't have userId, we can link them
+			if (!lead.userId) {
 				await prisma.lead.update({
 					where: { id: lead.id },
-					data: { clerkUserId: user.id }
+					data: { userId: user.id }
 				});
 			}
 			return NextResponse.json({ success: true, profile: lead });
