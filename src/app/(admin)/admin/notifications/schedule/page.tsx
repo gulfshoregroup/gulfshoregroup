@@ -165,7 +165,14 @@ function ScheduleNotificationContent() {
 					const res = await fetch(`/api/notifications/${id}`);
 					if (!res.ok) throw new Error("Failed to fetch notification");
 					const data = await res.json();
-					setTitle(data.title || "");
+					let cleanTitle = data.title || "";
+					if (cleanTitle.toLowerCase().startsWith("day ")) {
+						const parts = cleanTitle.split(/[:-]/);
+						if (parts.length > 1) {
+							cleanTitle = parts.slice(1).join("-").trim();
+						}
+					}
+					setTitle(cleanTitle);
 					setMessage(data.message || "");
 					setSelectedType(data.type || "");
 					setSelectedChannel(data.channel?.toLowerCase() || "");

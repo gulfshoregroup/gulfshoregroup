@@ -22,6 +22,17 @@ import { Plus, Eye, Edit, Trash2, Loader } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+const cleanTitle = (title: string) => {
+	if (!title) return "";
+	if (title.toLowerCase().startsWith("day ")) {
+		const parts = title.split(/[:-]/);
+		if (parts.length > 1) {
+			return parts.slice(1).join("-").trim();
+		}
+	}
+	return title;
+};
+
 const getStatusColor = (status: string) => {
 	switch (status) {
 		case "Sent":
@@ -252,7 +263,7 @@ export default function NotificationsPage() {
 								{notifications.map((notification) => (
 									<TableRow key={notification._id}>
 										<TableCell className="font-medium">
-											{notification.title}
+											{cleanTitle(notification.title)}
 										</TableCell>
 										<TableCell>
 											<Badge

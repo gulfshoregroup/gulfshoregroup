@@ -120,12 +120,22 @@ export async function GET() {
 							// Also strip duplicate greetings if they exist right after
 							cleanMessage = cleanMessage.replace(/^(Hi! 👋 Just following up from GULFSHORE Group\.|Hi! 👋 It’s GULFSHORE Group, just checking in\.|Hi! 👋 It’s GULFSHORE Group checking in\.)/i, "").trim();
 
+							// Extract actual subject from campaign name by removing "Day X: " prefix
+							let cleanSubject = campaign.name;
+							if (cleanSubject.toLowerCase().startsWith("day ")) {
+								const subjectParts = cleanSubject.split(/[:-]/);
+								if (subjectParts.length > 1) {
+									// In case the subject itself had a dash, join it back
+									cleanSubject = subjectParts.slice(1).join("-").trim();
+								}
+							}
+
 							if (isEmail && lead.email) {
 								try {
 									const result = await sendDripEmail({
 										to: lead.email,
-										subject: campaign.name,
-										subjectTitle: subjectTitle || campaign.name,
+										subject: cleanSubject,
+										subjectTitle: subjectTitle || cleanSubject,
 										messageContent: cleanMessage.replace(/\\n/g, "<br/>").replace(/\n/g, "<br/>"),
 										recipientName: lead.firstName || "there",
 									});
