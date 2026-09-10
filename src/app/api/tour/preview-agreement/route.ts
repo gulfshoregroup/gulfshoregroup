@@ -5,10 +5,13 @@ import path from "path";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { name, email, phone, formType } = body;
+    const searchParams = req.nextUrl.searchParams;
+    const name = searchParams.get('name') || '';
+    const email = searchParams.get('email') || '';
+    const phone = searchParams.get('phone') || '';
+    const formType = searchParams.get('formType') || 'General';
 
     // Load the blank PDF
     const pdfFileName = formType === "Property-Specific" ? "bb-spec.pdf" : "bb-ex.pdf";
