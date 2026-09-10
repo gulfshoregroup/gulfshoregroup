@@ -38,6 +38,7 @@ export default async function BlogDetailPage({
 	}
 
 	const blog = await res.json();
+	const isVideo = blog.coverImage && (blog.coverImage.match(/\.(mp4|webm|ogg|mov)$/i) || blog.coverImage.includes('video/upload'));
 
 	return (
 		<div>
@@ -51,14 +52,23 @@ export default async function BlogDetailPage({
 					</Link>
 
 					<article className="max-w-11/12 mx-auto">
-						{/* Cover Image */}
-						{blog.coverImage && (
+						{/* Cover Image/Video */}
+						{blog.coverImage && isVideo ? (
+							<video
+								src={blog.coverImage}
+								className="w-full h-96 object-cover rounded-lg mb-6"
+								autoPlay
+								muted
+								controls
+								playsInline
+							/>
+						) : blog.coverImage ? (
 							<img
 								src={blog.coverImage}
 								alt={blog.title}
 								className="w-full h-96 object-cover rounded-lg mb-6"
 							/>
-						)}
+						) : null}
 
 						{/* Title */}
 						<h1 className="text-4xl font-bold text-foreground mb-4">

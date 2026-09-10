@@ -50,7 +50,10 @@ export default async function BlogSection({
 			const whereClause: any = { published: true };
 			if (category === "others") {
 				// Show all blogs EXCEPT facebook blogs in the 'others' section
-				whereClause.category = { not: "facebook" };
+				whereClause.OR = [
+					{ category: { not: "facebook" } },
+					{ category: null }
+				];
 			} else if (category && category !== "facebook") {
 				// Show specific category
 				whereClause.category = category;

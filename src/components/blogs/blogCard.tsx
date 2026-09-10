@@ -31,23 +31,36 @@ export default function BlogArticleCard({
 		}
 	};
 
+	const isVideo = article.coverImage && (article.coverImage.match(/\.(mp4|webm|ogg|mov)$/i) || article.coverImage.includes('video/upload'));
+
 	return (
 		<Card
 			onClick={handleClick}
 			className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer flex flex-col w-full h-full border border-border/60 rounded-xl bg-card">
 			<div className="relative h-48 w-full overflow-hidden bg-muted">
-				<img
-					src={
-						article.coverImage ||
-						"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80"
-					}
-					alt={article.title}
-					className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-					onError={(e: any) => {
-						e.target.src =
-							"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80";
-					}}
-				/>
+				{isVideo ? (
+					<video
+						src={article.coverImage}
+						className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+						autoPlay
+						muted
+						loop
+						playsInline
+					/>
+				) : (
+					<img
+						src={
+							article.coverImage ||
+							"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80"
+						}
+						alt={article.title}
+						className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+						onError={(e: any) => {
+							e.target.src =
+								"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80";
+						}}
+					/>
+				)}
 			</div>
 
 			<div className="p-5 flex-1 flex flex-col justify-between">

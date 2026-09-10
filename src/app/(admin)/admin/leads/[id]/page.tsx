@@ -41,6 +41,10 @@ import {
 	Eye,
 	Send,
 	ExternalLink,
+	FileText,
+	MessageSquare,
+	Copy,
+	Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -87,6 +91,10 @@ export default function LeadProfilePage() {
 	const [taskLoading, setTaskLoading] = useState(false);
 	const [newTaskTitle, setNewTaskTitle] = useState("");
 	const [newTaskDueDate, setNewTaskDueDate] = useState("");
+
+	// Agreement states
+	const [agreementCopied, setAgreementCopied] = useState(false);
+	const [sendingSms, setSendingSms] = useState(false);
 
 
 
@@ -340,6 +348,36 @@ export default function LeadProfilePage() {
 			toast.success("Task deleted");
 		} catch (err) {
 			toast.error("Failed to delete task");
+		}
+	};
+
+	// -------------------- AGREEMENT HANDLERS --------------------
+	const handleCopyAgreementLink = () => {
+		const siteUrl = process.env.NEXT_PUBLIC_SERVER_URL?.replace(/\/$/, "") || window.location.origin;
+		const link = `${siteUrl}/sign-agreement/${id}`;
+		navigator.clipboard.writeText(link);
+		setAgreementCopied(true);
+		toast.success("Agreement link copied to clipboard!");
+		setTimeout(() => setAgreementCopied(false), 3000);
+	};
+
+	const handleTextAgreement = async () => {
+		if (!lead.phone) {
+			toast.error("This lead has no phone number.");
+			return;
+		}
+		try {
+			setSendingSms(true);
+			const res = await axios.post(`/api/leads/${id}/send-agreement`);
+			if (res.data.success) {
+				toast.success(`Agreement link sent via SMS to ${lead.phone}`);
+			} else {
+				throw new Error(res.data.error || "SMS failed");
+			}
+		} catch (err: any) {
+			toast.error(err.response?.data?.error || err.message || "Failed to send SMS");
+		} finally {
+			setSendingSms(false);
 		}
 	};
 
@@ -797,6 +835,79 @@ export default function LeadProfilePage() {
 									<p className="text-sm text-muted-foreground text-center">No tasks yet.</p>
 								)}
 							</div>
+						</CardContent>
+					</Card>
+
+					{/* 📄 BUYER BROKER AGREEMENT */}
+					<Card className="border-[#c0002a]/20">
+						<CardHeader className="pb-3">
+							<CardTitle className="flex items-center gap-2 text-base">
+								<FileText className="w-5 h-5 text-[#c0002a]" />
+								Buyer Broker Agreement
+							</CardTitle>
+							<CardDescription>Send agreement link to this lead</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-3">
+							{/* Action Buttons */}
+							<div className="flex gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									className="flex-1 flex items-center gap-1.5 text-xs"
+									onClick={handleCopyAgreementLink}
+								>
+									{agreementCopied ? (
+										<><Check className="w-3.5 h-3.5 text-green-600" /> Copied!</>
+									) : (
+										<><Copy className="w-3.5 h-3.5" /> Copy Link</>
+									)}
+								</Button>
+								<Button
+									size="sm"
+									className="flex-1 flex items-center gap-1.5 text-xs bg-[#c0002a] hover:bg-[#a0001f]"
+									onClick={handleTextAgreement}
+									disabled={sendingSms || !lead.phone}
+								>
+									{sendingSms ? (
+										<><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Sending…</>
+									) : (
+										<><MessageSquare className="w-3.5 h-3.5" /> 📱 Text to Lead</>
+									)}
+								</Button>
+							</div>
+							{!lead.phone && (
+								<p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+									⚠️ No phone number — add phone to enable SMS
+								</p>
+							)}
+
+							{/* Signed Agreements List */}
+							{lead.signedAgreements?.length > 0 && (
+								<div className="space-y-2 pt-2 border-t border-border">
+									<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Signed Agreements</p>
+									{lead.signedAgreements.map((sa: any) => (
+										<div key={sa.id} className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+											<div>
+												<Badge className="bg-green-600 text-white text-[10px] px-1.5 py-0.5 mb-1">✅ Completed</Badge>
+												<p className="text-[10px] text-muted-foreground">{new Date(sa.createdAt).toLocaleDateString()}</p>
+											</div>
+											{sa.signedPdfUrl && (
+												<a
+													href={sa.signedPdfUrl}
+													target="_blank"
+													rel="noreferrer"
+													className="text-[10px] bg-green-700 text-white px-2 py-1 rounded hover:bg-green-800 transition-colors flex items-center gap-1"
+												>
+													📄 View PDF
+												</a>
+											)}
+										</div>
+									))}
+								</div>
+							)}
+							{(!lead.signedAgreements || lead.signedAgreements.length === 0) && (
+								<p className="text-xs text-muted-foreground text-center py-2">No signed agreements yet.</p>
+							)}
 						</CardContent>
 					</Card>
 

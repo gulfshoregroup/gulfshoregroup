@@ -25,15 +25,37 @@ const ScheduleTourForm = ({
 	});
 
 	useEffect(() => {
-		if (user) {
-			setFormData((prev) => ({
-				...prev,
-				firstName: prev.firstName || user.firstName || "",
-				lastName: prev.lastName || user.lastName || "",
-				email: prev.email || user.primaryEmailAddress?.emailAddress || "",
-				phone: prev.phone || user.primaryPhoneNumber?.phoneNumber || "",
-			}));
-		}
+		const fetchProfile = async () => {
+			if (user) {
+				try {
+					const res = await axios.get('/api/v2/user/profile');
+					if (res.data && res.data.success && res.data.profile) {
+						const p = res.data.profile;
+						setFormData((prev) => ({
+							...prev,
+							firstName: prev.firstName || p.firstName || user.firstName || "",
+							lastName: prev.lastName || p.lastName || user.lastName || "",
+							email: prev.email || p.email || user.primaryEmailAddress?.emailAddress || "",
+							phone: prev.phone || p.phone || user.primaryPhoneNumber?.phoneNumber || "",
+						}));
+						return;
+					}
+				} catch (error) {
+					console.error("Failed to fetch user profile", error);
+				}
+
+				// Fallback to clerk data
+				setFormData((prev) => ({
+					...prev,
+					firstName: prev.firstName || user.firstName || "",
+					lastName: prev.lastName || user.lastName || "",
+					email: prev.email || user.primaryEmailAddress?.emailAddress || "",
+					phone: prev.phone || user.primaryPhoneNumber?.phoneNumber || "",
+				}));
+			}
+		};
+
+		fetchProfile();
 	}, [user]);
 
 
