@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { Clock, ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import SignatureCanvas from "react-signature-canvas";
+import { PDFDocument } from "pdf-lib";
 
 const ScheduleTourForm = ({
 	propertyAddress,
@@ -69,6 +70,47 @@ const ScheduleTourForm = ({
 	let sigPad: any = {};
 	const formType = propertyId && propertyId !== MLSNumber ? "Property-Specific" : "General";
 	const pdfUrl = formType === "Property-Specific" ? "/forms/bb-spec.pdf" : "/forms/bb-ex.pdf";
+	const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
+
+	// Generate dynamic preview when entering step 2
+	useEffect(() => {
+		if (step === 2) {
+			const generatePreview = async () => {
+				try {
+					const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
+					const pdfDoc = await PDFDocument.load(existingPdfBytes);
+					const pages = pdfDoc.getPages();
+					const page1 = pages[0];
+					
+					const name = `${formData.firstName} ${formData.lastName}`.trim() || "Client Name";
+					
+					const todayDate = new Date();
+					const todayStr = todayDate.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+					
+					const sixMonthsDate = new Date(todayDate);
+					sixMonthsDate.setMonth(sixMonthsDate.getMonth() + 6);
+					const sixMonthsStr = sixMonthsDate.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+
+					page1.drawText(name, { x: 120, y: 712, size: 10 });
+					page1.drawText("GulfShore Group with London Foster Realty", { x: 120, y: 694, size: 10 });
+					page1.drawText("X", { x: 122, y: 628, size: 11 });
+					page1.drawText(todayStr, { x: 160, y: 498, size: 10 });
+					page1.drawText(sixMonthsStr, { x: 480, y: 498, size: 10 });
+					page1.drawText("X", { x: 122, y: 398, size: 11 });
+					page1.drawText("3", { x: 145, y: 398, size: 10 });
+
+					const pdfBytes = await pdfDoc.save();
+					const blob = new Blob([pdfBytes], { type: "application/pdf" });
+					const url = URL.createObjectURL(blob);
+					setPreviewPdfUrl(url);
+				} catch (error) {
+					console.error("Failed to generate PDF preview", error);
+					setPreviewPdfUrl(pdfUrl); // fallback to blank
+				}
+			};
+			generatePreview();
+		}
+	}, [step, formData, pdfUrl]);
 
 	const handleChange = (e: { target: { name: any; value: any } }) => {
 		setFormData({
@@ -244,7 +286,7 @@ const ScheduleTourForm = ({
 					{step === 2 && (
 						<div className="mb-4 space-y-4">
 							<div className="bg-gray-50 border rounded-lg p-2 h-[50vh] overflow-hidden">
-								<iframe src={pdfUrl} width="100%" height="100%" className="rounded" title="Buyer Broker Agreement" />
+								<iframe src={previewPdfUrl || pdfUrl} width="100%" height="100%" className="rounded" title="Buyer Broker Agreement" />
 							</div>
 							<div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
 								<div className="bg-gray-100 px-3 py-2 border-b text-sm font-medium flex justify-between items-center">
