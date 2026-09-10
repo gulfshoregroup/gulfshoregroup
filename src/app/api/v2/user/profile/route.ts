@@ -1,22 +1,34 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 export async function GET(request: Request) {
 	try {
-		const { userId } = auth();
-		if (!userId) {
+		const user = await currentUser();
+		if (!user) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
 
-		// Find the lead associated with this clerk user ID
+		const email = user.emailAddresses[0]?.emailAddress;
+
+		// Find the lead associated with this clerk user ID or email
 		const lead = await prisma.lead.findFirst({
 			where: {
-				clerkUserId: userId,
+				OR: [
+					{ clerkUserId: user.id },
+					...(email ? [{ email: email }] : [])
+				]
 			},
 		});
 
 		if (lead) {
+			// If lead found by email but doesn't have clerkUserId, we can link them
+			if (!lead.clerkUserId) {
+				await prisma.lead.update({
+					where: { id: lead.id },
+					data: { clerkUserId: user.id }
+				});
+			}
 			return NextResponse.json({ success: true, profile: lead });
 		}
 
