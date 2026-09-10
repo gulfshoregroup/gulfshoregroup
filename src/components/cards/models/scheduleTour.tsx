@@ -99,10 +99,8 @@ const ScheduleTourForm = ({
 					page1.drawText("X", { x: 122, y: 398, size: 11 });
 					page1.drawText("3", { x: 145, y: 398, size: 10 });
 
-					const pdfBytes = await pdfDoc.save();
-					const blob = new Blob([pdfBytes], { type: "application/pdf" });
-					const url = URL.createObjectURL(blob);
-					setPreviewPdfUrl(url);
+					const base64Uri = await pdfDoc.saveAsBase64({ dataUri: true });
+					setPreviewPdfUrl(base64Uri);
 				} catch (error) {
 					console.error("Failed to generate PDF preview", error);
 					setPreviewPdfUrl(pdfUrl); // fallback to blank
