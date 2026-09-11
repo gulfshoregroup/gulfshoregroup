@@ -6,7 +6,8 @@ import React, {
 	useRef,
 	useCallback,
 } from "react";
-import { Search, X, MapPin, Clock, TrendingUp } from "lucide-react";
+import { Search, X, MapPin, Clock, TrendingUp, Loader2 } from "lucide-react";
+import { useCities } from "@/hooks/useCities";
 import { Button } from "../ui/button";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -40,34 +41,17 @@ const SearchBox = () => {
 	const [recentSearches, setRecentSearches] = useState<Suggestion[]>(
 		[]
 	);
+	const { cities: dynamicCities } = useCities();
 	const inputRef = useRef<HTMLInputElement>(null);
 	const suggestionsRef = useRef<HTMLDivElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	const popularSearches: Suggestion[] = [
-		{
-			text: "Naples",
+	const popularSearches: Suggestion[] = dynamicCities
+		.slice(0, 5)
+		.map((city: string) => ({
+			text: city,
 			type: "city",
-		},
-
-		{ text: "Bonita Springs", type: "city" },
-		{
-			text: "Estero",
-			type: "city",
-		},
-		{
-			text: "Marco Island",
-			type: "city",
-		},
-		{
-			text: "Fort Myers",
-			type: "city",
-		},
-		{
-			text: "Cape Coral",
-			type: "city",
-		},
-	];
+		}));
 
 	// Simulate API call for suggestions
 	const fetchSuggestions = useCallback(

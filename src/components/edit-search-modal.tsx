@@ -14,7 +14,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import capitalizeWords from "@/hooks/capitalize-letter";
-import Cities from "@/types/cities";
+import { useCities } from "@/hooks/useCities";
 import ExtractSearchParams from "@/hooks/extractSearchParams";
 import {
 	buildQueryFromFilters,
@@ -145,6 +145,7 @@ export default function EditSearchModal({
 	const [features, setFeatures] = useState<string[]>([]);
 	const [hoa, setHoa] = useState("Any");
 	const [status, setStatus] = useState("Active");
+	const { cities: dynamicCities } = useCities();
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -258,7 +259,7 @@ export default function EditSearchModal({
 										<DropdownMenuRadioItem value="" className="px-3 py-1.5 cursor-pointer">
 											Any City
 										</DropdownMenuRadioItem>
-										{Cities.map((c) => (
+										{dynamicCities.map((c: string) => (
 											<DropdownMenuRadioItem key={c} value={c} className="px-3 py-1.5 cursor-pointer">
 												{capitalizeWords(c.replaceAll("-", " "))}
 											</DropdownMenuRadioItem>

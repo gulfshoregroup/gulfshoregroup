@@ -23,7 +23,7 @@ import {
 import { Label } from "../ui/label";
 
 import capitalizeWords from "@/hooks/capitalize-letter";
-import Cities from "@/types/cities";
+import { useCities } from "@/hooks/useCities";
 import { Checkbox } from "../ui/checkbox";
 import axios from "axios";
 import { toast } from "sonner";
@@ -98,6 +98,7 @@ export const Filters = ({
 	const [loading, setLoading] = useState<boolean>(false);
 	const pathname = usePathname();
 	const { isLoaded, isSignedIn } = useAuth();
+	const { cities: dynamicCities } = useCities();
 
 	// States
 	const [propertyType, setPropertyType] = useState<string[]>([]);
@@ -436,13 +437,10 @@ export const Filters = ({
 							</DropdownMenuTrigger>
 							<DropdownMenuContent className="px-3 py-2 max-h-[300px] overflow-y-auto">
 								<DropdownMenuRadioGroup
-									onValueChange={(value) => setCity(value)}
-									className="flex flex-col">
-									{Cities.map((c) => (
-										<DropdownMenuRadioItem
-											value={c}
-											key={c}
-											className="px-3 py-1.5">
+									value={city}
+									onValueChange={(value) => setCity(value)}>
+									{dynamicCities.map((c: string) => (
+										<DropdownMenuRadioItem key={c} value={c}>
 											{capitalizeWords(c.replaceAll("-", " "))}
 										</DropdownMenuRadioItem>
 									))}

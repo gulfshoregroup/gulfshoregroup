@@ -21,7 +21,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, Edit2, Check, X } from "lucide-react";
 import { toast } from "sonner";
-import CityList from "@/data/cities";
+import { useCities } from "@/hooks/useCities";
 
 interface LeadCriteriaProps {
 	lead: any;
@@ -170,7 +170,8 @@ export default function PropertyCriteria({
 		}
 	};
 
-	const filteredCities = CityList.filter((c) => {
+	const { cities: dynamicCities } = useCities();
+	const filteredCities = dynamicCities.filter((c: string) => {
 		const matchesSearch = c
 			?.toLowerCase()
 			.includes(citySearch.toLowerCase());

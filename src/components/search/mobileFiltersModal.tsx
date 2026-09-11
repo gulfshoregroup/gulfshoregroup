@@ -21,7 +21,7 @@ import {
 } from "../ui/dropdown-menu";
 import capitalizeWords from "@/hooks/capitalize-letter";
 import { SortItem, SortItems } from "@/lib/constants";
-import Cities from "@/types/cities";
+import { useCities } from "@/hooks/useCities";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Checkbox } from "../ui/checkbox";
@@ -42,6 +42,7 @@ export default function MobileFiltersModal({
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [query, setQuery] = useState("");
+	const { cities: dynamicCities } = useCities();
 	const [propertyType, setPropertyType] = useState<string[]>([]);
 	const [minPrice, setMinPrice] = useState("Minimum");
 	const [maxPrice, setMaxPrice] = useState("Maximum");
@@ -482,7 +483,7 @@ export default function MobileFiltersModal({
 												</DropdownMenuTrigger>
 												<DropdownMenuContent className="px-3 py-2 max-h-[200px] overflow-y-auto">
 													<DropdownMenuGroup className="flex flex-col">
-														{Cities.map((c) => (
+														{dynamicCities.map((c: string) => (
 															<DropdownMenuItem
 																key={c}
 																onClick={() => setCity(c)}

@@ -21,36 +21,7 @@ export async function GET(req: NextRequest) {
 			}
 		}
 
-		// Southwest Florida cities only
-		const allowedNames = [
-			"NAPLES", "Naples",
-			"BONITA SPRINGS", "Bonita Springs",
-			"ESTERO", "Estero",
-			"AVE MARIA", "Ave Maria",
-			"MARCO ISLAND", "Marco Island",
-			"FORT MYERS", "Fort Myers",
-			"FORT MYERS BEACH", "Fort Myers Beach",
-			"CAPE CORAL", "Cape Coral",
-			"SANIBEL", "Sanibel",
-			"CAPTIVA", "Captiva",
-			"LEHIGH ACRES", "Lehigh Acres",
-			"BABCOCK RANCH", "Babcock Ranch",
-			"IMMOKALEE", "Immokalee",
-			"GOLDEN GATE", "Golden Gate",
-			"GOODLAND", "Goodland",
-			"EVERGLADES CITY", "Everglades City",
-			"NORTH FORT MYERS", "North Fort Myers",
-			"ALVA", "Alva",
-			"MIROMAR LAKES", "Miromar Lakes",
-			"PINE ISLAND", "Pine Island",
-			"PINELAND", "Pineland",
-		];
-
-		let whereClause: any = {
-			name: {
-				in: allowedNames,
-			},
-		};
+		let whereClause: any = {};
 
 		if (type) {
 			whereClause.isFeatured = true;

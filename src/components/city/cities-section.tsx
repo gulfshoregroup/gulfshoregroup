@@ -14,7 +14,6 @@ import {
 	CarouselPrevious,
 } from "../ui/carousel";
 import axios from "axios";
-import Cities from "@/types/cities";
 
 export default function CitiesSection() {
 	const [cities, setCities] = useState<any[]>([]);
@@ -30,22 +29,8 @@ export default function CitiesSection() {
 					console.log("No city data found or not an array");
 					return [];
 				} else {
-					const allowedSWFL = [
-						"naples",
-						"bonita springs",
-						"marco island",
-						"estero",
-						"fort myers",
-						"cape coral",
-						"ave maria",
-						"sanibel",
-						"captiva",
-						"fort myers beach",
-						"miromar lakes",
-					];
 					const filtered = cities.data.data.filter((c: any) =>
 						c?.name &&
-						allowedSWFL.includes(c.name.trim().toLowerCase()) &&
 						(c._count?.properties ?? c._count?.communities ?? 1) > 0
 					);
 					console.log("Filtered cities count:", filtered.length);

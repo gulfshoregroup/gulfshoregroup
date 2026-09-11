@@ -1,7 +1,5 @@
 import { Filters } from "@/types/search";
 import capitalizeWords from "@/hooks/capitalize-letter";
-import Cities from "@/types/cities";
-
 type QueryValue = string | string[] | undefined;
 type QueryRecord = Record<string, QueryValue>;
 
@@ -177,24 +175,14 @@ export const parseLocationFromPathname = (pathname: string) => {
 		return { city: "", developmentName: "" };
 	}
 
-	const knownCities = new Set(Cities.map((item) => normalizePathToken(item)));
 	const first = slugSegments[0];
 	const second = slugSegments[1];
-	const firstNormalized = normalizePathToken(first);
-	const secondNormalized = normalizePathToken(second || "");
 
-	if (knownCities.has(firstNormalized)) {
+	if (!isFilterSlug(first)) {
 		const devName = second && !isFilterSlug(second) ? second : "";
 		return {
 			city: capitalizeWords(first.replaceAll("-", " ")),
 			developmentName: devName ? capitalizeWords(devName.replaceAll("-", " ")) : "",
-		};
-	}
-
-	if (knownCities.has(secondNormalized)) {
-		return {
-			city: capitalizeWords(second!.replaceAll("-", " ")),
-			developmentName: "",
 		};
 	}
 

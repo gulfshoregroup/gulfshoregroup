@@ -2,8 +2,6 @@
 // import connectDB from "@/lib/dbconfig";
 // import Property from "@/models/property";
 import { SortItems } from "@/lib/constants";
-import CityList from "@/data/cities";
-
 export interface SearchParamsResult {
 	city: string | null;
 	developmentName: string | null;
@@ -103,16 +101,26 @@ export default async function ExtractSearchParams(
 						.trim()
 						.toUpperCase()
 				);
-				const UpperCityList = CityList.map((c) => c.toUpperCase());
+				
+				// Fetch dynamic cities from the database to match slugs against
+				// (Prisma is available here because this file has "use server")
+				const prisma = require('@/lib/prisma').default;
+				const uniqueCities = await prisma.property.findMany({
+					select: { City: true },
+					distinct: ['City'],
+					where: { StandardStatus: "Active" }
+				});
+				const dbCityList = uniqueCities.map((c: any) => c.City?.toUpperCase()).filter(Boolean);
+
 				if (formattedSlugs.length > 1) {
-					if (UpperCityList.includes(formattedSlugs[0])) {
+					if (dbCityList.includes(formattedSlugs[0])) {
 						matchedCity = formattedSlugs[0] || null;
 						matchedCommunity = formattedSlugs[1] || null;
-					} else if (UpperCityList.includes(formattedSlugs[1])) {
+					} else if (dbCityList.includes(formattedSlugs[1])) {
 						matchedCity = formattedSlugs[1] || null;
 					}
 				} else {
-					if (UpperCityList.includes(formattedSlugs[0])) {
+					if (dbCityList.includes(formattedSlugs[0])) {
 						matchedCity = formattedSlugs[0] || null;
 					}
 				}

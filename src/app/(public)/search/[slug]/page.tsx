@@ -2,8 +2,6 @@ import capitalizeWords from "@/hooks/capitalize-letter";
 import UrlMaker from "@/hooks/url-maker";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import Cities from "@/types/cities";
-
 // Robust router that maps search queries to details or filter results
 export default async function SearchListingPage({
 	params,
@@ -42,12 +40,13 @@ export default async function SearchListingPage({
 		}
 	}
 
-	// 2. Check if the query is a known City (from cities.tsx list)
-	const cityMatch = Cities.find(
-		(c) => c.toLowerCase() === normalized.replaceAll(" ", "-") || c.toLowerCase().replaceAll("-", " ") === normalized
-	);
-	if (cityMatch) {
-		redirect(`/Florida-Real-Estate-Search/${cityMatch}`);
+	// 2. Check if the query is a known City
+	const cityMatch = await prisma.property.findFirst({
+		where: { City: { equals: rawSlug } },
+		select: { City: true }
+	});
+	if (cityMatch && cityMatch.City) {
+		redirect(`/Florida-Real-Estate-Search/${cityMatch.City.replaceAll(" ", "-")}`);
 	}
 
 	// 3. Check if it matches a Community Name in the DB

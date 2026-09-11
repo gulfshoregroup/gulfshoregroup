@@ -24,7 +24,7 @@ import capitalizeWords from "@/hooks/capitalize-letter";
 import axios from "axios";
 import { toast } from "sonner";
 import ExtractSearchParams from "@/hooks/extractSearchParams";
-import Cities from "@/data/cities";
+import { useCities } from "@/hooks/useCities";
 
 const priceList = [
 	"Minimum",
@@ -69,6 +69,7 @@ export const Filters = ({
 	savedSearch: any;
 	onSave: any;
 }) => {
+	const { cities: dynamicCities } = useCities();
 	const [loading, setLoading] = useState(false);
 	const router = useRouter();
 	// States
@@ -186,7 +187,7 @@ export const Filters = ({
 								<DropdownMenuRadioGroup
 									value={city}
 									onValueChange={(value) => setCity(value)}>
-									{Cities.map((c) => (
+									{dynamicCities.map((c: string) => (
 										<DropdownMenuRadioItem key={c} value={c}>
 											{capitalizeWords(c.replaceAll("-", " "))}
 										</DropdownMenuRadioItem>
