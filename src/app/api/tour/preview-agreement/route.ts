@@ -33,8 +33,8 @@ export async function GET(req: NextRequest) {
     const sixMonthsStr = sixMonthsDate.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 
     // --- PAGE 1 STAMPING ---
-    if (name) page1.drawText(name, { x: 140, y: 665, size: 10 });
-    page1.drawText("GulfShore Group with London Foster Realty", { x: 140, y: 645, size: 10 });
+    if (name) page1.drawText(name, { x: 140, y: 675, size: 10 });
+    page1.drawText("GulfShore Group with London Foster Realty", { x: 140, y: 655, size: 10 });
     page1.drawText("X", { x: 140, y: 470, size: 11 }); // Transaction Broker
     page1.drawText(todayStr, { x: 150, y: 372, size: 10 }); // Commencement
     page1.drawText(sixMonthsStr, { x: 420, y: 372, size: 10 }); // Termination

@@ -50,9 +50,9 @@ export async function POST(req: NextRequest) {
 
     // --- PAGE 1 STAMPING ---
     // Buyer Name
-    page1.drawText(name, { x: 140, y: 665, size: 10 });
+    page1.drawText(name, { x: 140, y: 675, size: 10 });
     // Broker Name
-    page1.drawText("GulfShore Group with London Foster Realty", { x: 140, y: 645, size: 10 });
+    page1.drawText("GulfShore Group with London Foster Realty", { x: 140, y: 655, size: 10 });
     // Transaction Broker Checkbox [X]
     page1.drawText("X", { x: 140, y: 470, size: 11 });
     // Commencement Date
