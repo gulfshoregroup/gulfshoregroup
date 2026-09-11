@@ -54,19 +54,19 @@ export async function POST(req: NextRequest) {
     // Broker Name
     page1.drawText("GulfShore Group with London Foster Realty", { x: 100, y: 652, size: 10 });
     // Transaction Broker Checkbox [X]
-    page1.drawText("X", { x: 122, y: 486, size: 11 });
+    page1.drawText("X", { x: 88, y: 486, size: 11 });
     // Commencement Date
     page1.drawText(todayStr, { x: 85, y: 355, size: 10 });
     // Termination Date (6 months later)
     page1.drawText(sixMonthsStr, { x: 375, y: 355, size: 10 });
     // Broker Compensation Checkbox [X] and 3%
-    page1.drawText("X", { x: 88, y: 174, size: 11 });
-    page1.drawText("3", { x: 110, y: 174, size: 10 });
+    page1.drawText("X", { x: 75, y: 177, size: 11 });
+    page1.drawText("3", { x: 110, y: 177, size: 10 });
 
     // --- PAGE 3 STAMPING ---
     // Buyer Signature Image
-    const sigX = 100;
-    const sigY = 445;
+    const sigX = 70;
+    const sigY = 410;
     page3.drawImage(signatureImage, {
       x: sigX,
       y: sigY,
@@ -75,15 +75,15 @@ export async function POST(req: NextRequest) {
     });
     
     // Buyer Signature Date
-    page3.drawText(todayStr, { x: 450, y: 445, size: 10 });
+    page3.drawText(todayStr, { x: 400, y: 410, size: 10 });
     // Buyer Printed Name
-    page3.drawText(name, { x: 100, y: 410, size: 10 });
+    page3.drawText(name, { x: 70, y: 385, size: 10 });
     // Buyer Address
     page3.drawText("Provided on Tour Request", { x: 180, y: 331, size: 10 });
     // Buyer Telephone
-    page3.drawText(phone || "N/A", { x: 300, y: 313, size: 10 });
+    page3.drawText(phone || "N/A", { x: 340, y: 315, size: 10 });
     // Buyer Email Address
-    page3.drawText(email, { x: 180, y: 295, size: 10 });
+    page3.drawText(email, { x: 140, y: 295, size: 10 });
 
     // Broker Authorized Signature & Licensee Info
     const brokerSigPath = path.join(process.cwd(), "public", "imgs", "broker-signature.png");
