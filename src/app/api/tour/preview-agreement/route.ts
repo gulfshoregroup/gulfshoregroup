@@ -33,13 +33,13 @@ export async function GET(req: NextRequest) {
     const sixMonthsStr = sixMonthsDate.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 
     // --- PAGE 1 STAMPING ---
-    if (name) page1.drawText(name, { x: 140, y: 675, size: 10 });
-    page1.drawText("GulfShore Group with London Foster Realty", { x: 140, y: 655, size: 10 });
-    page1.drawText("X", { x: 140, y: 470, size: 11 }); // Transaction Broker
-    page1.drawText(todayStr, { x: 150, y: 372, size: 10 }); // Commencement
-    page1.drawText(sixMonthsStr, { x: 420, y: 372, size: 10 }); // Termination
-    page1.drawText("X", { x: 140, y: 180, size: 11 }); // 3% Checkbox
-    page1.drawText("3", { x: 165, y: 180, size: 10 }); // 3% Text
+    if (name) page1.drawText(name, { x: 105, y: 668, size: 10 });
+    page1.drawText("GulfShore Group with London Foster Realty", { x: 105, y: 648, size: 10 });
+    page1.drawText("X", { x: 122, y: 486, size: 11 }); // Transaction Broker
+    page1.drawText(todayStr, { x: 130, y: 355, size: 10 }); // Commencement
+    page1.drawText(sixMonthsStr, { x: 440, y: 355, size: 10 }); // Termination
+    page1.drawText("X", { x: 110, y: 163, size: 11 }); // 3% Checkbox
+    page1.drawText("3", { x: 125, y: 163, size: 10 }); // 3% Text
 
     // --- PAGE 3 STAMPING ---
     page3.drawText(todayStr, { x: 410, y: 395, size: 10 }); // Buyer Date
@@ -56,16 +56,15 @@ export async function GET(req: NextRequest) {
         const brokerSigDims = brokerSigImage.scale(0.25);
         page3.drawImage(brokerSigImage, {
             x: 90,
-            y: 230,
+            y: 245,
             width: Math.min(brokerSigDims.width, 160),
             height: Math.min(brokerSigDims.height, 45),
         });
     } else {
-        page3.drawText("Dimitri Schwarz", { x: 90, y: 230, size: 12 });
+        page3.drawText("Dimitri Schwarz", { x: 90, y: 245, size: 12 });
     }
-    
-    page3.drawText(todayStr, { x: 420, y: 230, size: 10 });
-    page3.drawText("DIMITRI SCHWARZ", { x: 460, y: 230, size: 10 });
+    page3.drawText(todayStr, { x: 280, y: 245, size: 10 });
+    page3.drawText("DIMITRI SCHWARZ", { x: 360, y: 245, size: 10 });
     page3.drawText("London Foster Realty", { x: 230, y: 190, size: 10 });
     page3.drawText("2367 Vanderbilt Beach Rd Suite 812, Naples, FL 34109", { x: 230, y: 170, size: 9 });
 

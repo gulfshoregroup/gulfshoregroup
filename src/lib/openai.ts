@@ -2,6 +2,7 @@
 
 import { Configuration, OpenAIApi } from "openai";
 import { Blog } from "../app/generated/prisma/client";
+import { v2 as cloudinary } from "cloudinary";
 
 // Initialise OpenAI client – the key is stored in .env as OPENAI_API_KEY
 const config = new Configuration({
@@ -194,6 +195,44 @@ Only use your internal knowledge, no external API calls. Ensure the output is a 
     answer: faq.answer || "No answer provided.",
     category: faq.category || "General",
   }));
+}
+
+// Configure Cloudinary for AI Image uploads
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+/**
+ * Generate a DALL-E image and upload it to Cloudinary
+ */
+export async function generateBlogImage(title: string, description: string): Promise<string> {
+  try {
+    const prompt = `A professional, high-quality, photorealistic cover image for a real estate blog post titled "${title}". The image should be visually appealing, modern, and related to real estate, property, or Florida lifestyle. Context: ${description.substring(0, 100)}. No text or words in the image.`;
+
+    const response = await openai.createImage({
+      prompt,
+      n: 1,
+      size: "1024x1024",
+    });
+
+    const imageUrl = response.data.data[0]?.url;
+
+    if (!imageUrl) {
+      return "";
+    }
+
+    const uploadResponse = await cloudinary.uploader.upload(imageUrl, {
+      folder: "gulfshore/blogs",
+      resource_type: "image",
+    });
+
+    return uploadResponse.secure_url;
+  } catch (error) {
+    console.error("AI Image Generation Error in helper:", error);
+    return "";
+  }
 }
 
 export default openai;
