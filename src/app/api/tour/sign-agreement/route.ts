@@ -50,23 +50,23 @@ export async function POST(req: NextRequest) {
 
     // --- PAGE 1 STAMPING ---
     // Buyer Name
-    page1.drawText(name, { x: 105, y: 668, size: 10 });
+    page1.drawText(name, { x: 92, y: 672, size: 10 });
     // Broker Name
-    page1.drawText("GulfShore Group with London Foster Realty", { x: 105, y: 648, size: 10 });
+    page1.drawText("GulfShore Group with London Foster Realty", { x: 100, y: 652, size: 10 });
     // Transaction Broker Checkbox [X]
     page1.drawText("X", { x: 122, y: 486, size: 11 });
     // Commencement Date
-    page1.drawText(todayStr, { x: 130, y: 355, size: 10 });
+    page1.drawText(todayStr, { x: 85, y: 355, size: 10 });
     // Termination Date (6 months later)
-    page1.drawText(sixMonthsStr, { x: 440, y: 355, size: 10 });
+    page1.drawText(sixMonthsStr, { x: 375, y: 355, size: 10 });
     // Broker Compensation Checkbox [X] and 3%
-    page1.drawText("X", { x: 110, y: 163, size: 11 });
-    page1.drawText("3", { x: 125, y: 163, size: 10 });
+    page1.drawText("X", { x: 88, y: 174, size: 11 });
+    page1.drawText("3", { x: 110, y: 174, size: 10 });
 
     // --- PAGE 3 STAMPING ---
     // Buyer Signature Image
-    const sigX = 90;
-    const sigY = 395;
+    const sigX = 100;
+    const sigY = 445;
     page3.drawImage(signatureImage, {
       x: sigX,
       y: sigY,
@@ -75,15 +75,15 @@ export async function POST(req: NextRequest) {
     });
     
     // Buyer Signature Date
-    page3.drawText(todayStr, { x: 410, y: 395, size: 10 });
+    page3.drawText(todayStr, { x: 450, y: 445, size: 10 });
     // Buyer Printed Name
-    page3.drawText(name, { x: 220, y: 370, size: 10 });
+    page3.drawText(name, { x: 100, y: 410, size: 10 });
     // Buyer Address
-    page3.drawText("Provided on Tour Request", { x: 220, y: 350, size: 10 });
+    page3.drawText("Provided on Tour Request", { x: 180, y: 331, size: 10 });
     // Buyer Telephone
-    page3.drawText(phone || "N/A", { x: 240, y: 330, size: 10 });
+    page3.drawText(phone || "N/A", { x: 300, y: 313, size: 10 });
     // Buyer Email Address
-    page3.drawText(email, { x: 220, y: 295, size: 10 });
+    page3.drawText(email, { x: 180, y: 295, size: 10 });
 
     // Broker Authorized Signature & Licensee Info
     const brokerSigPath = path.join(process.cwd(), "public", "imgs", "broker-signature.png");
