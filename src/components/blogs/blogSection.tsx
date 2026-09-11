@@ -58,7 +58,7 @@ export default async function BlogSection({
 			
 			const articles = await prisma.blog.findMany({
 				where: whereClause,
-				orderBy: { createdAt: "desc" },
+				orderBy: { publishedAt: "desc" },
 				take: limit,
 			});
 			return articles || [];

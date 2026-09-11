@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 export async function GET(req: any, { params }: { params: Promise<{ id: string }> }) {
 	try {
@@ -107,6 +108,8 @@ export async function PUT(req: any, { params }: { params: Promise<{ id: string }
 			data: updateData,
 		});
 
+		revalidatePath("/", "layout");
+
 		return NextResponse.json({ success: true, data: updatedBlog });
 	} catch (error: any) {
 		console.error("Error updating blog:", error);
@@ -140,6 +143,8 @@ export async function DELETE(req: any, { params }: { params: Promise<{ id: strin
 		await prisma.blog.delete({
 			where: { id: blogRecord.id },
 		});
+
+		revalidatePath("/", "layout");
 
 		return NextResponse.json({ success: true, message: "Blog deleted successfully" });
 	} catch (error: any) {
