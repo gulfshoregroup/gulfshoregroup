@@ -105,15 +105,10 @@ export async function GET() {
 							const firstLineBreak = cleanMessage.indexOf("\n");
 							if (firstLineBreak !== -1) {
 								const firstLine = cleanMessage.substring(0, firstLineBreak).trim();
-								if (firstLine.toLowerCase().includes("day") || firstLine === campaign.name.trim()) {
+								const prefixRegex = /^Day\s+\d+\s*[:\-\u2013\u2014]\s*/i;
+								if (prefixRegex.test(firstLine) || firstLine === campaign.name.trim()) {
 									cleanMessage = cleanMessage.substring(firstLineBreak).trim();
-									// Also extract "Financing Follow-Up" from "Day 5: Financing Follow-Up"
-									const parts = firstLine.split(/[:-]/);
-									if (parts.length > 1) {
-										subjectTitle = parts.slice(1).join("-").trim();
-									} else {
-										subjectTitle = firstLine;
-									}
+									subjectTitle = firstLine.replace(prefixRegex, "").trim();
 								}
 							}
 							
@@ -122,12 +117,9 @@ export async function GET() {
 
 							// Extract actual subject from campaign name by removing "Day X: " prefix
 							let cleanSubject = campaign.name;
-							if (cleanSubject.toLowerCase().startsWith("day ")) {
-								const subjectParts = cleanSubject.split(/[:-]/);
-								if (subjectParts.length > 1) {
-									// In case the subject itself had a dash, join it back
-									cleanSubject = subjectParts.slice(1).join("-").trim();
-								}
+							const prefixRegex = /^Day\s+\d+\s*[:\-\u2013\u2014]\s*/i;
+							if (prefixRegex.test(cleanSubject)) {
+								cleanSubject = cleanSubject.replace(prefixRegex, "").trim();
 							}
 
 							if (isEmail && lead.email) {

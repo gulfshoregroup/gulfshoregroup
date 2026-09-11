@@ -29,6 +29,7 @@ export default function SignUpForm() {
 	const [isLoginMode, setIsLoginMode] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
+	const [isSuccess, setIsSuccess] = useState(false);
 	const [error, setError] = useState("");
 
 	const [formData, setFormData] = useState({
@@ -197,13 +198,16 @@ export default function SignUpForm() {
 				});
 
 				if (response.data.success) {
-					window.location.href = redirectUrl;
+					setIsSuccess(true);
+					setTimeout(() => {
+						window.location.href = redirectUrl;
+					}, 500);
 				} else {
 					setError(response.data.error || "Invalid email or password.");
+					setIsLoading(false);
 				}
 			} catch (err: any) {
 				setError(err.response?.data?.error || "Error signing in. Please try again.");
-			} finally {
 				setIsLoading(false);
 			}
 			return;
@@ -239,13 +243,16 @@ export default function SignUpForm() {
 			});
 
 			if (res.data.success) {
-				window.location.href = redirectUrl;
+				setIsSuccess(true);
+				setTimeout(() => {
+					window.location.href = redirectUrl;
+				}, 500);
 			} else {
 				setError(res.data.error || "Failed to create account.");
+				setIsLoading(false);
 			}
 		} catch (err: any) {
 			setError(err.response?.data?.error || "Error signing up. Please try again.");
-		} finally {
 			setIsLoading(false);
 		}
 	};
@@ -429,12 +436,14 @@ export default function SignUpForm() {
 								)}
 
 								<Button
-									disabled={isLoading}
+									disabled={isLoading || isSuccess}
 									type="submit"
 									className="w-full h-11 bg-[#d90429] hover:bg-[#bf0022] text-white font-semibold transition-all">
-									{isLoading 
-										? (isLoginMode ? "Signing In..." : "Creating Account...") 
-										: (isLoginMode ? "Sign In" : "Create Account")
+									{isSuccess
+										? "Success! Redirecting..."
+										: isLoading 
+											? (isLoginMode ? "Signing In..." : "Creating Account...") 
+											: (isLoginMode ? "Sign In" : "Create Account")
 									}
 								</Button>
 							</form>

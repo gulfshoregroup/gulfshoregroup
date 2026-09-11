@@ -24,11 +24,9 @@ import { cn } from "@/lib/utils";
 
 const cleanTitle = (title: string) => {
 	if (!title) return "";
-	if (title.toLowerCase().startsWith("day ")) {
-		const parts = title.split(/[:-]/);
-		if (parts.length > 1) {
-			return parts.slice(1).join("-").trim();
-		}
+	const prefixRegex = /^Day\s+\d+\s*[:\-\u2013\u2014]\s*/i;
+	if (prefixRegex.test(title)) {
+		return title.replace(prefixRegex, "").trim();
 	}
 	return title;
 };
