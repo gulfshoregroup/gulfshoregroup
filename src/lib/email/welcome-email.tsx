@@ -17,6 +17,7 @@ import {
 import { render } from "@react-email/render";
 import * as React from "react";
 import { Resend } from "resend";
+import prisma from "@/lib/prisma";
 
 const PRIMARY = "#8B2020";          // deep crimson
 const GOLD = "#C9A96E";
@@ -314,6 +315,22 @@ export async function sendWelcomeEmail(
   if (error) {
     console.error("Resend error (Welcome Email):", error);
     return { success: false, error: error.message };
+  }
+
+  if (data?.id) {
+    try {
+      await prisma.communicationLog.create({
+        data: {
+          type: "Email",
+          to: options.to,
+          subject: options.subject ?? "Welcome to Gulfshore Group VIP Access",
+          status: "sent",
+          providerId: data.id,
+        },
+      });
+    } catch (logErr) {
+      console.error("Failed to log welcome email:", logErr);
+    }
   }
 
   console.log(`Welcome email sent. ID: ${data?.id}`);
