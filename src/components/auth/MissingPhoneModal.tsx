@@ -42,10 +42,22 @@ export default function MissingPhoneModal() {
         // Also check localStorage in case they just added it during this session
         const phoneStored = localStorage.getItem(`phone_collected_${user.id}`);
 
+        // Debugging logs for you (Check Browser Console)
+        console.log("MissingPhoneModal Debug: ", {
+            hasPhone,
+            phoneLength: user.phoneNumbers?.length,
+            isGoogleAuth,
+            externalAccounts: user.externalAccounts,
+            phoneStored,
+            pathname
+        });
+
 		// Client requested: "Pop up for phone number only needed when signing up with google."
 		if (!hasPhone && !phoneStored && isGoogleAuth) {
+            console.log("MissingPhoneModal: Opening modal");
 			setIsOpen(true);
 		} else {
+            console.log("MissingPhoneModal: Not opening modal due to conditions.");
             setIsOpen(false);
         }
 	}, [isLoaded, isSignedIn, user, pathname]);
