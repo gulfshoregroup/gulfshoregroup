@@ -174,13 +174,13 @@ export default function PropertyCriteria({
 	const filteredCities = dynamicCities.filter((c: string) => {
 		const matchesSearch = c
 			?.toLowerCase()
-			.includes(citySearch.toLowerCase());
+			.startsWith(citySearch.toLowerCase());
 		return matchesSearch;
 	});
 	const filteredCommunities = communities.filter((comm) => {
 		const matchesSearch = comm.name
 			?.toLowerCase()
-			.includes(comSearch.toLowerCase());
+			.startsWith(comSearch.toLowerCase());
 		return matchesSearch;
 	});
 	return (
