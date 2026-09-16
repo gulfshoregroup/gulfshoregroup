@@ -360,7 +360,10 @@ export function useUser() {
 			id: userId || (isAdmin ? "admin_dummy_123" : "user_dummy_123"),
 			fullName: isAdmin ? "Admin User" : "Regular User",
 			primaryEmailAddress: { emailAddress: email },
-			publicMetadata: { role: isAdmin ? "admin" : "user" }
+			publicMetadata: { role: isAdmin ? "admin" : "user" },
+			// Mocking Google Auth and Phone Numbers for MissingPhoneModal testing
+			externalAccounts: [{ provider: "oauth_google" }],
+			phoneNumbers: [] 
 		} : null
 	};
 }
