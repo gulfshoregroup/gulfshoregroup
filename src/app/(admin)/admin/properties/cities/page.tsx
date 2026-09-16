@@ -115,7 +115,7 @@ export default function CitiesPage() {
 	const fetchCities = async () => {
 		try {
 			setLoading(true);
-			const res = await axios.get(`/api/cities?page=${page}&limit=${limit}`);
+			const res = await axios.get(`/api/cities?page=${page}&limit=${limit}&search=${encodeURIComponent(searchTerm)}`);
 			setCities(res.data.data);
 			setTotalCount(res.data.totalCount);
 			setTotalPages(res.data.totalPages || 1);
@@ -134,8 +134,12 @@ export default function CitiesPage() {
 	});
 
 	useEffect(() => {
-		fetchCities();
-	}, [page]);
+		const delayDebounceFn = setTimeout(() => {
+			fetchCities();
+		}, 300);
+
+		return () => clearTimeout(delayDebounceFn);
+	}, [page, searchTerm]);
 
 	return (
 		<div className="space-y-6 px-4 my-5">

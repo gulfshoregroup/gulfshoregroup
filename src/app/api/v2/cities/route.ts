@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { redisGet, redisSet } from "@/lib/safeRedis";
 import prisma from "@/lib/prisma";
+import { Prisma } from "@/app/generated/prisma";
 
 export async function GET(req: NextRequest) {
 	try {
@@ -21,10 +22,10 @@ export async function GET(req: NextRequest) {
 			}
 		}
 
-		let whereClause: any = {};
+		let whereClause: any = { isFeatured: true };
 
 		if (type) {
-			whereClause.isFeatured = true;
+			// type is handled if needed
 		}
 
 		let data = await prisma.city.findMany({
@@ -32,9 +33,10 @@ export async function GET(req: NextRequest) {
 			include: {
 				_count: { select: { communities: true } }, // show community count per city
 			},
-			orderBy: {
-				name: "desc",
-			},
+			orderBy: [
+				{ isFeatured: "desc" },
+				{ name: "asc" },
+			],
 			take: limit,
 		});
 
@@ -52,7 +54,7 @@ export async function GET(req: NextRequest) {
 					gte: 1000,
 				},
 				NOT: [
-					{ images: { equals: null } }
+					{ images: { equals: Prisma.DbNull } }
 				],
 			},
 			_count: {

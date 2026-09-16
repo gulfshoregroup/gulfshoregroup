@@ -5,16 +5,29 @@ export async function GET(req: NextRequest) {
 	try {
 		const queryParams = req.nextUrl.searchParams;
 		const fetchAll = queryParams.get("all") === "true";
+		const search = queryParams.get("search") || queryParams.get("q") || "";
 		const page = parseInt(queryParams.get("page") || "1");
 		const limit = parseInt(queryParams.get("limit") || "20");
 		const skip = (page - 1) * limit;
 
+		let whereClause: any = { isFeatured: true };
+		if (search && !fetchAll) {
+			whereClause = {
+				isFeatured: true,
+				OR: [
+					{ name: { contains: search } },
+					{ slug: { contains: search } },
+				]
+			};
+		}
+
 		// Fetch cities
 		const res = await prisma.city.findMany({
-			orderBy: fetchAll ? { name: "asc" } : { id: "desc" },
+			where: whereClause,
+			orderBy: fetchAll ? [{ isFeatured: "desc" }, { name: "asc" }] : [{ isFeatured: "desc" }, { id: "desc" }],
 			...(fetchAll ? {} : { skip, take: limit }),
 		});
-		const totalCount = await prisma.city.count();
+		const totalCount = await prisma.city.count({ where: whereClause });
 		const totalPages = Math.ceil(totalCount / limit);
 
 		// Count properties per city from the Property table (City is a plain string)

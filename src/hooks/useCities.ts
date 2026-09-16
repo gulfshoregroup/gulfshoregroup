@@ -11,7 +11,7 @@ export function useCities() {
     useEffect(() => {
         if (cachedCities) return;
         if (!fetchPromise) {
-            fetchPromise = axios.get('/api/v2/cities').then(res => {
+            fetchPromise = axios.get('/api/v2/cities?limit=200&t=clear').then(res => {
                 const names = res.data.data.map((c: any) => c.name).filter(Boolean);
                 cachedCities = names;
                 return names;
