@@ -10,10 +10,9 @@ export async function GET(req: NextRequest) {
 		const limit = parseInt(queryParams.get("limit") || "20");
 		const skip = (page - 1) * limit;
 
-		let whereClause: any = { isFeatured: true };
+		let whereClause: any = {};
 		if (search && !fetchAll) {
 			whereClause = {
-				isFeatured: true,
 				OR: [
 					{ name: { contains: search } },
 					{ slug: { contains: search } },

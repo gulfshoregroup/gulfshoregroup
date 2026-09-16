@@ -22,10 +22,10 @@ export async function GET(req: NextRequest) {
 			}
 		}
 
-		let whereClause: any = { isFeatured: true };
+		let whereClause: any = {};
 
-		if (type) {
-			// type is handled if needed
+		if (type === "featured") {
+			whereClause.isFeatured = true;
 		}
 
 		let data = await prisma.city.findMany({

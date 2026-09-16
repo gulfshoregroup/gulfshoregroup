@@ -35,11 +35,21 @@ export async function checkAndSendReturningVisitorAlert(
 			return;
 		}
 
-		// 4. Check Redis for their last active status
+		// 4. Check if we already sent an alert in the last 7 days via DB Note
+		const lookbackDateForAlert = new Date(Date.now() - REDIS_TTL_SECONDS * 1000);
+		const recentAlert = await prisma.note.findFirst({
+			where: {
+				leadId: leadId,
+				message: { startsWith: "[SYSTEM_ALERT] Returning Lead SMS sent" },
+				createdAt: { gte: lookbackDateForAlert }
+			}
+		});
+
+		// Check Redis as backup for actual activity, but rely on DB to prevent spam
 		const redisKey = `last_active:${leadId}`;
 		const wasActiveRecently = await redisGet(redisKey);
 		
-		if (!wasActiveRecently) {
+		if (!wasActiveRecently && !recentAlert) {
 			// 🔥 They haven't been active in 7+ days (Redis key expired/missing)
 			// Send the Returning Visitor Alert!
 			const adminPhone = process.env.PROPERTY_ALERT_PHONE;
@@ -50,12 +60,19 @@ export async function checkAndSendReturningVisitorAlert(
 				
 				await sendSMS(adminPhone, message);
 				console.log(`[ReturningVisitorAlert] Sent SMS to Admin for lead ${leadId}: ${message}`);
+				// Log in DB Note to prevent spamming
+				await prisma.note.create({
+					data: {
+						leadId: leadId,
+						message: "[SYSTEM_ALERT] Returning Lead SMS sent to Admin.",
+					}
+				});
 			} else {
 				console.warn("[ReturningVisitorAlert] Returning lead detected, but PROPERTY_ALERT_PHONE is not set in env.");
 			}
 		}
 
-		// 5. Always refresh their active timer to exactly 7 days from right now
+		// 5. Always refresh their active timer to exactly 7 days from right now (Redis)
 		await redisSet(redisKey, true, REDIS_TTL_SECONDS);
 
 	} catch (error) {
