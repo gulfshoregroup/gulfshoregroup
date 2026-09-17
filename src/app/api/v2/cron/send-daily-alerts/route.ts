@@ -23,7 +23,22 @@ export async function GET(req: NextRequest) {
 	try {
 		console.log("[Cron] Daily alerts triggered.");
 
-		// Await the function so Vercel does not terminate it prematurely
+		// If async=true or requested non-blockingly to avoid 30s cron-job.org timeout
+		const isAsync = req.nextUrl.searchParams.get("async") === "true";
+
+		if (isAsync) {
+			processSavedSearches()
+				.then(() => console.log("[Cron] Background daily alerts completed."))
+				.catch((err) => console.error("[Cron] Background daily alerts error:", err));
+
+			return Response.json({
+				success: true,
+				message: "Daily alerts processing started in background",
+				triggeredAt: new Date().toISOString(),
+			});
+		}
+
+		// Default await execution
 		await processSavedSearches();
 
 		return Response.json({
