@@ -833,6 +833,8 @@ import {
     properties?: Property[] | Property | null;
     /** Unsubscribe / preferences URL */
     unsubscribeUrl?: string;
+    /** Optional leadId for auto-login tracking */
+    leadId?: string;
   }
   
   export async function sendPropertyAlert(

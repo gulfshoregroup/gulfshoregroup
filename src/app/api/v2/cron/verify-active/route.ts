@@ -4,7 +4,7 @@ import { verifyActiveProperties } from "@/jobs/verifyActiveProperties";
 // Allow the script to run for up to 300 seconds (Vercel max for pro, or enough time for cron-job.org)
 export const maxDuration = 300;
 
-export async function GET(req: NextResponse) {
+export async function GET(req: Request) {
 	try {
 		console.log(`[VerifyActive Cron] Triggered via API`);
 		

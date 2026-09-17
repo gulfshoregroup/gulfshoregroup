@@ -30,30 +30,37 @@ export async function POST(req: Request) {
 		const dbUser = await prisma.user.findUnique({
 			where: { clerkId: userId },
 		});
+		let targetEmail = dbUser?.email || email;
+		let hadPhoneAlready = false;
 
-		if (dbUser) {
+		if (targetEmail) {
+			const existingLead = await prisma.lead.findFirst({ where: { email: targetEmail } });
+			if (existingLead?.phone) {
+				hadPhoneAlready = true;
+			}
 			await prisma.lead.updateMany({
-				where: { email: dbUser.email },
+				where: { email: targetEmail },
 				data: { phone },
 			});
-		} else if (email) {
-            // fallback by email if we can't find them by clerkId directly
-            await prisma.lead.updateMany({
-                where: { email },
-                data: { phone },
-            });
-        }
+		}
 
-		// Fire Welcome SMS since they just provided their phone number for the first time
-		try {
-			const { sendSMS } = require("@/lib/twilio");
-			await sendSMS(
-				phone,
-				`Welcome to Gulfshore Group! Your VIP MLS account is active. Discover luxury Florida real estate today at https://gulfshoregroup.com`
-			);
-			console.log(`[MissingPhoneModal] Sent Welcome SMS to newly updated phone: ${phone}`);
-		} catch (smsError) {
-			console.error("[MissingPhoneModal] Failed to send welcome SMS:", smsError);
+		// Update mock_user_phone cookie
+		const { cookies } = require("next/headers");
+		const cookieStore = await cookies();
+		cookieStore.set("mock_user_phone", phone, { path: "/", maxAge: 31536000 });
+
+		// Fire Welcome SMS ONLY IF they didn't have a phone before
+		if (!hadPhoneAlready) {
+			try {
+				const { sendSMS } = require("@/lib/twilio");
+				await sendSMS(
+					phone,
+					`Welcome to Gulfshore Group! Your VIP MLS account is active. Discover luxury Florida real estate today at https://gulfshoregroup.com`
+				);
+				console.log(`[MissingPhoneModal] Sent Welcome SMS to newly updated phone: ${phone}`);
+			} catch (smsError) {
+				console.error("[MissingPhoneModal] Failed to send welcome SMS:", smsError);
+			}
 		}
 
 		return NextResponse.json({ success: true });

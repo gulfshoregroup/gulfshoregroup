@@ -84,6 +84,8 @@ export async function POST(req: Request) {
 		cookieStore.set("mock_signed_in", "true", { path: "/", maxAge: 31536000, httpOnly: false });
 		cookieStore.set("mock_user_email", normalizedEmail, { path: "/", maxAge: 31536000 });
 		cookieStore.set("mock_user_id", clerkId, { path: "/", maxAge: 31536000 });
+		cookieStore.set("mock_auth_provider", "email", { path: "/", maxAge: 31536000 });
+		cookieStore.set("mock_user_phone", phone || "", { path: "/", maxAge: 31536000 });
 
 		const mappedLead = {
 			...lead,

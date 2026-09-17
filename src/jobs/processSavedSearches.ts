@@ -170,8 +170,8 @@ export async function processSavedSearches() {
 
 					// FORMAT SMS
 					const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
-					const domain = baseUrl.replace(/^https?:\/\//, "");
-					const smsMessage = `You have ${count} New Listing${count > 1 ? "s" : ""} matching your saved searches on ${domain} - Dimitri Schwarz, Your SW Florida Realtor 239.992.9119`;
+					const searchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}/Florida-Real-Estate-Search?sort=Newest-First`)}`;
+					const smsMessage = `You have ${count} New Listing${count > 1 ? "s" : ""} matching your saved searches. View properties: ${searchLink} - Dimitri Schwarz, Your SW Florida Realtor 239.992.9119`;
 
 					// SEND SMS
 					if (lead.phone) {
