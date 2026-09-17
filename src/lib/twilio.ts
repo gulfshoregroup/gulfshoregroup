@@ -12,10 +12,19 @@ export const sendSMS = async (to: string, body: string) => {
 			console.log("Twilio credentials missing, skipping SMS dispatch.");
 			return;
 		}
+
+		// Auto-format the phone number if it's exactly 10 digits (US format)
+		let formattedTo = to.replace(/[^0-9+]/g, ""); // keep only digits and +
+		if (formattedTo.length === 10 && !formattedTo.startsWith("+")) {
+			formattedTo = "+1" + formattedTo;
+		} else if (!formattedTo.startsWith("+")) {
+			formattedTo = "+" + formattedTo;
+		}
+
 		const message = await client.messages.create({
 			body,
 			from,
-			to,
+			to: formattedTo,
 		});
 
 		try {

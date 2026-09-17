@@ -856,6 +856,7 @@ import {
         alertSubtitle={options.alertSubtitle}
         properties={properties}
         unsubscribeUrl={options.unsubscribeUrl}
+        leadId={(options as any).leadId}
       />
     );
   

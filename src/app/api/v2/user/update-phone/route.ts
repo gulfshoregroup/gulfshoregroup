@@ -44,6 +44,18 @@ export async function POST(req: Request) {
             });
         }
 
+		// Fire Welcome SMS since they just provided their phone number for the first time
+		try {
+			const { sendSMS } = require("@/lib/twilio");
+			await sendSMS(
+				phone,
+				`Welcome to Gulfshore Group! Your VIP MLS account is active. Discover luxury Florida real estate today at https://gulfshoregroup.com`
+			);
+			console.log(`[MissingPhoneModal] Sent Welcome SMS to newly updated phone: ${phone}`);
+		} catch (smsError) {
+			console.error("[MissingPhoneModal] Failed to send welcome SMS:", smsError);
+		}
+
 		return NextResponse.json({ success: true });
 	} catch (error: any) {
 		console.error("Error updating phone:", error);
