@@ -171,7 +171,7 @@ export async function processSavedSearches() {
 					// FORMAT SMS
 					const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
 					const searchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}/Florida-Real-Estate-Search?sort=Newest-First`)}`;
-					const smsMessage = `You have ${count} New Listing${count > 1 ? "s" : ""} matching your saved searches. View properties: ${searchLink} - Dimitri Schwarz, Your SW Florida Realtor 239.992.9119`;
+					const smsMessage = `⚡️🏠 NEW PROPERTY MATCH 🏠⚡️\n${count} new propert${count > 1 ? "ies" : "y"} match your saved search!\nView matches: ${searchLink}\n- Dimitri Schwarz, Your SW Florida Realtor 239.992.9119`;
 
 					// SEND SMS
 					if (lead.phone) {
@@ -186,9 +186,9 @@ export async function processSavedSearches() {
 							to: lead.email,
 							recipientName: lead.firstName || "Valued Client",
 							leadId: lead.id,
-							subject: `${count} New Property Match${count > 1 ? "es" : ""} for Your Saved Searches - Dimitri Schwarz, Your SW Florida Realtor 239.992.9119`,
-							alertTitle: "New Homes Matching Your Searches",
-							alertSubtitle: `We found ${count} new propert${count > 1 ? "ies" : "y"} that match your saved preferences across all your searches.`,
+							subject: `⚡️🏠 NEW PROPERTY MATCH 🏠⚡️ - ${count} New Property Match${count > 1 ? "es" : ""}`,
+							alertTitle: "⚡️🏠 NEW PROPERTY MATCH 🏠⚡️",
+							alertSubtitle: `We found ${count} new propert${count > 1 ? "ies" : "y"} that match your saved preferences.`,
 							properties: propertiesArray as any,
 						}).catch((err) => console.error("Email Error:", err));
 					}
