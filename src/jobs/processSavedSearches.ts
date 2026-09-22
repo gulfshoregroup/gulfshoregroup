@@ -144,9 +144,8 @@ export async function processSavedSearches() {
 						StandardStatus: "Active",
 						OR: [
 							{ ModificationTimestamp: { gt: lookbackDate } },
+							{ BridgeModificationTimestamp: { gt: lookbackDate } },
 							{ OnMarketDate: { gt: lookbackDate } },
-							{ updatedAt: { gt: lookbackDate } },
-							{ createdAt: { gt: lookbackDate } },
 						],
 					};
 
