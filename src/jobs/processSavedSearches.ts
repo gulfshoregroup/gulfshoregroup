@@ -134,9 +134,10 @@ export async function processSavedSearches() {
 						if (orConditions.length > 0) {
 							baseWhere.OR = orConditions;
 						}
-						baseWhere.PropertyType = { not: "Residential Lease" };
+						baseWhere.NOT = { PropertyType: { contains: "Lease" } };
 					} else {
-						baseWhere.PropertyType = { notIn: ["Residential Lease", "Land"] };
+						baseWhere.PropertyType = { not: "Land" };
+						baseWhere.NOT = { PropertyType: { contains: "Lease" } };
 					}
 
 					const finalWhere = {
@@ -168,7 +169,8 @@ export async function processSavedSearches() {
 					const propertiesArray = Array.from(allMatchingProperties.values());
 
 					// FORMAT SMS
-					const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
+					const rawBaseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
+					const baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
 					const searchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}/Florida-Real-Estate-Search?sort=Newest-First`)}`;
 					
 					const nameStr = lead.firstName ? lead.firstName : "there";

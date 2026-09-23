@@ -62,6 +62,7 @@ export async function GET(
 				ListingId: {
 					not: res.ListingId,
 				},
+				NOT: { PropertyType: { contains: "Lease" } },
 				// Match property type logic
 				...(res.PropertyType === "Land" || res.PropertyType?.includes("Lot") || res.PropertyType === "Lots & Land"
 					? { PropertyType: "Land" }

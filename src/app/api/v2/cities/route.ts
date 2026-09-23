@@ -45,17 +45,15 @@ export async function GET(req: NextRequest) {
 			by: ["City"],
 			where: {
 				StandardStatus: "Active",
-				PropertyType: {
-					not: "Residential Lease",
-				},
+				NOT: [
+					{ PropertyType: { contains: "Lease" } },
+					{ images: { equals: Prisma.DbNull } }
+				],
 				FullAddress: { not: "" },
 				ListPrice: {
 					not: null,
 					gte: 1000,
 				},
-				NOT: [
-					{ images: { equals: Prisma.DbNull } }
-				],
 			},
 			_count: {
 				_all: true,
