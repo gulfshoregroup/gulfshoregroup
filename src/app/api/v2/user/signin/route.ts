@@ -48,10 +48,13 @@ export async function POST(req: Request) {
 		}
 
 		// 4. Set session cookies
+		const existingLead = await prisma.lead.findFirst({ where: { email: user.email } });
 		const cookieStore = await cookies();
 		cookieStore.set("mock_signed_in", "true", { path: "/", maxAge: 31536000, httpOnly: false });
 		cookieStore.set("mock_user_email", user.email, { path: "/", maxAge: 31536000 });
 		cookieStore.set("mock_user_id", user.clerkId, { path: "/", maxAge: 31536000 });
+		cookieStore.set("mock_auth_provider", "email", { path: "/", maxAge: 31536000 });
+		cookieStore.set("mock_user_phone", existingLead?.phone || "", { path: "/", maxAge: 31536000 });
 
 		return NextResponse.json({
 			success: true,

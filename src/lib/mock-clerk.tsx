@@ -337,21 +337,33 @@ export function useUser() {
 	const [signedIn, setSignedIn] = React.useState(false);
 	const [email, setEmail] = React.useState("user@gulfshore.com");
 	const [userId, setUserId] = React.useState("");
+	const [authProvider, setAuthProvider] = React.useState("");
+	const [phone, setPhone] = React.useState("");
 
 	React.useEffect(() => {
 		setSignedIn(getCookie("mock_signed_in") === "true");
 		const mockEmail = getCookie("mock_user_email");
 		const mockUserId = getCookie("mock_user_id");
+		const mockProvider = getCookie("mock_auth_provider");
+		const mockPhone = getCookie("mock_user_phone");
+
 		if (mockEmail && mockEmail !== "false") {
 			setEmail(mockEmail);
 		}
 		if (mockUserId && mockUserId !== "false") {
 			setUserId(mockUserId);
 		}
+		if (mockProvider && mockProvider !== "false") {
+			setAuthProvider(mockProvider);
+		}
+		if (mockPhone && mockPhone !== "false") {
+			setPhone(mockPhone);
+		}
 		setIsLoaded(true);
 	}, []);
 
 	const isAdmin = signedIn && email.toLowerCase().includes("admin@gulfshore.com");
+	const isGoogle = authProvider === "google";
 
 	return {
 		isLoaded,
@@ -361,9 +373,8 @@ export function useUser() {
 			fullName: isAdmin ? "Admin User" : "Regular User",
 			primaryEmailAddress: { emailAddress: email },
 			publicMetadata: { role: isAdmin ? "admin" : "user" },
-			// Mocking Google Auth and Phone Numbers for MissingPhoneModal testing
-			externalAccounts: [{ provider: "oauth_google" }],
-			phoneNumbers: [] 
+			externalAccounts: isGoogle ? [{ provider: "oauth_google" }] : [],
+			phoneNumbers: phone ? [{ phoneNumber: phone }] : [] 
 		} : null
 	};
 }

@@ -83,9 +83,8 @@ export async function GET(req: NextRequest) {
 			};
 		}
 
-		where.PropertyType = {
-			not: "Residential Lease",
-		};
+		where.NOT = where.NOT || [];
+		where.NOT.push({ PropertyType: { contains: "Lease" } });
 
 		// ---- Exclude blank listings (no address or no images) ----
 		where.FullAddress = { not: "" };
@@ -285,7 +284,7 @@ export async function GET(req: NextRequest) {
 		} else {
 			// Hide Land by default if no specific property types are requested
 			where.PropertyType = {
-				notIn: ["Residential Lease", "Land"],
+				not: "Land",
 			};
 		}
 

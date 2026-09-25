@@ -254,12 +254,17 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 										</div>
 										
 										{filteredMessages.map((chat: any) => (
-											<div key={chat.id} className={`flex flex-col ${chat.role === 'ai' ? 'items-end' : 'items-start'}`}>
+											<div key={chat.id} className={`flex flex-col ${chat.role === 'ai' || chat.role === 'admin' ? 'items-end' : 'items-start'}`}>
 												<div className="flex items-center gap-1.5 mb-1 px-1">
 													{chat.role === 'user' ? (
 														<>
 															<span className="text-[10px] font-bold text-gray-500 uppercase">User</span>
 															{channelIcon(chat.channel)}
+														</>
+													) : chat.role === 'admin' ? (
+														<>
+															<User className="w-3.5 h-3.5 text-blue-600" />
+															<span className="text-[10px] font-bold text-blue-600 uppercase">You (Admin)</span>
 														</>
 													) : (
 														<>
@@ -270,8 +275,8 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 												</div>
 												<div 
 													className={`max-w-[75%] text-sm p-4 rounded-2xl shadow-sm whitespace-pre-wrap leading-relaxed relative ${
-														chat.role === 'ai' 
-														? 'bg-primary text-white rounded-tr-sm border border-primary/10' 
+														chat.role === 'ai' || chat.role === 'admin' 
+														? (chat.role === 'admin' ? 'bg-blue-600 text-white rounded-tr-sm border border-blue-600/10' : 'bg-primary text-white rounded-tr-sm border border-primary/10') 
 														: 'bg-white border border-gray-200 text-gray-800 rounded-tl-sm'
 													}`}
 												>
@@ -283,6 +288,61 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 											</div>
 										))}
 									</div>
+								</div>
+							)}
+
+							{/* Chat Input Box (Only show for SMS) */}
+							{filter === 'sms' && selectedThread.lead.phone && (
+								<div className="bg-white border-t border-border/50 p-4 shrink-0">
+									<form 
+										onSubmit={async (e) => {
+											e.preventDefault();
+											const input = e.currentTarget.elements.namedItem('message') as HTMLInputElement;
+											const message = input.value;
+											if (!message.trim()) return;
+											
+											try {
+												// Optimistically clear input (can't easily optimistically update messages array since it's props-based, 
+												// but we can refresh the page or rely on polling if it exists)
+												input.value = "";
+												const btn = e.currentTarget.elements.namedItem('submitBtn') as HTMLButtonElement;
+												btn.disabled = true;
+
+												const res = await fetch("/api/admin/send-manual-sms", {
+													method: "POST",
+													headers: { "Content-Type": "application/json" },
+													body: JSON.stringify({ leadId: selectedLeadId, message })
+												});
+
+												btn.disabled = false;
+												
+												if (res.ok) {
+													// Refresh page to see the new message
+													window.location.reload();
+												} else {
+													alert("Failed to send message.");
+												}
+											} catch (err) {
+												console.error(err);
+												alert("Failed to send message.");
+											}
+										}}
+										className="flex items-center gap-3"
+									>
+										<Input 
+											name="message"
+											placeholder="Type your SMS message to send..." 
+											className="flex-1 bg-gray-50 border-gray-200"
+											autoComplete="off"
+										/>
+										<button 
+											name="submitBtn"
+											type="submit"
+											className="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+										>
+											Send SMS
+										</button>
+									</form>
 								</div>
 							)}
 						</>

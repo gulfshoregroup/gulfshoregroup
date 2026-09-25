@@ -83,7 +83,7 @@ async function runPropertyAlertSend(overrides: AlertOverrides = {}) {
     alertTitle:
       overrides.alertTitle ??
       process.env.PROPERTY_ALERT_TITLE ??
-      "Your Curated Property Matches",
+      "⚡️🏠 NEW PROPERTY MATCH 🏠⚡️",
     alertSubtitle:
       overrides.alertSubtitle ??
       process.env.PROPERTY_ALERT_SUBTITLE ??

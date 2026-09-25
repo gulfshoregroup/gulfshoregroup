@@ -15,19 +15,27 @@ export async function POST(req: NextRequest) {
 			return new NextResponse("Missing data", { status: 400 });
 		}
 
+		// Clean phone number to match last 10 digits reliably
+		const cleanPhone = From.replace(/\D/g, "");
+		const last10Digits = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : cleanPhone;
+
 		// 1. Find lead by phone number
 		let lead = await prisma.lead.findFirst({
-			where: { phone: From }
+			where: {
+				OR: [
+					{ phone: From },
+					{ phone: { contains: last10Digits } }
+				]
+			}
 		});
 
-		// If no lead exists, we can optionally create one, or just ignore.
-		// For now, let's create a stub lead so we can track the chat.
+		// If no lead exists, create a lead record to track SMS history
 		if (!lead) {
 			lead = await prisma.lead.create({
 				data: {
 					phone: From,
-					email: `${From.replace(/[^0-9]/g, "")}@placeholder.com`, // Email is unique required field
-					source: "Other",
+					email: `${cleanPhone || Date.now()}@placeholder.com`,
+					source: "SMS Incoming",
 				}
 			});
 		}

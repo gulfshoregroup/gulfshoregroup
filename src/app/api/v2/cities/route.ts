@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { redisGet, redisSet } from "@/lib/safeRedis";
 import prisma from "@/lib/prisma";
+import { Prisma } from "@/app/generated/prisma";
 
 export async function GET(req: NextRequest) {
 	try {
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
 
 		let whereClause: any = {};
 
-		if (type) {
+		if (type === "featured") {
 			whereClause.isFeatured = true;
 		}
 
@@ -33,10 +34,18 @@ export async function GET(req: NextRequest) {
 			include: {
 				_count: { select: { communities: true } }, // show community count per city
 			},
+<<<<<<< HEAD
 			orderBy: {
 				name: "asc",
 			},
 			...(limit ? { take: limit } : {}),
+=======
+			orderBy: [
+				{ isFeatured: "desc" },
+				{ name: "asc" },
+			],
+			take: limit,
+>>>>>>> bbf2f3c118efb8387424aeca9585273cfaa24ffc
 		});
 
 		// Get active property count grouped by City
@@ -44,17 +53,15 @@ export async function GET(req: NextRequest) {
 			by: ["City"],
 			where: {
 				StandardStatus: "Active",
-				PropertyType: {
-					not: "Residential Lease",
-				},
+				NOT: [
+					{ PropertyType: { contains: "Lease" } },
+					{ images: { equals: Prisma.DbNull } }
+				],
 				FullAddress: { not: "" },
 				ListPrice: {
 					not: null,
 					gte: 1000,
 				},
-				NOT: [
-					{ images: { equals: null } }
-				],
 			},
 			_count: {
 				_all: true,

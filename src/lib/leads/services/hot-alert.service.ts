@@ -17,11 +17,18 @@ export async function checkAndSendHotLeadAlert(
 		const VIEW_THRESHOLD = 5;
 		const REDIS_TTL_SECONDS = 60 * 60 * 24; // 24 hours
 
-		// 2. Check if we already alerted for this lead recently
-		const redisKey = `hot_lead_alert:${leadId}`;
-		const alreadyAlerted = await redisGet(redisKey);
+		// 2. Check if we already alerted for this lead recently via DB Notes (Redis backup)
+		const lookbackDateForAlert = new Date(Date.now() - REDIS_TTL_SECONDS * 1000);
 		
-		if (alreadyAlerted) {
+		const recentAlert = await prisma.note.findFirst({
+			where: {
+				leadId: leadId,
+				message: { startsWith: "[SYSTEM_ALERT] Hot Lead SMS sent" },
+				createdAt: { gte: lookbackDateForAlert }
+			}
+		});
+
+		if (recentAlert) {
 			console.log(`[HotLeadAlert] Alert recently sent for lead ${leadId}. Skipping.`);
 			return;
 		}
@@ -49,8 +56,16 @@ export async function checkAndSendHotLeadAlert(
 				await sendSMS(adminPhone, message);
 				console.log(`[HotLeadAlert] Sent SMS to Admin for lead ${leadId}: ${message}`);
 				
-				// 5. Mark as alerted in Redis to prevent spamming the admin
-				await redisSet(redisKey, true, REDIS_TTL_SECONDS);
+				// 5. Mark as alerted in DB Note to prevent spamming the admin
+				await prisma.note.create({
+					data: {
+						leadId: leadId,
+						message: "[SYSTEM_ALERT] Hot Lead SMS sent to Admin.",
+					}
+				});
+				
+				// Optional: still try to set Redis as backup
+				await redisSet(`hot_lead_alert:${leadId}`, true, REDIS_TTL_SECONDS);
 			} else {
 				console.warn("[HotLeadAlert] Threshold met, but PROPERTY_ALERT_PHONE is not set in env.");
 			}

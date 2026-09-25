@@ -117,12 +117,15 @@ export async function POST(req: Request) {
 		}
 
 		// 6. Set session cookies
+		const existingLead = await prisma.lead.findFirst({ where: { email: normalizedEmail } });
 		const cookieStore = await cookies();
 		cookieStore.set("mock_signed_in", "true", { path: "/", maxAge: 31536000, httpOnly: false });
 		cookieStore.set("mock_user_email", normalizedEmail, { path: "/", maxAge: 31536000 });
 		if (clerkId) {
 			cookieStore.set("mock_user_id", clerkId, { path: "/", maxAge: 31536000 });
 		}
+		cookieStore.set("mock_auth_provider", "google", { path: "/", maxAge: 31536000 });
+		cookieStore.set("mock_user_phone", existingLead?.phone || "", { path: "/", maxAge: 31536000 });
 
 		return NextResponse.json({
 			success: true,

@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
 		const normalizedEmail = email.toLowerCase().trim();
 
-		// 1. Check if user already exists
+		// 1. Check if email or phone already exists
 		const existingUser = await prisma.user.findFirst({
 			where: { email: normalizedEmail },
 		});
@@ -37,6 +37,24 @@ export async function POST(req: Request) {
 				{ success: false, error: "An account with this email already exists." },
 				{ status: 400 }
 			);
+		}
+
+		if (phone) {
+			const cleanDigits = phone.replace(/\D/g, "");
+			const last10 = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : cleanDigits;
+			if (last10.length === 10) {
+				const existingLeadByPhone = await prisma.lead.findFirst({
+					where: {
+						phone: { contains: last10 }
+					}
+				});
+				if (existingLeadByPhone) {
+					return NextResponse.json(
+						{ success: false, error: "An account with this phone number already exists." },
+						{ status: 400 }
+					);
+				}
+			}
 		}
 
 		// 2. Hash the password
@@ -84,6 +102,8 @@ export async function POST(req: Request) {
 		cookieStore.set("mock_signed_in", "true", { path: "/", maxAge: 31536000, httpOnly: false });
 		cookieStore.set("mock_user_email", normalizedEmail, { path: "/", maxAge: 31536000 });
 		cookieStore.set("mock_user_id", clerkId, { path: "/", maxAge: 31536000 });
+		cookieStore.set("mock_auth_provider", "email", { path: "/", maxAge: 31536000 });
+		cookieStore.set("mock_user_phone", phone || "", { path: "/", maxAge: 31536000 });
 
 		const mappedLead = {
 			...lead,
@@ -94,10 +114,18 @@ export async function POST(req: Request) {
 		(async () => {
 			try {
 				if (phone) {
-					await sendSMS(
-						phone,
-						`Welcome to Gulfshore Group! Your VIP MLS account is active. Discover luxury Florida real estate today at https://gulfshoregroup.com`
-					);
+					const welcomeMsg = `Welcome to Gulfshore Group! Your VIP MLS account is active. Discover luxury Florida real estate today at https://gulfshoregroup.com`;
+					await sendSMS(phone, welcomeMsg);
+
+					// Log to AIChatHistory so it displays in Admin Panel AI SMS page
+					await prisma.aIChatHistory.create({
+						data: {
+							leadId: lead.id,
+							channel: "sms",
+							role: "ai",
+							message: welcomeMsg,
+						}
+					});
 				}
 			} catch (err) {
 				console.error("Signup SMS trigger failed:", err);

@@ -23,12 +23,14 @@ export async function GET(req: NextRequest) {
 	try {
 		console.log("[Cron] Daily alerts triggered.");
 
-		// Await the function so Vercel does not terminate it prematurely
-		await processSavedSearches();
+		// Run non-blockingly to avoid 30s cron-job.org timeout on Railway
+		processSavedSearches()
+			.then(() => console.log("[Cron] Background daily alerts completed."))
+			.catch((err) => console.error("[Cron] Background daily alerts error:", err));
 
 		return Response.json({
 			success: true,
-			message: "Daily alerts processing completed successfully",
+			message: "Daily alerts processing started in background",
 			triggeredAt: new Date().toISOString(),
 		});
 	} catch (err: any) {

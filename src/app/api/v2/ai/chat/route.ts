@@ -400,7 +400,7 @@ export async function POST(req: Request) {
 								if (pt.includes("rent") || pt.includes("lease")) {
 									where.PropertyType = { contains: "Lease" };
 								} else {
-									where.PropertyType = { not: "Residential Lease" };
+									where.NOT = { PropertyType: { contains: "Lease" } };
 								}
 							} else if (pt.includes('condo') || pt.includes('apartment')) {
 								where.AND = where.AND || [];
