@@ -6,11 +6,12 @@ export async function GET(req: NextRequest) {
 	try {
 		const queryParams = req.nextUrl.searchParams;
 
-		const limit = Number(queryParams.get("limit")) || 20;
+		const limitParam = queryParams.get("limit");
+		const limit = limitParam === "all" ? undefined : (Number(limitParam) || 200);
 		const type = queryParams.get("type")?.trim() || "";
 
 		// ----- CACHE KEY -----
-		const cacheKey = `cities:${type || "all"}:limit-${limit}`;
+		const cacheKey = `cities:${type || "all"}:limit-${limit || "all"}`;
 
 		// ----- CHECK REDIS CACHE (skip if cache-buster ?t= is present) -----
 		const hasCacheBuster = !!queryParams.get("t");
@@ -33,9 +34,9 @@ export async function GET(req: NextRequest) {
 				_count: { select: { communities: true } }, // show community count per city
 			},
 			orderBy: {
-				name: "desc",
+				name: "asc",
 			},
-			take: limit,
+			...(limit ? { take: limit } : {}),
 		});
 
 		// Get active property count grouped by City

@@ -109,7 +109,7 @@ export async function POST(req: Request) {
 					leadName: `${firstName || ""} ${lastName || ""}`.trim() || "New VIP User",
 					leadEmail: normalizedEmail,
 					timestamp: new Date(),
-					message: `New VIP Modal signup via portal (${phone || "No phone"})`,
+					message: `New VIP Lead signup via portal (${phone || "No phone"})`,
 				});
 			} catch (err) {
 				console.error("Signup Admin Email trigger failed:", err);
