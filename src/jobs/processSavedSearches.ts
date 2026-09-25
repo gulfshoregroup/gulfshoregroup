@@ -171,10 +171,20 @@ export async function processSavedSearches() {
 					// FORMAT SMS
 					const rawBaseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
 					const baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
-					const searchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}/Florida-Real-Estate-Search?sort=Newest-First`)}`;
+					const longSearchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}/Florida-Real-Estate-Search?sort=Newest-First`)}`;
+					
+					// Create short link to avoid sending a massive URL over SMS
+					const slug = Math.random().toString(36).substring(2, 10);
+					await prisma.shortLink.create({
+						data: {
+							slug: slug,
+							url: longSearchLink,
+						}
+					});
+					const shortSearchLink = `${baseUrl}/api/r/${slug}`;
 					
 					const nameStr = lead.firstName ? lead.firstName : "there";
-					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\nHi ${nameStr}, new properties matching your search just became available. 👉 View Matches: ${searchLink}\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group`;
+					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, new properties matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES:\n${shortSearchLink}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group`;
 
 					// SEND SMS
 					if (lead.phone) {

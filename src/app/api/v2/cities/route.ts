@@ -34,18 +34,11 @@ export async function GET(req: NextRequest) {
 			include: {
 				_count: { select: { communities: true } }, // show community count per city
 			},
-<<<<<<< HEAD
-			orderBy: {
-				name: "asc",
-			},
-			...(limit ? { take: limit } : {}),
-=======
 			orderBy: [
 				{ isFeatured: "desc" },
 				{ name: "asc" },
 			],
-			take: limit,
->>>>>>> bbf2f3c118efb8387424aeca9585273cfaa24ffc
+			...(limit ? { take: limit } : {}),
 		});
 
 		// Get active property count grouped by City
