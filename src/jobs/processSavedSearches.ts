@@ -185,7 +185,7 @@ export async function processSavedSearches() {
 					const shortSearchLink = `${baseUrl}/api/r/${shortCode}`;
 					
 					const nameStr = lead.firstName ? lead.firstName : "there";
-					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, new properties matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES:\n${shortSearchLink}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group`;
+					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, new properties matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES:\n\n${shortSearchLink}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group`;
 
 					// SEND SMS
 					if (lead.phone) {
