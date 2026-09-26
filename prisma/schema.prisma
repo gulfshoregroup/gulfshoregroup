@@ -724,3 +724,13 @@ model SignedAgreement {
   
   lead           Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
 }
+
+model ShortLink {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  url       String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([code])
+  @@map("shortlink")
+}
