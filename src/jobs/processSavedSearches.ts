@@ -42,10 +42,10 @@ export async function processSavedSearches() {
 				for (const search of searches) {
 					processedSearchIds.push(search.id);
 
-					// Look back 24 hours if never checked, or look back 7 days for initial run if null
+					// Look back 24 hours if never checked
 					const lookbackDate = search.lastNotifiedAt
 						? search.lastNotifiedAt
-						: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+						: new Date(Date.now() - 24 * 60 * 60 * 1000);
 
 					const filtersObj = search.filters as any;
 					const searchParams = buildQueryFromFilters(filtersObj || {});
@@ -171,20 +171,21 @@ export async function processSavedSearches() {
 					// FORMAT SMS
 					const rawBaseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
 					const baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
-					const searchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`/Florida-Real-Estate-Search?sort=Newest-First`)}`;
+					const longSearchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}/Florida-Real-Estate-Search?sort=Newest-First`)}`;
 					
-					// Generate Short Link
-					const shortCode = Math.random().toString(36).substring(2, 8);
+					// Create short link to avoid sending a massive URL over SMS
+					const shortCode = Math.random().toString(36).substring(2, 10);
 					await prisma.shortLink.create({
 						data: {
 							code: shortCode,
-							url: searchLink,
+							slug: shortCode,
+							url: longSearchLink,
 						}
 					});
-					const shortUrl = `${baseUrl}/s/${shortCode}`;
+					const shortSearchLink = `${baseUrl}/api/r/${shortCode}`;
 					
 					const nameStr = lead.firstName ? lead.firstName : "there";
-					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, new properties matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES: ${shortUrl}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group`;
+					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, new properties matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES:\n${shortSearchLink}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group`;
 
 					// SEND SMS
 					if (lead.phone) {

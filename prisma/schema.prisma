@@ -727,10 +727,13 @@ model SignedAgreement {
 
 model ShortLink {
   id        String   @id @default(cuid())
-  code      String   @unique
+  code      String?  @unique
+  slug      String?  @unique
   url       String   @db.Text
+  clicks    Int      @default(0)
   createdAt DateTime @default(now())
 
   @@index([code])
+  @@index([slug])
   @@map("shortlink")
 }
