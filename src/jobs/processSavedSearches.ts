@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { sendSMS } from "@/lib/twilio";
 import { buildQueryFromFilters } from "@/lib/search-filters";
 import { sendPropertyAlert } from "@/lib/leads/services/property-alerts";
+import UrlMaker from "@/hooks/url-maker";
 
 /**
  * Checks for new properties matching saved searches and sends SMS/Email alerts.
@@ -173,7 +174,16 @@ export async function processSavedSearches() {
 					// FORMAT SMS
 					const rawBaseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
 					const baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
-					const longSearchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}/Florida-Real-Estate-Search?sort=Newest-First`)}`;
+					
+					let targetPath = "/Florida-Real-Estate-Search?sort=Newest-First";
+					if (count === 1) {
+						const prop = propertiesArray[0];
+						targetPath = UrlMaker(prop.City || "", prop.Community || "", prop.FullAddress || "", prop.MLSNumber || "");
+					}
+
+					// Using the EXACT same link format as the email (with magic-login and utm tags)
+					const nameStr = lead.firstName ? lead.firstName : "there";
+					const longSearchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}${targetPath}?utm_source=sms_alert&n=${encodeURIComponent(nameStr)}`)}`;
 					
 					// Create short link to avoid sending a massive URL over SMS
 					const shortCode = Math.random().toString(36).substring(2, 10);
@@ -186,7 +196,6 @@ export async function processSavedSearches() {
 					});
 					const shortSearchLink = `${baseUrl}/api/r/${shortCode}`;
 					
-					const nameStr = lead.firstName ? lead.firstName : "there";
 					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, new properties matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES:\n\n${shortSearchLink}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group`;
 
 					// SEND SMS
