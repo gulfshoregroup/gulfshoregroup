@@ -59,6 +59,7 @@ export async function POST(req: Request) {
 		});
 
 		let clerkId = user?.clerkId;
+		let isNewUser = false;
 
 		if (!user) {
 			// Generate a random strong password for Google users
@@ -79,6 +80,7 @@ export async function POST(req: Request) {
 					metadata: { passwordHash: pwdHash, googleSignIn: true, emailVerified },
 				},
 			});
+			isNewUser = true;
 
 			// 5. Create or update Lead record
 			await prisma.lead.upsert({
@@ -129,6 +131,8 @@ export async function POST(req: Request) {
 
 		return NextResponse.json({
 			success: true,
+			isNewUser,
+			hasPhone: !!(existingLead?.phone),
 			user: {
 				id: user.id,
 				clerkId: user.clerkId,
