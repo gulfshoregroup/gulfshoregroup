@@ -31,6 +31,8 @@ export default function SignUpForm() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [error, setError] = useState("");
+	const [showPhoneModal, setShowPhoneModal] = useState(false);
+	const [googleRedirectUrl, setGoogleRedirectUrl] = useState("");
 
 	const [formData, setFormData] = useState({
 		firstName: "",
@@ -150,7 +152,14 @@ export default function SignUpForm() {
 							if (typeof sessionStorage !== "undefined") {
 								sessionStorage.setItem("just_signed_in", "true");
 							}
-							window.location.href = redirectUrl;
+							// New user without phone → show phone modal
+							if (data.isNewUser && !data.hasPhone) {
+								setGoogleRedirectUrl(redirectUrl);
+								setShowPhoneModal(true);
+								setIsLoading(false);
+							} else {
+								window.location.href = redirectUrl;
+							}
 						} else {
 							setError(data.error || "Google authentication failed.");
 							setIsLoading(false);
@@ -259,6 +268,72 @@ export default function SignUpForm() {
 
 	return (
 		<div className="min-h-screen bg-gray-50 relative">
+			{/* Phone Modal for Google New Users */}
+			{showPhoneModal && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+					<div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm mx-4">
+						<div className="text-center mb-6">
+							<div className="text-3xl mb-2">📱</div>
+							<h2 className="text-xl font-bold text-gray-900">One Last Step!</h2>
+							<p className="text-sm text-gray-500 mt-1">Add your phone number to receive property alerts via SMS.</p>
+						</div>
+						<div className="space-y-4">
+							<div className="flex gap-2">
+								<Select value={countryCode} onValueChange={(e) => handleCountryChange(e)}>
+									<SelectTrigger className="w-28">
+										<SelectValue placeholder="Code" />
+									</SelectTrigger>
+									<SelectContent className="border max-h-50 rounded px-2 bg-white">
+										{countryCodes.map((c) => (
+											<SelectItem key={c.code} value={c.code}>
+												{c.flag} {c.code}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								<Input
+									type="tel"
+									value={phoneNumber}
+									onChange={handlePhoneChange}
+									placeholder="Phone number"
+								/>
+							</div>
+							{phoneNumber && !isPhoneValid && (
+								<p className="text-red-500 text-sm">Invalid phone number</p>
+							)}
+							{error && <p className="text-red-500 text-sm">{error}</p>}
+							<Button
+								disabled={!isPhoneValid || isLoading}
+								onClick={async () => {
+									setIsLoading(true);
+									setError("");
+									try {
+										const res = await fetch("/api/v2/user/update-phone", {
+											method: "POST",
+											headers: { "Content-Type": "application/json" },
+											body: JSON.stringify({ phone: `${countryCode}${phoneNumber.replace(/\D/g, "")}` }),
+										});
+										const data = await res.json();
+										if (data.success) {
+											window.location.href = googleRedirectUrl || "/";
+										} else {
+											setError(data.error || "Failed to save phone.");
+											setIsLoading(false);
+										}
+									} catch {
+										setError("Something went wrong. Please try again.");
+										setIsLoading(false);
+									}
+								}}
+								className="w-full h-11 bg-[#d90429] hover:bg-[#bf0022] text-white font-semibold"
+							>
+								{isLoading ? "Saving..." : "Save & Continue"}
+							</Button>
+
+						</div>
+					</div>
+				</div>
+			)}
 			{/* Back Button */}
 			<div className="absolute top-6 left-8 z-20">
 				<a href="/" className="flex items-center gap-2 text-sm font-semibold text-[#d90429] hover:underline cursor-pointer">
