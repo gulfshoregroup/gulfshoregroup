@@ -4,14 +4,27 @@ import { generateText } from "ai";
 import prisma from "@/lib/prisma";
 import { AI_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 
+function escapeXml(unsafe: string): string {
+	return unsafe
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&apos;");
+}
+
 export async function POST(req: NextRequest) {
 	try {
 		// Twilio sends data as URL-encoded form data
 		const formData = await req.formData();
 		const From = formData.get("From") as string;
 		const Body = formData.get("Body") as string;
+		const MessageSid = formData.get("MessageSid") as string;
+
+		console.log(`[Twilio Webhook] Incoming SMS from=${From} body="${Body}" sid=${MessageSid}`);
 
 		if (!From || !Body) {
+			console.error("[Twilio Webhook] Missing From or Body");
 			return new NextResponse("Missing data", { status: 400 });
 		}
 
@@ -64,15 +77,27 @@ export async function POST(req: NextRequest) {
 		}));
 
 		// 4. Generate AI Response
-		const { text } = await generateText({
-			model: openai("gpt-4o-mini"),
-			system: `${AI_SYSTEM_PROMPT}
+		let text: string;
+		try {
+			const result = await generateText({
+				model: openai("gpt-4o-mini"),
+				system: `${AI_SYSTEM_PROMPT}
 
 CRITICAL SMS INSTRUCTIONS:
 You are texting with a lead via SMS. Keep your responses short, friendly, and conversational (under 160 characters if possible).
 Ask qualifying questions about budget, location, and timeline to buy/sell.`,
-			messages,
-		});
+				messages,
+			});
+			text = result.text;
+		} catch (aiError: any) {
+			console.error("[Twilio Webhook] OpenAI generateText failed:", {
+				message: aiError?.message,
+				stack: aiError?.stack,
+				status: aiError?.status,
+				response: aiError?.responseBody,
+			});
+			throw aiError;
+		}
 
 		await prisma.aIChatHistory.create({
 			data: {
@@ -89,17 +114,22 @@ Ask qualifying questions about budget, location, and timeline to buy/sell.`,
 		});
 
 		// 6. Return TwiML so Twilio sends the SMS back to the user
-		const twiml = `
-			<Response>
-				<Message>${text}</Message>
-			</Response>
-		`;
+		const safeText = escapeXml(text);
+		const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${safeText}</Message></Response>`;
+
+		console.log(`[Twilio Webhook] Replying to ${From} with: "${text}"`);
 
 		return new NextResponse(twiml, {
 			headers: { "Content-Type": "text/xml" },
 		});
-	} catch (error) {
-		console.error("Twilio Webhook Error:", error);
+	} catch (error: any) {
+		const errorDetails = {
+			message: error?.message || "Unknown error",
+			stack: error?.stack || null,
+			name: error?.name || null,
+			raw: error ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : null,
+		};
+		console.error("[Twilio Webhook] Caught error:", errorDetails);
 		return new NextResponse(`
 			<Response>
 				<Message>Sorry, our system is currently busy. Dimitri will get back to you shortly.</Message>
