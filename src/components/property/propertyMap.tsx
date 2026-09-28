@@ -76,10 +76,11 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 					const minY = originShift - (coord.y + 1) * tileWidth;
 					const maxY = originShift - coord.y * tileWidth;
 					const bbox = `${minX},${minY},${maxX},${maxY}`;
-					return `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/export?bbox=${bbox}&bboxSR=3857&layers=show:28&size=256,256&imageSR=3857&format=png32&transparent=true&f=image`;
+					// Use our own proxy to avoid CORS and to centralize layer configuration
+					return `/api/fema?bbox=${bbox}`;
 				},
 				tileSize: new google.maps.Size(256, 256),
-				opacity: 0.35, // Made highly transparent so Satellite is visible
+				opacity: 0.65, // Increased opacity so zone boundaries are visible
 				name: "FEMA Flood Zone Map",
 			});
 			femaOverlayRef.current = femaType;

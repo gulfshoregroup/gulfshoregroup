@@ -235,7 +235,8 @@ export default function MapComponent({
 			setFemaLoading(true);
 			const femaType = new google.maps.ImageMapType({
 				getTileUrl: (coord, zoom) => {
-					if (zoom < 9) return null;
+					// Allow FEMA tiles at a wider zoom range so boundaries are visible when zooming in/out
+					if (zoom < 7 || zoom > 20) return null;
 					
 					// Convert tile coordinates to approximate Latitude/Longitude
 					const n = Math.PI - 2 * Math.PI * coord.y / Math.pow(2, zoom);
@@ -260,7 +261,7 @@ export default function MapComponent({
 					return `/api/fema?bbox=${bbox}`;
 				},
 				tileSize: new google.maps.Size(256, 256),
-				opacity: 0.5,
+				opacity: 0.65, // Increased opacity so zone boundaries are clearly visible
 				name: "FEMA Flood Zone Map",
 			});
 			femaOverlayRef.current = femaType;
