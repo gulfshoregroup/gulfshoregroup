@@ -23,6 +23,10 @@ const PropertyMap = dynamic(
 	() => import("@/components/property/propertyMap"),
 	{ ssr: false, loading: () => <Skeleton /> }
 );
+const FloodZoneLookup = dynamic(
+	() => import("@/components/property/FloodZoneLookup"),
+	{ ssr: false, loading: () => <Skeleton /> }
+);
 const WeatherWidget = dynamic(
 	() => import("@/components/property/weatherWidget"),
 	{ ssr: false, loading: () => <Skeleton /> }
@@ -130,6 +134,16 @@ export default function PropertyDetail(property: Property) {
 							Latitude={Latitude}
 							Longitude={Longitude}
 							property={property}
+						/>
+					</Suspense>
+				</div>
+
+				<div className="w-full my-6">
+					<Suspense fallback={<Skeleton className="h-[300px] w-full rounded-xl" />}>
+						<FloodZoneLookup
+							defaultAddress={property.FullAddress?.split(",")[0] || ""}
+							defaultCity={property.City || ""}
+							defaultZip={property.PostalCode || ""}
 						/>
 					</Suspense>
 				</div>

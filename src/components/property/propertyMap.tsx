@@ -3,6 +3,7 @@
 import React, { useRef, useCallback, useState } from "react";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import { Layers, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
 
 interface PropertyMapProps {
 	property: any;
@@ -56,6 +57,14 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 
 		if (nextState) {
 			setFemaLoading(true);
+			const currentZoom = mapRef.current.getZoom() || 10;
+			if (currentZoom < 14) {
+				mapRef.current.setZoom(14);
+				toast.info("Zoomed in to show FEMA details", {
+					description: "FEMA flood zones are clearest when zoomed in closer to the property.",
+					duration: 4000,
+				});
+			}
 			const femaType = new google.maps.ImageMapType({
 				getTileUrl: (coord, zoom) => {
 					// Convert tile coordinates to approximate Latitude/Longitude for SW FL bounds check
