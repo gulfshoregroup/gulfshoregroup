@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 					phone: fromPhoneRaw,
 					firstName: "Unknown",
 					lastName: "SMS User",
-					source: "Incoming SMS",
+					source: "General",
 					status: "New",
 					lastContactedAt: new Date()
 				}
@@ -60,21 +60,13 @@ export async function POST(req: NextRequest) {
 		// 2. Fetch previous chat history for context (last 10 messages)
 		const previousChats = await prisma.aIChatHistory.findMany({
 			where: { leadId: leadId! },
-			orderBy: { createdAt: "desc" },
+			orderBy: { createdAt: "asc" },
 			take: 10,
 		});
 
-		// Format history for OpenAI
-		const messages = previousChats.reverse().map((c: any) => ({
-			role: c.role === "admin" ? "assistant" : c.role, // treat admin manual messages as assistant context too
-			content: c.message,
-		}));
-
-		// Append the new user message (since previousChats might already include it, let's make sure we don't duplicate. Wait, previousChats includes it because it was just saved! Let's slice it or not push again. Wait, previousChats ALREADY has the newly created message because we created it before querying!)
-		// So we do NOT append it again.
-		
-		const openaiMessages = previousChats.reverse().map((c: any) => ({
-			role: c.role === "admin" ? "assistant" : c.role,
+		// Format history for OpenAI (admin/ai -> assistant, user -> user)
+		const openaiMessages = previousChats.map((c: any) => ({
+			role: c.role === "admin" || c.role === "ai" ? "assistant" : "user",
 			content: c.message,
 		}));
 

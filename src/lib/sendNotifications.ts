@@ -14,8 +14,13 @@ export async function sendMessageToLead(
 
 	if (type === "sms" && lead.phone) {
 		const sanitized = "+" + lead.phone.replace(/[^0-9]/g, "");
-		sendSMS(sanitized, text);
-		return { ok: true, meta: { provider: "twilio-stub" } };
+		try {
+			await sendSMS(sanitized, text);
+			return { ok: true, meta: { provider: "twilio" } };
+		} catch (err: any) {
+			console.error("sendMessageToLead SMS failed:", err);
+			return { ok: false, error: err.message };
+		}
 	}
 
 	// if (type === "email" && lead.email) {

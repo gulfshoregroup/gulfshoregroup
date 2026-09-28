@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
 				data: {
 					phone: From,
 					email: `${cleanPhone || Date.now()}@placeholder.com`,
-					source: "SMS Incoming",
+					source: "General",
+					status: "New"
 				}
 			});
 		}
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
 		});
 
 		const messages: any = pastChats.map((chat: any) => ({
-			role: chat.role === "ai" ? "assistant" : chat.role,
+			role: chat.role === "ai" || chat.role === "admin" ? "assistant" : "user",
 			content: chat.message,
 		}));
 

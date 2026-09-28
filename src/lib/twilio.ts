@@ -6,49 +6,46 @@ const client = Twilio(
 );
 
 export const sendSMS = async (to: string, body: string) => {
-	try {
-		const from = process.env.TWILIO_NUMBER ? "+" + process.env.TWILIO_NUMBER.replace(/[^0-9]/g, "") : "";
-		if (!process.env.TWILIO_SID || !process.env.TWILIO_TOKEN || !from) {
-			console.log("Twilio credentials missing, skipping SMS dispatch.");
-			return;
-		}
-
-		// Auto-format the phone number
-		let formattedTo = to.replace(/[^0-9+]/g, ""); // keep only digits and +
-		if (!formattedTo.startsWith("+")) {
-			if (formattedTo.startsWith("91") && formattedTo.length === 12) {
-				formattedTo = "+" + formattedTo;
-			} else if (formattedTo.length === 10) {
-				formattedTo = "+1" + formattedTo;
-			} else {
-				formattedTo = "+" + formattedTo;
-			}
-		}
-
-		const message = await client.messages.create({
-			body,
-			from,
-			to: formattedTo,
-		});
-
-		try {
-			const prisma = require('@/lib/prisma').default;
-			await prisma.communicationLog.create({
-				data: {
-					type: "SMS",
-					to: to,
-					subject: "SMS Message",
-					message: body,
-					status: "sent",
-					providerId: message.sid,
-				}
-			});
-		} catch (logErr) {
-			console.error("Twilio SMS logging failed:", logErr);
-		}
-	} catch (error) {
-		console.error("Twilio SMS send failed gracefully:", error);
+	const from = process.env.TWILIO_NUMBER ? "+" + process.env.TWILIO_NUMBER.replace(/[^0-9]/g, "") : "";
+	if (!process.env.TWILIO_SID || !process.env.TWILIO_TOKEN || !from) {
+		throw new Error("Twilio credentials missing (TWILIO_SID / TWILIO_TOKEN / TWILIO_NUMBER)");
 	}
+
+	// Auto-format the phone number
+	let formattedTo = to.replace(/[^0-9+]/g, ""); // keep only digits and +
+	if (!formattedTo.startsWith("+")) {
+		if (formattedTo.startsWith("1") && formattedTo.length === 11) {
+			formattedTo = "+" + formattedTo;
+		} else if (formattedTo.length === 10) {
+			formattedTo = "+1" + formattedTo;
+		} else {
+			formattedTo = "+" + formattedTo;
+		}
+	}
+
+	const message = await client.messages.create({
+		body,
+		from,
+		to: formattedTo,
+	});
+
+	try {
+		const prisma = require('@/lib/prisma').default;
+		await prisma.communicationLog.create({
+			data: {
+				type: "SMS",
+				to: to,
+				subject: "SMS Message",
+				message: body,
+				status: "sent",
+				providerId: message.sid,
+			}
+		});
+	} catch (logErr) {
+		console.error("Twilio SMS logging failed:", logErr);
+	}
+
+	return message;
 };
 
 
