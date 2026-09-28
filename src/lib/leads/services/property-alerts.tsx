@@ -727,7 +727,7 @@ import {
                     fontFamily: "'Poppins', Arial, sans-serif",
                   }}
                 >
-                  Your trusted real estate advisors
+                  GulfShore Group By London Foster Realty
                 </Text>
               </Section>
   
@@ -800,7 +800,7 @@ import {
                     fontFamily: "'Poppins', Arial, sans-serif",
                   }}
                 >
-                  © {new Date().getFullYear()} {getPropertiesApiBaseUrl().replace('https://', '')} · ALL RIGHTS RESERVED
+                  © {new Date().getFullYear()} GulfShore Group By London Foster Realty · ALL RIGHTS RESERVED
                 </Text>
               </Section>
             </Container>

@@ -194,9 +194,9 @@ export async function processSavedSearches() {
 							url: longSearchLink,
 						}
 					});
-					const shortSearchLink = `${baseUrl}/api/r/${shortCode}`;
+					const shortSearchLink = `${baseUrl}/s/${shortCode}`;
 					
-					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, new properties matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES:\n\n${shortSearchLink}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group`;
+					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, new properties matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES:\n\n${shortSearchLink}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group By London Foster Realty`;
 
 					// SEND SMS
 					if (lead.phone) {
