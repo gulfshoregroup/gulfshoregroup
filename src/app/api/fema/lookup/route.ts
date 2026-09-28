@@ -100,31 +100,62 @@ export async function GET(req: NextRequest) {
     const lng = location.lng;
 
     // 2. Query FEMA NFHL identify API
+    // Try layer-specific identify endpoint first (more reliable for ArcGIS)
     const mapExtent = `${lng - 0.1},${lat - 0.1},${lng + 0.1},${lat + 0.1}`;
-    const femaUrl = new URL(
-      "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/identify"
-    );
-    femaUrl.searchParams.set("geometry", `${lng},${lat}`);
-    femaUrl.searchParams.set("geometryType", "esriGeometryPoint");
-    femaUrl.searchParams.set("sr", "4326");
-    femaUrl.searchParams.set("layers", "all:28"); // Layer 28 = Flood Hazard Zones
-    femaUrl.searchParams.set("tolerance", "0");
-    femaUrl.searchParams.set("mapExtent", mapExtent);
-    femaUrl.searchParams.set("imageDisplay", "600,400,96");
-    femaUrl.searchParams.set("returnGeometry", "false");
-    femaUrl.searchParams.set("f", "json");
+    const buildFemaUrl = (endpoint: string) => {
+      const url = new URL(endpoint);
+      url.searchParams.set("geometry", `${lng},${lat}`);
+      url.searchParams.set("geometryType", "esriGeometryPoint");
+      url.searchParams.set("sr", "4326");
+      url.searchParams.set("tolerance", "0");
+      url.searchParams.set("mapExtent", mapExtent);
+      url.searchParams.set("imageDisplay", "600,400,96");
+      url.searchParams.set("returnGeometry", "false");
+      url.searchParams.set("f", "json");
+      return url;
+    };
 
-    const femaRes = await fetch(femaUrl.toString(), {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        Accept: "application/json",
-      },
-      signal: AbortSignal.timeout(15000),
-    });
+    // Layer 28 is the Flood Hazard Zones layer in FEMA NFHL
+    const femaEndpoints = [
+      "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/identify",
+      "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/identify",
+      "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/identify",
+    ];
 
-    if (!femaRes.ok) {
-      const text = await femaRes.text().catch(() => "");
-      throw new Error(`FEMA API responded ${femaRes.status}: ${text.slice(0, 200)}`);
+    let femaRes: Response | null = null;
+    let lastError = "";
+
+    for (const endpoint of femaEndpoints) {
+      try {
+        const url = buildFemaUrl(endpoint);
+        if (endpoint.includes("/MapServer/identify")) {
+          url.searchParams.set("layers", "all:28");
+        }
+
+        const res = await fetch(url.toString(), {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            Accept: "application/json",
+          },
+          signal: AbortSignal.timeout(15000),
+        });
+
+        if (res.ok) {
+          femaRes = res;
+          break;
+        } else {
+          const text = await res.text().catch(() => "");
+          lastError = `${endpoint} -> ${res.status}: ${text.slice(0, 100)}`;
+          console.log(`[FEMA Lookup] Endpoint failed: ${lastError}`);
+        }
+      } catch (e: any) {
+        lastError = `${endpoint} -> ${e.message}`;
+        console.log(`[FEMA Lookup] Endpoint error: ${lastError}`);
+      }
+    }
+
+    if (!femaRes) {
+      throw new Error(`FEMA API failed on all endpoints. Last error: ${lastError}`);
     }
 
     const femaData = await femaRes.json();

@@ -7,6 +7,7 @@ import PaginationComponent, {
 	PaginationComponent2,
 } from "@/components/global/paginationComponent";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
 	clearFilters,
 	fetchProperties,
@@ -18,6 +19,12 @@ import { SearchX } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import React, { Suspense } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import dynamic from "next/dynamic";
+
+const FloodZoneLookup = dynamic(
+	() => import("@/components/property/FloodZoneLookup"),
+	{ ssr: false, loading: () => <Skeleton className="h-[300px] w-full rounded-xl" /> }
+);
 
 export default function MapViewList({
 	filter,
@@ -228,6 +235,15 @@ export default function MapViewList({
 			{StickyHeader}
 
 			<div ref={topRef} className="scroll-mt-4" />
+
+			{view === "map" && (
+				<div className="w-11/12 lg:w-full mx-auto px-0 lg:px-2 xl:px-4 mb-6">
+					<Suspense fallback={<Skeleton className="h-[300px] w-full rounded-xl" />}>
+						<FloodZoneLookup />
+					</Suspense>
+				</div>
+			)}
+
 			<div className={gridClass}>
 				{(view === "map" ? orderedList : list).map((property, i: number) => (
 					<PropertyCard
