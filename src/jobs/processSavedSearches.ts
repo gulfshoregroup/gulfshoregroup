@@ -145,10 +145,8 @@ export async function processSavedSearches() {
 						...baseWhere,
 						StandardStatus: "Active",
 						OR: [
-							{ createdAt: { gt: lookbackDate } },
 							{ OnMarketDate: { gt: lookbackDate } },
 							{ OnMarketTimestamp: { gt: lookbackDate } },
-							{ StatusChangeTimestamp: { gt: lookbackDate } },
 							{ PriceChangeTimestamp: { gt: lookbackDate } },
 						],
 					};
