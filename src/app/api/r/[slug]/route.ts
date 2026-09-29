@@ -18,9 +18,11 @@ export async function GET(
     });
 
     if (!shortLink) {
-      // Fallback or 404
+      console.warn(`[ShortLink /api/r] Slug not found in DB: ${slug}`);
       return NextResponse.redirect(new URL("/", request.url));
     }
+
+    console.log(`[ShortLink /api/r] Found slug=${slug}, redirecting to ${shortLink.url}`);
 
     // Optionally increment clicks
     prisma.shortLink.update({

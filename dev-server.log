@@ -1,0 +1,20 @@
+
+> gulfshoregroup@2.9.0 dev
+> next dev --webpack -p 3000
+
+▲ Next.js 16.1.1 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.21:3000
+- Environments: .env
+
+✓ Starting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+✓ Ready in 5.9s
+○ Compiling /s/[code] ...
+ HEAD /s/testcode 307 in 20.5s (compile: 16.5s, proxy.ts: 210ms, render: 3.8s)
+○ Compiling / ...
+ HEAD / 200 in 35.0s (compile: 26.4s, proxy.ts: 22ms, render: 8.6s)
+○ Compiling /api/v2/magic-login ...
+ HEAD /api/v2/magic-login?leadId=fake-lead-id&redirect_url=%2FFlorida-Real-Estate-Search%3Fsort%3DNewest-First 307 in 12.4s (compile: 4.2s, proxy.ts: 45ms, render: 8.1s)
+○ Compiling /Florida-Real-Estate-Search/[[...slug]] ...
+ HEAD /Florida-Real-Estate-Search?sort=Newest-First 200 in 12.1s (compile: 6.5s, proxy.ts: 19ms, render: 5.5s)

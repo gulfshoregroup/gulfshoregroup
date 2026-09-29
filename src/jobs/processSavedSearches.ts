@@ -183,7 +183,8 @@ export async function processSavedSearches() {
 
 					// Using the EXACT same link format as the email (with magic-login and utm tags)
 					const nameStr = lead.firstName ? lead.firstName : "there";
-					const longSearchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}${targetPath}?utm_source=sms_alert&n=${encodeURIComponent(nameStr)}`)}`;
+					const trackingPrefix = targetPath.includes("?") ? "&" : "?";
+					const longSearchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}${targetPath}${trackingPrefix}utm_source=sms_alert&n=${encodeURIComponent(nameStr)}`)}`;
 					
 					// Create short link to avoid sending a massive URL over SMS
 					const shortCode = Math.random().toString(36).substring(2, 10);

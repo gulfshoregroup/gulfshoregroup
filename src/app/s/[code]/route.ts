@@ -18,10 +18,13 @@ export async function GET(
     });
 
     if (shortLink && shortLink.url) {
+      console.log(`[ShortLink] Found code=${code}, redirecting to ${shortLink.url}`);
       return NextResponse.redirect(shortLink.url);
     }
+
+    console.warn(`[ShortLink] Code not found in DB: ${code}`);
   } catch (error) {
-    console.error("[ShortLink] Error fetching code:", code, error);
+    console.error(`[ShortLink] Error fetching code=${code}:`, error);
   }
 
   // Fallback if not found or error
