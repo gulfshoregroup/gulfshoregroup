@@ -121,19 +121,16 @@ export async function processSavedSearches() {
 
 					// Property Types
 					const types = searchParams.get("propertyTypes") ? searchParams.get("propertyTypes")!.split(",") : [];
+					const propertyTypeOR: any[] = [];
 					if (types.length > 0) {
-						const orConditions: any[] = [];
 						if (types.includes("Homes") || types.includes("homes") || types.includes("Single Family")) {
-							orConditions.push({ PropertySubType: "Single Family Residence" });
+							propertyTypeOR.push({ PropertySubType: "Single Family Residence" });
 						}
 						if (types.includes("Condos") || types.includes("condos")) {
-							orConditions.push({ PropertySubType: { in: ["Low Rise (1-3)", "Mid Rise (4-7)", "High Rise (8+)", "Townhouse"] } });
+							propertyTypeOR.push({ PropertySubType: { in: ["Low Rise (1-3)", "Mid Rise (4-7)", "High Rise (8+)", "Townhouse"] } });
 						}
 						if (types.includes("Lots") || types.includes("Residential-Lots") || types.includes("lots")) {
-							orConditions.push({ PropertyType: "Land" });
-						}
-						if (orConditions.length > 0) {
-							baseWhere.OR = orConditions;
+							propertyTypeOR.push({ PropertyType: "Land" });
 						}
 						baseWhere.NOT = { PropertyType: { contains: "Lease" } };
 					} else {
@@ -141,14 +138,24 @@ export async function processSavedSearches() {
 						baseWhere.NOT = { PropertyType: { contains: "Lease" } };
 					}
 
+					// NOTE: We CANNOT put both propertyTypeOR and dateOR directly on `baseWhere.OR`
+					// because spreading baseWhere into finalWhere and then setting OR again overwrites it.
+					// Fix: Use AND to combine both OR clauses so neither is lost.
+					const dateOR = [
+						{ OnMarketDate: { gt: lookbackDate } },
+						{ OnMarketTimestamp: { gt: lookbackDate } },
+						{ PriceChangeTimestamp: { gt: lookbackDate } },
+					];
+
+					const andConditions: any[] = [{ OR: dateOR }];
+					if (propertyTypeOR.length > 0) {
+						andConditions.push({ OR: propertyTypeOR });
+					}
+
 					const finalWhere = {
 						...baseWhere,
 						StandardStatus: "Active",
-						OR: [
-							{ OnMarketDate: { gt: lookbackDate } },
-							{ OnMarketTimestamp: { gt: lookbackDate } },
-							{ PriceChangeTimestamp: { gt: lookbackDate } },
-						],
+						AND: andConditions,
 					};
 
 					const matchingProperties = await prisma.property.findMany({
@@ -185,15 +192,23 @@ export async function processSavedSearches() {
 					const longSearchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}${targetPath}${trackingPrefix}utm_source=sms_alert&n=${encodeURIComponent(nameStr)}`)}`;
 					
 					// Create short link to avoid sending a massive URL over SMS
-					const shortCode = Math.random().toString(36).substring(2, 10);
-					await prisma.shortLink.create({
-						data: {
-							code: shortCode,
-							slug: shortCode,
-							url: longSearchLink,
-						}
-					});
-					const shortSearchLink = `${baseUrl}/s/${shortCode}`;
+					// Wrapped in its own try/catch — if the shortlink table is missing or the insert
+					// fails for any reason we fall back to sending the long URL so the SMS still works.
+					let shortSearchLink = longSearchLink;
+					try {
+						const shortCode = Math.random().toString(36).substring(2, 10);
+						await prisma.shortLink.create({
+							data: {
+								code: shortCode,
+								slug: shortCode,
+								url: longSearchLink,
+							}
+						});
+						shortSearchLink = `${baseUrl}/s/${shortCode}`;
+					} catch (shortLinkErr: any) {
+						console.warn(`[SavedSearch] Could not create short link for lead ${lead.email}, falling back to long URL. Error: ${shortLinkErr?.message}`);
+						// shortSearchLink already set to longSearchLink above
+					}
 					
 					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, new properties matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES:\n\n${shortSearchLink}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group By London Foster Realty`;
 
