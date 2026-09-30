@@ -37,10 +37,12 @@ export async function GET(req: NextRequest) {
 	});
 
 	if (recentLock) {
-		console.warn(`[Cron] Duplicate trigger blocked by DB lock.`);
+		console.warn(`[Cron] Duplicate trigger blocked by DB lock. Skipping to prevent duplicate alerts.`);
+		// Return 200 (not 429) so cron-job.org does NOT mark this as a failure.
+		// The idempotency protection still works — we just report it as "already done".
 		return Response.json(
-			{ success: false, message: `Already triggered recently. Skipping to prevent duplicate alerts.` },
-			{ status: 429 }
+			{ success: true, skipped: true, message: `Already triggered recently. Skipping to prevent duplicate alerts.` },
+			{ status: 200 }
 		);
 	}
 
