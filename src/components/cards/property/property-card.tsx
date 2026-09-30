@@ -92,16 +92,24 @@ const PropertyCard = (property: Property & { isSelected?: boolean }) => {
 
 					{/* Price row */}
 					<div className="flex items-start justify-between mb-1">
-						<p className="
-							text-[1.35rem] leading-tight tracking-tight
-							font-semibold text-[#1C1712]
-						">
-							{formatPrice(
-								((property as any).StandardStatus === "Closed" || (property as any).MlsStatus === "Sold")
-									? (property.ClosePrice || property.ListPrice || 0)
-									: (property.ListPrice || 0)
+						<div className="flex items-center gap-2">
+							<p className="
+								text-[1.35rem] leading-tight tracking-tight
+								font-semibold text-[#1C1712]
+							">
+								{formatPrice(
+									((property as any).StandardStatus === "Closed" || (property as any).MlsStatus === "Sold")
+										? (property.ClosePrice || property.ListPrice || 0)
+										: (property.ListPrice || 0)
+								)}
+							</p>
+							{property.OriginalListPrice && property.ListPrice && property.OriginalListPrice > property.ListPrice && ((property as any).StandardStatus !== "Closed" && (property as any).MlsStatus !== "Sold") && (
+								<span className="text-green-600 font-medium text-[11px] bg-green-50 px-1.5 py-0.5 rounded flex items-center gap-0.5" title={`Original Price: $${property.OriginalListPrice.toLocaleString()}`}>
+									<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+									${(property.OriginalListPrice - property.ListPrice).toLocaleString()}
+								</span>
 							)}
-						</p>
+						</div>
 						<Image
 							className="h-5 w-auto opacity-50 mt-1 shrink-0 ml-3"
 							src="https://res.cloudinary.com/dm68hqwp9/image/upload/v1752289229/brokerreciprocitylogo_jl5omm.jpg"

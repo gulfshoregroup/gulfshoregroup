@@ -203,7 +203,7 @@ export default async function Listing({
 
 							{/* Price with enhanced styling */}
 							{!isOffMarket && (
-								<div className="mb-3">
+								<div className="mb-3 flex flex-wrap items-center gap-3">
 									<span className="text-3xl inline-flex gap-2 lg:text-4xl font-bold text-gray-900 tracking-tight">
 										$
 										{Number(property.ListPrice).toLocaleString("en-US")}{" "}
@@ -213,6 +213,19 @@ export default async function Listing({
 											</span>
 										)}
 									</span>
+									{property.OriginalListPrice && property.ListPrice && property.OriginalListPrice > property.ListPrice && (
+										<div className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 px-2.5 py-1 rounded-md">
+											<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+											<span className="font-semibold text-sm">
+												${(property.OriginalListPrice - property.ListPrice).toLocaleString()}
+											</span>
+											{property.PriceChangeTimestamp && (
+												<span className="text-xs text-green-600 font-medium ml-1">
+													({new Date(property.PriceChangeTimestamp).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })})
+												</span>
+											)}
+										</div>
+									)}
 								</div>
 							)}
 
