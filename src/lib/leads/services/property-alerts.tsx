@@ -517,15 +517,15 @@ import {
                         </Text>
                         <Text
                           style={{
-                            fontSize: "18px",
-                            color: "#4B5563",
+                            fontSize: "13px",
+                            color: "#9CA3AF",
                             margin: "0",
                             fontFamily: "'Poppins', Arial, sans-serif",
-                            fontWeight: "500",
+                            fontWeight: "400",
                             lineHeight: "1",
                           }}
                         >
-                          London Forster Realty
+                          Southwest Florida Real Estate
                         </Text>
                       </td>
                     </tr>
@@ -718,17 +718,7 @@ import {
                   Contact Our Team
                 </Button>
   
-                <Text
-                  style={{
-                    fontSize: "12px",
-                    color: GOLD,
-                    margin: "20px 0 0",
-                    letterSpacing: "0.06em",
-                    fontFamily: "'Poppins', Arial, sans-serif",
-                  }}
-                >
-                  GulfShore Group By London Foster Realty
-                </Text>
+
               </Section>
   
               {/* ── Footer ── */}
@@ -749,6 +739,8 @@ import {
                   }}
                 >
                   You're receiving this alert because you subscribed to property notifications.
+                  <br />
+                  GulfShore Group | Brokered by London Foster Realty
                   <br />
                   All listings courtesy of respective brokerages. Equal Housing Opportunity.
                 </Text>
