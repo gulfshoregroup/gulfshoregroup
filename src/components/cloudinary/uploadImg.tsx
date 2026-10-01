@@ -78,6 +78,7 @@ export default function UploadImg({
 					sources: ["local", "url", "google_drive"],
 					multiple: true,
 					maxFiles,
+					resourceType: "auto",
 					...(seoFileName ? { public_id: seoFileName } : {})
 				}}
 				onSuccess={handleUploadSuccess}>
@@ -91,18 +92,31 @@ export default function UploadImg({
 				)}
 			</CldUploadWidget>
 
-			{/* Image previews */}
+			{/* Image/Video previews */}
 			<div className="grid grid-cols-2 gap-2">
-				{formData.Images?.map((img) => (
+				{formData.Images?.map((img) => {
+					const isVideo = img.match(/\.(mp4|webm|ogg|mov)$/i) || img.includes('video/upload');
+					return (
 					<div
 						key={img}
 						className="relative w-32 h-32 border rounded overflow-hidden group">
-						<img
-							src={img}
-							alt="uploaded"
-							className="object-cover w-full h-full cursor-pointer transition-transform duration-200 group-hover:scale-105"
-							onClick={() => handleSetDefault(img)}
-						/>
+						{isVideo ? (
+							<video
+								src={img}
+								className="object-cover w-full h-full cursor-pointer transition-transform duration-200 group-hover:scale-105"
+								onClick={() => handleSetDefault(img)}
+								muted
+								autoPlay
+								loop
+							/>
+						) : (
+							<img
+								src={img}
+								alt="uploaded"
+								className="object-cover w-full h-full cursor-pointer transition-transform duration-200 group-hover:scale-105"
+								onClick={() => handleSetDefault(img)}
+							/>
+						)}
 						{formData.defaultImage === img && (
 							<span className="absolute top-1 left-1 bg-green-600 text-white text-xs px-2 py-1 rounded">
 								Default
@@ -115,7 +129,7 @@ export default function UploadImg({
 							X
 						</button>
 					</div>
-				))}
+				)})}
 			</div>
 		</div>
 	);

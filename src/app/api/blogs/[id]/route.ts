@@ -109,6 +109,8 @@ export async function PUT(req: any, { params }: { params: Promise<{ id: string }
 		});
 
 		revalidatePath("/", "layout");
+		revalidatePath("/home");
+		revalidatePath("/blogs");
 
 		return NextResponse.json({ success: true, data: updatedBlog });
 	} catch (error: any) {
@@ -145,6 +147,8 @@ export async function DELETE(req: any, { params }: { params: Promise<{ id: strin
 		});
 
 		revalidatePath("/", "layout");
+		revalidatePath("/home");
+		revalidatePath("/blogs");
 
 		return NextResponse.json({ success: true, message: "Blog deleted successfully" });
 	} catch (error: any) {

@@ -71,6 +71,8 @@ export async function POST(req: any) {
 		});
 
 		revalidatePath("/", "layout");
+		revalidatePath("/home");
+		revalidatePath("/blogs");
 
 		return NextResponse.json({ success: true, data: blog }, { status: 201 });
 	} catch (error: any) {
