@@ -34,12 +34,28 @@ export async function GET(req: NextRequest) {
 
 		// ---- Sorting ----
 		let sortField = query.get("sort") || "ListPrice";
+		let sortOrder = query.get("order") === "asc" ? "asc" : "desc";
+
+		// Handle string literal sort values that might come from URL query parameters
+		if (sortField === "Newest-First") {
+			sortField = "CreatedDate";
+			sortOrder = "desc";
+		} else if (sortField === "Oldest-First") {
+			sortField = "CreatedDate";
+			sortOrder = "asc";
+		} else if (sortField === "Price-High-to-Low") {
+			sortField = "CurrentPrice";
+			sortOrder = "desc";
+		} else if (sortField === "Price-Low-to-High") {
+			sortField = "CurrentPrice";
+			sortOrder = "asc";
+		}
+
 		if (sortField === "CurrentPrice") {
 			sortField = "ListPrice";
 		} else if (sortField === "CreatedDate") {
 			sortField = "OnMarketTimestamp";
 		}
-		const sortOrder = query.get("order") === "asc" ? "asc" : "desc";
 
 		// ---- WHERE CLAUSE ----
 		const where: any = {};
