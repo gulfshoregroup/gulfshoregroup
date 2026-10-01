@@ -44,7 +44,7 @@ export default function UploadImg({
 			return {
 				...prev,
 				Images: updatedImages,
-				defaultImage: prev.defaultImage || uploadedUrl,
+				defaultImage: uploadedUrl,
 			};
 		});
 	};

@@ -370,11 +370,22 @@ export default function NewBlogPage() {
 						<CardContent className="space-y-4">
 							{formData.coverImage && (
 								<div className="aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-									<img
-										src={formData.coverImage}
-										alt="Cover"
-										className="w-full h-full object-cover"
-									/>
+									{formData.coverImage.match(/\.(mp4|webm|ogg|mov)$/i) || formData.coverImage.includes('video/upload') ? (
+										<video
+											src={formData.coverImage}
+											className="w-full h-full object-cover"
+											autoPlay
+											muted
+											loop
+											playsInline
+										/>
+									) : (
+										<img
+											src={formData.coverImage}
+											alt="Cover"
+											className="w-full h-full object-cover"
+										/>
+									)}
 								</div>
 							)}
 
