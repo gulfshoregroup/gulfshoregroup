@@ -434,7 +434,7 @@ import {
   }
   
   export function PropertyAlertEmail({
-    recipientName = "Dimitri Schwarz",
+    recipientName = "Valued Client",
     alertTitle = "Latest Property Matches",
     alertSubtitle = "Latest listings selected for your lifestyle",
     properties,
