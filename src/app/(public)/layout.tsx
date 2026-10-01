@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Navbar from "@/components/global/nav";
 import { Toaster } from "@/components/ui/sonner";
 import { usePathname } from "next/navigation";
+import AIChatWidget from "@/components/chat/AIChatWidget";
 
 export default function PublicLayout({
 	children,
@@ -25,6 +26,7 @@ export default function PublicLayout({
 			<Suspense>
 				<Toaster richColors position="bottom-center" />
 			</Suspense>
+			<AIChatWidget />
 		</>
 	);
 }

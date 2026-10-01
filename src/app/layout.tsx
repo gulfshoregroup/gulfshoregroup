@@ -20,7 +20,6 @@ const poppins = Poppins({
 import UtmTracker from "../components/global/utmTracker";
 import ForcedLoginModal from "../components/auth/ForcedLoginModal";
 import MissingPhoneModal from "../components/auth/MissingPhoneModal";
-import AIChatWidget from "../components/chat/AIChatWidget";
 
 export const metadata: Metadata = {
 	title: "Naples Florida Real Estate Office - GULFSHORE GROUP",
@@ -114,7 +113,6 @@ export default function RootLayout({
 						<ForcedLoginModal />
 						<MissingPhoneModal />
 						{children}
-						<AIChatWidget />
 					</StoreProvider>
 
 					<script
