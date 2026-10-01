@@ -14,6 +14,7 @@ import {
 	SelectContent,
 	SelectItem,
 } from "@/components/ui/select";
+import { countryCodes } from "@/lib/countryCodes";
 
 export default function ContactForm({
 	MLSNumber = "",
@@ -52,19 +53,6 @@ export default function ContactForm({
 		setValidationError("");
 	};
 
-	const countryCodes = [
-		{ code: "+1", country: "US/CA", flag: "🇺🇸" },
-		{ code: "+44", country: "UK", flag: "🇬🇧" },
-		{ code: "+971", country: "UAE", flag: "🇦🇪" },
-		{ code: "+33", country: "France", flag: "🇫🇷" },
-		{ code: "+49", country: "Germany", flag: "🇩🇪" },
-		{ code: "+34", country: "Spain", flag: "🇪🇸" },
-		{ code: "+39", country: "Italy", flag: "🇮🇹" },
-		{ code: "+91", country: "India", flag: "🇮🇳" },
-		{ code: "+86", country: "China", flag: "🇨🇳" },
-		{ code: "+81", country: "Japan", flag: "🇯🇵" },
-		{ code: "+61", country: "Australia", flag: "🇦🇺" },
-	];
 
 	const formatPhoneNumber = (value: string, country: string) => {
 		const phoneNumber = value.replace(/[^\d]/g, "");

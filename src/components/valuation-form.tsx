@@ -13,6 +13,7 @@ import {
 	SelectItem,
 } from "@/components/ui/select";
 import { Home, ClipboardList, Clock, UserCheck, Upload, Trash2, CheckCircle2, ChevronRight, ChevronLeft } from "lucide-react";
+import { countryCodes } from "@/lib/countryCodes";
 
 export default function ValuationForm() {
 	const [step, setStep] = useState(1);
@@ -129,12 +130,6 @@ export default function ValuationForm() {
 		"Cape Coral",
 	];
 
-	const countryCodes = [
-		{ code: "+1", country: "US/CA", flag: "🇺🇸" },
-		{ code: "+91", country: "India", flag: "🇮🇳" },
-		{ code: "+44", country: "UK", flag: "🇬🇧" },
-		{ code: "+971", country: "UAE", flag: "🇦🇪" },
-	];
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
 		const { name, value } = e.target;
