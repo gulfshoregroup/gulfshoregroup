@@ -132,9 +132,6 @@ const ScheduleTourForm = ({
 			const response = await axios.post(`/api/v2/tour`, tourPayload);
 
 			if (response.data && response.data.success) {
-				setSuccessMessage(
-					"Your tour has been successfully scheduled!"
-				);
 				setFormData({
 					firstName: "",
 					lastName: "",
@@ -145,9 +142,7 @@ const ScheduleTourForm = ({
 					MLSNumber: MLSNumber || "",
 					propertyId: propertyId || MLSNumber || "",
 				});
-
-				onClose();
-				toast.success("Tour Request has been created.");
+				setStep(3);
 			} else {
 				toast.error(
 					"There was an error scheduling the tour. Please try again."
@@ -264,6 +259,18 @@ const ScheduleTourForm = ({
 						</div>
 					)}
 
+					{step === 3 && (
+						<div className="text-center py-10">
+							<div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+								<svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+							</div>
+							<h3 className="text-3xl font-bold text-gray-900 mb-4">Tour Scheduled!</h3>
+							<p className="text-gray-600 text-lg">
+								We have successfully scheduled your tour and sent the executed Buyer Broker Agreement to your email inbox.
+							</p>
+						</div>
+					)}
+
 					<div className="flex justify-between mt-6">
 						{step === 1 ? (
 							<button
@@ -272,13 +279,15 @@ const ScheduleTourForm = ({
 								className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 focus:outline-none transition-colors">
 								Cancel
 							</button>
-						) : (
+						) : step === 2 ? (
 							<button
 								type="button"
 								onClick={() => setStep(1)}
 								className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 focus:outline-none transition-colors flex items-center gap-2">
 								<ArrowLeft className="w-4 h-4" /> Back
 							</button>
+						) : (
+							<div className="hidden"></div>
 						)}
 						
 						{step === 1 ? (
@@ -287,7 +296,7 @@ const ScheduleTourForm = ({
 								className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-accent focus:outline-none transition-colors flex items-center gap-2">
 								Next <ArrowRight className="w-4 h-4" />
 							</button>
-						) : (
+						) : step === 2 ? (
 							<button
 								type="submit"
 								className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-accent focus:outline-none transition-colors"
@@ -300,6 +309,13 @@ const ScheduleTourForm = ({
 										Confirm & Schedule
 									</span>
 								)}
+							</button>
+						) : (
+							<button
+								type="button"
+								onClick={onClose}
+								className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 focus:outline-none transition-colors w-full font-bold text-lg">
+								Done
 							</button>
 						)}
 					</div>
