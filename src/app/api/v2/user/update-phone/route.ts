@@ -1,22 +1,15 @@
 import { NextResponse } from "next/server";
-import { verifyToken } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
 	try {
-		const authHeader = req.headers.get("Authorization");
-		const token = authHeader?.split(" ")[1];
+		const cookieStore = await cookies();
+		const userId = cookieStore.get("mock_user_id")?.value;
+		const mockEmail = cookieStore.get("mock_user_email")?.value;
 
-		if (!token) {
+		if (!userId && !mockEmail) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-		}
-
-		let userId: string;
-		try {
-			const payload = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
-			userId = payload.sub;
-		} catch (err) {
-			return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 		}
 
 		const body = await req.json();
@@ -27,10 +20,17 @@ export async function POST(req: Request) {
 		}
 
 		// Update our database lead record
-		const dbUser = await prisma.user.findUnique({
-			where: { clerkId: userId },
-		});
-		let targetEmail = dbUser?.email || email;
+		let dbUser = null;
+		if (userId) {
+			dbUser = await prisma.user.findUnique({
+				where: { clerkId: userId },
+			});
+		} else if (mockEmail) {
+			dbUser = await prisma.user.findFirst({
+				where: { email: mockEmail },
+			});
+		}
+		let targetEmail = dbUser?.email || email || mockEmail;
 		let hadPhoneAlready = false;
 
 		if (targetEmail) {
