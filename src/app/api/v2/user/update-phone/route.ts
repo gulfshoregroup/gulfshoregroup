@@ -45,8 +45,6 @@ export async function POST(req: Request) {
 		}
 
 		// Update mock_user_phone cookie
-		const { cookies } = require("next/headers");
-		const cookieStore = await cookies();
 		cookieStore.set("mock_user_phone", phone, { path: "/", maxAge: 31536000 });
 
 		// Fire Welcome SMS ONLY IF they didn't have a phone before
