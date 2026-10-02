@@ -8,14 +8,31 @@ import { Input } from "@/components/ui/input";
 import { Phone } from "lucide-react";
 import { usePathname } from "next/navigation";
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 export default function MissingPhoneModal() {
 	const { user, isLoaded, isSignedIn } = useUser();
 	const { getToken } = useAuth();
 	const pathname = usePathname();
 	const [isOpen, setIsOpen] = useState(false);
+	const [countryCode, setCountryCode] = useState("+1");
 	const [phone, setPhone] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState("");
+
+    const countryCodes = [
+		{ code: "+1", country: "US/CA", flag: "🇺🇸" },
+		{ code: "+44", country: "UK", flag: "🇬🇧" },
+		{ code: "+971", country: "UAE", flag: "🇦🇪" },
+		{ code: "+33", country: "France", flag: "🇫🇷" },
+		{ code: "+49", country: "Germany", flag: "🇩🇪" },
+		{ code: "+34", country: "Spain", flag: "🇪🇸" },
+		{ code: "+39", country: "Italy", flag: "🇮🇹" },
+		{ code: "+91", country: "India", flag: "🇮🇳" },
+		{ code: "+86", country: "China", flag: "🇨🇳" },
+		{ code: "+81", country: "Japan", flag: "🇯🇵" },
+		{ code: "+61", country: "Australia", flag: "🇦🇺" },
+	];
 
 	useEffect(() => {
 		if (!isLoaded || !isSignedIn || !user) {
@@ -64,10 +81,16 @@ export default function MissingPhoneModal() {
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (phone.length < 10) {
-			setError("Please enter a valid phone number");
+        
+        // Clean phone number (remove any non-digits)
+        const cleanPhone = phone.replace(/\D/g, "");
+        
+		if (cleanPhone.length < 10) {
+			setError("Please enter a valid phone number (at least 10 digits).");
 			return;
 		}
+
+        const fullPhoneNumber = `${countryCode}${cleanPhone}`;
 
 		setIsSubmitting(true);
 		setError("");
@@ -80,7 +103,7 @@ export default function MissingPhoneModal() {
 					"Content-Type": "application/json",
 					"Authorization": `Bearer ${token}`
 				},
-				body: JSON.stringify({ phone, email: user?.primaryEmailAddress?.emailAddress }),
+				body: JSON.stringify({ phone: fullPhoneNumber, email: user?.primaryEmailAddress?.emailAddress }),
 			});
 
 			if (res.ok) {
@@ -119,23 +142,41 @@ export default function MissingPhoneModal() {
 						To provide you with the best VIP real estate experience and send you instant property alerts, we need a valid phone number.
 					</DialogDescription>
 
-					<form onSubmit={handleSubmit} className="w-full space-y-4 mt-4">
+					<form onSubmit={handleSubmit} className="w-full space-y-4 mt-4 text-left">
 						<div className="space-y-2">
-							<Input
-								type="tel"
-								placeholder="Enter your phone number"
-								value={phone}
-								onChange={(e) => setPhone(e.target.value)}
-								className="h-12 text-center text-lg"
-                                required
-							/>
-							{error && <p className="text-red-500 text-sm">{error}</p>}
+                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Mobile Number</label>
+                            <div className="flex gap-2">
+                                <Select 
+                                    value={countryCode} 
+                                    onValueChange={(e) => setCountryCode(e)}
+                                >
+                                    <SelectTrigger className="w-28 h-12 rounded-xl border border-input bg-white text-base text-gray-700">
+                                        <SelectValue placeholder="Code" />
+                                    </SelectTrigger>
+                                    <SelectContent className="border max-h-50 rounded px-2 bg-white">
+                                        {countryCodes.map((c) => (
+                                            <SelectItem key={c.code} value={c.code}>
+                                                {c.flag} {c.code}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Input
+                                    type="tel"
+                                    placeholder="Enter your phone number"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                                    className="h-12 text-lg flex-1 rounded-xl"
+                                    required
+                                />
+                            </div>
+							{error && <p className="text-red-500 text-sm mt-1">{error}</p>}
 						</div>
 						
 						<Button 
 							type="submit" 
 							disabled={isSubmitting}
-							className="w-full bg-red-600 hover:bg-red-700 text-white font-bold h-12 rounded-xl"
+							className="w-full bg-red-600 hover:bg-red-700 text-white font-bold h-12 rounded-xl mt-2"
 						>
 							{isSubmitting ? "Updating..." : "Save & Continue"}
 						</Button>
