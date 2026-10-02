@@ -8,20 +8,22 @@ import {
 	mapFiltersToLeadSearch,
 } from "@/lib/leads/client";
 import { RootState } from "@/state/store";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
+import { parseLocationFromPathname } from "@/lib/search-filters";
 
 export default function SaveSearchButton() {
 	const { filters } = useSelector((state: RootState) => state.search);
 	const { isLoaded, isSignedIn } = useAuth();
 	const router = useRouter();
+    const pathname = usePathname();
 	const [loading, setLoading] = useState(false);
 
-	const buildSearchName = () => {
-		if (filters.city || filters.propertyTypes.length > 0) {
-			return `${filters.city || ""} ${filters.propertyTypes.join(", ")}`.trim();
+	const buildSearchName = (activeFilters: any) => {
+		if (activeFilters.city || activeFilters.propertyTypes.length > 0) {
+			return `${activeFilters.city || ""} ${activeFilters.propertyTypes.join(", ")}`.trim();
 		}
 		return "My Saved Search";
 	};
@@ -40,9 +42,18 @@ export default function SaveSearchButton() {
 		try {
 			setLoading(true);
 
+            // Extract location from URL in case Redux missed it from direct navigation
+            const location = parseLocationFromPathname(pathname);
+            
+            const fullFilters = {
+                ...filters,
+                city: filters.city || location.city,
+                developmentName: filters.developmentName || location.developmentName,
+            };
+
 			await createSavedSearch({
-				name: buildSearchName(),
-				filters: mapFiltersToLeadSearch(filters),
+				name: buildSearchName(fullFilters),
+				filters: mapFiltersToLeadSearch(fullFilters),
 				frequency: "Daily",
 				notify: true,
 			});
