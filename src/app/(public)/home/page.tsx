@@ -11,6 +11,7 @@ import BlogSection from "@/components/blogs/blogSection";
 import CityFAQ from "@/components/city/city-faq";
 
 import ReviewsSection from "@/components/home/scrollingReviewSection";
+import { getFeaturedProperties } from "@/lib/properties/getFeaturedProperties";
 // Enhanced metadata generation with comprehensive SEO
 export async function generateMetadata(): Promise<Metadata> {
 	const siteUrl = "https://gulfshoregroup.com";
@@ -87,10 +88,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
+	const latestProperties = await getFeaturedProperties();
+
 	return (
 		<>
 			<Hero />
 			<PropertySection
+				initialProperties={latestProperties}
 				props={
 					<>
 						<div className="flex flex-col text-start items-start pb-5 justify-start">

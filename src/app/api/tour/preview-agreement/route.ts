@@ -35,38 +35,38 @@ export async function GET(req: NextRequest) {
     // --- PAGE 1 STAMPING ---
     if (name) page1.drawText(name, { x: 92, y: 672, size: 10 });
     page1.drawText("GulfShore Group with London Foster Realty", { x: 100, y: 652, size: 10 });
-    page1.drawText("X", { x: 88, y: 486, size: 11 }); // Transaction Broker
+    page1.drawText("X", { x: 84.3, y: 488, size: 9.5 }); // Transaction Broker Checkbox (centered in box)
     page1.drawText(todayStr, { x: 85, y: 355, size: 10 }); // Commencement
     page1.drawText(sixMonthsStr, { x: 375, y: 355, size: 10 }); // Termination
-    page1.drawText("X", { x: 75, y: 177, size: 11 }); // 3% Checkbox
-    page1.drawText("3", { x: 110, y: 177, size: 10 }); // 3% Text
+    page1.drawText("X", { x: 74.7, y: 181.5, size: 9.5 }); // 3% Checkbox (centered in box)
+    page1.drawText("3", { x: 92, y: 181, size: 10 }); // 3% Text
 
     // --- PAGE 3 STAMPING ---
-    page3.drawText(todayStr, { x: 235, y: 405, size: 10 }); // Buyer Date
-    page3.drawText(name || "", { x: 70, y: 385, size: 10 }); // Buyer Printed Name
-    page3.drawText("Provided on Tour Request", { x: 180, y: 345, size: 10 }); // Mailing Address
-    if (phone) page3.drawText(phone, { x: 240, y: 320, size: 10 }); // Phone
-    if (email) page3.drawText(email, { x: 140, y: 290, size: 10 }); // Email
+    page3.drawText(todayStr, { x: 242, y: 418, size: 10 }); // Buyer Date (on line at y=415.3)
+    page3.drawText(name || "", { x: 60, y: 381, size: 10 }); // Buyer Printed Name (on line at y=378.3)
+    page3.drawText("Provided on Tour Request", { x: 140, y: 346, size: 10 }); // Mailing Address (on line at y=344.0)
+    if (phone) page3.drawText(phone, { x: 240, y: 318, size: 10 }); // Phone (on line at y=316.0)
+    if (email) page3.drawText(email, { x: 95, y: 300, size: 10 }); // Email (on line at y=297.7)
 
-    // Broker Authorized Signature & Licensee Info (we can pre-stamp the broker signature)
+    // Broker Authorized Signature & Licensee Info (pre-stamp on line at y=243.3)
     const brokerSigPath = path.join(process.cwd(), "public", "imgs", "broker-signature.png");
     if (fs.existsSync(brokerSigPath)) {
         const brokerSigBytes = fs.readFileSync(brokerSigPath);
         const brokerSigImage = await pdfDoc.embedPng(brokerSigBytes);
         const brokerSigDims = brokerSigImage.scale(0.25);
         page3.drawImage(brokerSigImage, {
-            x: 90,
-            y: 238,
+            x: 60,
+            y: 245,
             width: Math.min(brokerSigDims.width, 160),
             height: Math.min(brokerSigDims.height, 45),
         });
     } else {
-        page3.drawText("Dimitri Schwarz", { x: 90, y: 238, size: 12 });
+        page3.drawText("Dimitri Schwarz", { x: 60, y: 246, size: 12 });
     }
-    page3.drawText(todayStr, { x: 280, y: 238, size: 10 });
-    page3.drawText("DIMITRI SCHWARZ", { x: 380, y: 238, size: 10 });
-    page3.drawText("London Foster Realty", { x: 230, y: 195, size: 10 });
-    page3.drawText("2367 Vanderbilt Beach Rd Suite 812, Naples, FL 34109", { x: 230, y: 175, size: 9 });
+    page3.drawText(todayStr, { x: 246, y: 246, size: 10 }); // Broker Date
+    page3.drawText("DIMITRI SCHWARZ", { x: 335, y: 246, size: 10 }); // Licensee Name
+    page3.drawText("London Foster Realty", { x: 160, y: 195, size: 10 }); // Brokerage Name (on line at y=192.3)
+    page3.drawText("2367 Vanderbilt Beach Rd Suite 812, Naples, FL 34109", { x: 150, y: 157, size: 9 }); // Broker Address (on line at y=155.0)
 
     const pdfBytes = await pdfDoc.save();
 

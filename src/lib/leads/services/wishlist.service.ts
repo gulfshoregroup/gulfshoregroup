@@ -73,6 +73,7 @@ export async function addToWishlist(leadId: string, propertyId: string) {
 		});
 	}
 
+	leadWishlistSetCache.delete(leadId);
 	return { item, created: true };
 }
 
@@ -92,21 +93,29 @@ export async function removeFromWishlist(leadId: string, propertyId: string) {
 	}
 
 	await prisma.savedProperty.delete({ where: { id: existing.id } });
+	leadWishlistSetCache.delete(leadId);
 	return { propertyId };
 }
+
+// In-memory set of saved property IDs per lead (30s TTL, deduplicates requests from card grids)
+const leadWishlistSetCache = new Map<string, { ids: Set<string>; expiresAt: number }>();
 
 export async function isPropertyWishlisted(
 	leadId: string,
 	propertyId: string
 ): Promise<{ saved: boolean }> {
-	const existing = await prisma.savedProperty.findUnique({
-		where: {
-			leadId_propertyId: { leadId, propertyId },
-		},
-		select: { id: true },
-	});
+	let cached = leadWishlistSetCache.get(leadId);
+	if (!cached || cached.expiresAt <= Date.now()) {
+		const items = await prisma.savedProperty.findMany({
+			where: { leadId },
+			select: { propertyId: true },
+		});
+		const ids = new Set(items.map(i => i.propertyId));
+		cached = { ids, expiresAt: Date.now() + 30000 };
+		leadWishlistSetCache.set(leadId, cached);
+	}
 
-	return { saved: Boolean(existing) };
+	return { saved: cached.ids.has(propertyId) };
 }
 
 export async function listWishlist(

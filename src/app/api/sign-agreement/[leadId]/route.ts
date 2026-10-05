@@ -117,26 +117,26 @@ export async function POST(
     });
 
     // ─── PAGE 1 STAMPING ───
-    page1.drawText(name, { x: 120, y: 712, size: 10 });
-    page1.drawText("GulfShore Group with London Foster Realty", { x: 120, y: 694, size: 10 });
-    page1.drawText("X", { x: 122, y: 628, size: 11 });
-    page1.drawText(todayStr, { x: 160, y: 498, size: 10 });
-    page1.drawText(sixMonthsStr, { x: 480, y: 498, size: 10 });
-    page1.drawText("X", { x: 122, y: 398, size: 11 });
-    page1.drawText("3", { x: 145, y: 398, size: 10 });
+    page1.drawText(name, { x: 92, y: 672, size: 10 });
+    page1.drawText("GulfShore Group with London Foster Realty", { x: 100, y: 652, size: 10 });
+    page1.drawText("X", { x: 84.3, y: 488, size: 9.5 });
+    page1.drawText(todayStr, { x: 85, y: 355, size: 10 });
+    page1.drawText(sixMonthsStr, { x: 375, y: 355, size: 10 });
+    page1.drawText("X", { x: 74.7, y: 181.5, size: 9.5 });
+    page1.drawText("3", { x: 92, y: 181, size: 10 });
 
     // ─── PAGE 3 — BUYER SECTION ───
     page3.drawImage(signatureImage, {
-      x: 90,
-      y: 220,
+      x: 60,
+      y: 417,
       width: Math.min(signatureDims.width, 160),
       height: Math.min(signatureDims.height, 45),
     });
-    page3.drawText(todayStr, { x: 410, y: 220, size: 10 });
-    page3.drawText(name, { x: 90, y: 195, size: 10 });
-    page3.drawText("On File", { x: 90, y: 175, size: 10 });
-    page3.drawText(phone, { x: 180, y: 155, size: 10 });
-    page3.drawText(email, { x: 130, y: 135, size: 10 });
+    page3.drawText(todayStr, { x: 242, y: 418, size: 10 });
+    page3.drawText(name, { x: 60, y: 381, size: 10 });
+    page3.drawText("Provided on Tour Request", { x: 140, y: 346, size: 10 });
+    page3.drawText(phone, { x: 240, y: 318, size: 10 });
+    page3.drawText(email, { x: 95, y: 300, size: 10 });
 
     // ─── PAGE 3 — BROKER SECTION ───
     const brokerSigPath = path.join(process.cwd(), "public", "imgs", "broker-signature.png");
@@ -145,18 +145,18 @@ export async function POST(
       const brokerSigImage = await pdfDoc.embedPng(brokerSigBytes);
       const brokerSigDims = brokerSigImage.scale(0.25);
       page3.drawImage(brokerSigImage, {
-        x: 90,
-        y: 105,
+        x: 60,
+        y: 245,
         width: Math.min(brokerSigDims.width, 160),
         height: Math.min(brokerSigDims.height, 45),
       });
     } else {
-      page3.drawText("Dimitri Schwarz", { x: 90, y: 105, size: 12 });
+      page3.drawText("Dimitri Schwarz", { x: 60, y: 246, size: 12 });
     }
-    page3.drawText(todayStr, { x: 300, y: 105, size: 10 });
-    page3.drawText("DIMITRI SCHWARZ", { x: 400, y: 105, size: 10 });
-    page3.drawText("London Foster Realty", { x: 230, y: 85, size: 10 });
-    page3.drawText("2367 Vanderbilt Beach Rd Suite 812, Naples, FL 34109", { x: 230, y: 65, size: 9 });
+    page3.drawText(todayStr, { x: 246, y: 246, size: 10 });
+    page3.drawText("DIMITRI SCHWARZ", { x: 335, y: 246, size: 10 });
+    page3.drawText("London Foster Realty", { x: 160, y: 195, size: 10 });
+    page3.drawText("2367 Vanderbilt Beach Rd Suite 812, Naples, FL 34109", { x: 150, y: 157, size: 9 });
 
     const pdfBytes = await pdfDoc.save();
 

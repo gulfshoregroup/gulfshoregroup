@@ -371,6 +371,10 @@ model Property {
   @@index([LivingArea])
   @@index([ModificationTimestamp])
   @@index([BridgeModificationTimestamp])
+  @@index([Community])
+  @@index([StandardStatus, Community])
+  @@index([StandardStatus, OnMarketTimestamp])
+  @@index([StandardStatus, ListPrice])
   @@map("properties")
 }
 

@@ -463,6 +463,8 @@ export default async function Listing({
 										height={400}
 										alt={`${Meta?.city || property.City || "Florida"} city view`}
 										src={Meta?.content?.Images?.[0] || "/map-bg.webp"}
+										loading="lazy"
+										unoptimized={Boolean(Meta?.content?.Images?.[0])}
 									/>
 									<div className="absolute h-full bottom-0 left-0 right-0 text-center bg-linear-to-t from-gray-900/80 via-black/60 to-transparent p-4 flex flex-col justify-end">
 										<div className="flex flex-col items-center justify-end h-full pb-4">

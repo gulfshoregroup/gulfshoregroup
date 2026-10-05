@@ -4,10 +4,12 @@ import redis, { isRedisUp } from "@/lib/redis";
 export async function redisGet(key: string) {
 	if (!isRedisUp() || !redis) return null;
 	try {
-		const value = await redis.get(key);
+		const value = (await Promise.race([
+			redis.get(key),
+			new Promise((_, reject) => setTimeout(() => reject(new Error("Redis get timeout")), 300)),
+		])) as string | null;
 		return value ? JSON.parse(value) : null;
 	} catch (err) {
-		console.error("Redis GET failed:", err);
 		return null; // fallback
 	}
 }
@@ -19,9 +21,11 @@ export async function redisSet(
 ) {
 	if (!isRedisUp() || !redis) return;
 	try {
-		await redis.set(key, JSON.stringify(value), "EX", ttlSeconds);
+		await Promise.race([
+			redis.set(key, JSON.stringify(value), "EX", ttlSeconds),
+			new Promise((_, reject) => setTimeout(() => reject(new Error("Redis set timeout")), 300)),
+		]);
 	} catch (err) {
-		console.error("Redis SET failed:", err);
 		// Do nothing – fallback mode
 	}
 }

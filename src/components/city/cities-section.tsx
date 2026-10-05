@@ -15,20 +15,33 @@ import {
 } from "../ui/carousel";
 import axios from "axios";
 
+const DEFAULT_FEATURED_CITIES = [
+	{ id: 1, name: "Naples", slug: "naples", defaultImage: null, images: null, _count: { communities: 371, properties: 4978 } },
+	{ id: 8, name: "BONITA SPRINGS", slug: "bonita-springs", defaultImage: null, images: null, _count: { communities: 105, properties: 902 } },
+	{ id: 12, name: "MARCO ISLAND", slug: "marco-island", defaultImage: null, images: null, _count: { communities: 11, properties: 483 } },
+	{ id: 11, name: "ESTERO", slug: "estero", defaultImage: null, images: null, _count: { communities: 51, properties: 516 } },
+	{ id: 3, name: "FORT MYERS", slug: "fort-myers", defaultImage: null, images: null, _count: { communities: 378, properties: 3157 } },
+	{ id: 6, name: "CAPE CORAL", slug: "cape-coral", defaultImage: null, images: null, _count: { communities: 112, properties: 4703 } },
+	{ id: 20, name: "AVE MARIA", slug: "ave-maria", defaultImage: null, images: null, _count: { communities: 2, properties: 222 } },
+	{ id: 16, name: "SANIBEL", slug: "sanibel", defaultImage: null, images: null, _count: { communities: 52, properties: 278 } },
+	{ id: 21, name: "CAPTIVA", slug: "captiva", defaultImage: null, images: null, _count: { communities: 15, properties: 83 } },
+	{ id: 22, name: "FORT MYERS BEACH", slug: "fort-myers-beach", defaultImage: null, images: null, _count: { communities: 85, properties: 632 } },
+	{ id: 19, name: "MIROMAR LAKES", slug: "miromar-lakes", defaultImage: null, images: null, _count: { communities: 1, properties: 40 } },
+	{ id: 9, name: "Babcock Ranch", slug: "babcock-ranch", defaultImage: null, images: null, _count: { communities: 0, properties: 36 } },
+	{ id: 5, name: "LEHIGH ACRES", slug: "lehigh-acres", defaultImage: null, images: null, _count: { communities: 50, properties: 4521 } },
+	{ id: 36, name: "IMMOKALEE", slug: "immokalee", defaultImage: null, images: null, _count: { communities: 5, properties: 27 } },
+];
+
 export default function CitiesSection() {
-	const [cities, setCities] = useState<any[]>([]);
+	const [cities, setCities] = useState<any[]>(DEFAULT_FEATURED_CITIES);
 	const router = useRouter();
 	useEffect(() => {
 		const fetchCities = async () => {
 			try {
-				console.log("Fetching cities...");
-				const cities = await axios.get(
-					`/api/v2/cities?type=featured&t=${Date.now()}`
+				const citiesRes = await axios.get(
+					`/api/v2/cities?type=featured`
 				);
-				if (!cities.data || !Array.isArray(cities.data.data)) {
-					console.log("No city data found or not an array");
-					return [];
-				} else {
+				if (citiesRes.data && Array.isArray(citiesRes.data.data) && citiesRes.data.data.length > 0) {
 					const allowedSWFL = [
 						"naples",
 						"bonita springs",
@@ -45,17 +58,17 @@ export default function CitiesSection() {
 						"lehigh acres",
 						"immokalee",
 					];
-					const filtered = cities.data.data.filter((c: any) =>
+					const filtered = citiesRes.data.data.filter((c: any) =>
 						c?.name &&
 						allowedSWFL.includes(c.name.trim().toLowerCase()) &&
 						(c._count?.properties ?? c._count?.communities ?? 1) > 0
 					);
-					console.log("Filtered cities count:", filtered.length);
-					setCities(filtered);
+					if (filtered.length > 0) {
+						setCities(filtered);
+					}
 				}
 			} catch (error) {
-				console.error("Error fetching cities:", error);
-				return [];
+				// Keep fallback default cities if fetch fails
 			}
 		};
 		fetchCities();
@@ -105,6 +118,7 @@ export default function CitiesSection() {
 										<div className="relative h-full w-full">
 											<Image
 												unoptimized
+												loading={index < 4 ? "eager" : "lazy"}
 												src={city.defaultImage || (Array.isArray(city.images) ? city.images[0] : null) || "/map-bg.webp"}
 												width={240}
 												height={320}

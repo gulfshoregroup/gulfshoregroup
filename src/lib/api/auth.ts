@@ -15,9 +15,17 @@ export async function requireClerkUserId(): Promise<string> {
  * Resolves the Prisma Lead row for the authenticated Clerk user.
  * Creates a lead record on first authenticated API call if the webhook has not run yet.
  */
+// In-memory cache for resolved leads (30s TTL to deduplicate parallel requests from multiple cards)
+const leadCache = new Map<string, { lead: Lead; expiresAt: number }>();
+
 export async function requireLead(): Promise<Lead> {
 	try {
 		const clerkUserId = await requireClerkUserId();
+
+		const cachedLead = leadCache.get(clerkUserId);
+		if (cachedLead && cachedLead.expiresAt > Date.now()) {
+			return cachedLead.lead;
+		}
 
 		// 1. Check if a lead with this clerkUserId already exists
 		const existingByClerkId = await prisma.lead.findFirst({
@@ -25,6 +33,7 @@ export async function requireLead(): Promise<Lead> {
 		});
 
 		if (existingByClerkId) {
+			leadCache.set(clerkUserId, { lead: existingByClerkId, expiresAt: Date.now() + 30000 });
 			return existingByClerkId;
 		}
 

@@ -1,8 +1,26 @@
-import { auth } from "@clerk/nextjs/server";
-
 import { NextRequest, NextResponse } from "next/server";
 import { redisGet, redisSet } from "@/lib/safeRedis";
 import prisma from "@/lib/prisma";
+
+// High-speed in-memory cache for ultra-fast repeated loads (10 min TTL)
+const propertyMemoryCache = new Map<string, { data: any; expiresAt: number }>();
+
+function getFromMemory(key: string) {
+	const item = propertyMemoryCache.get(key);
+	if (item && item.expiresAt > Date.now()) {
+		return item.data;
+	}
+	if (item) propertyMemoryCache.delete(key);
+	return null;
+}
+
+function setInMemory(key: string, data: any, ttlSeconds = 600) {
+	if (propertyMemoryCache.size > 2000) {
+		const firstKey = propertyMemoryCache.keys().next().value;
+		if (firstKey) propertyMemoryCache.delete(firstKey);
+	}
+	propertyMemoryCache.set(key, { data, expiresAt: Date.now() + ttlSeconds * 1000 });
+}
 
 export async function GET(
 	request: NextRequest,
@@ -10,22 +28,27 @@ export async function GET(
 ) {
 	try {
 		const { property } = await params;
-		const { userId } = await auth();
-
 		const Mls = property;
-		/**
-		 * 🌟 CACHE KEY (Different for logged-in and logged-out)
-		 */
-		const cacheKey = userId
-			? `property:${Mls}:user:${userId}`
-			: `property:${Mls}`;
+		const cacheKey = `property:${Mls}`;
 
-		// 1️⃣ CHECK REDIS CACHE FIRST
-		const cached = await redisGet(cacheKey);
-		if (typeof cached === "string") {
+		// 1️⃣ FAST IN-MEMORY CACHE (< 1ms response)
+		const memCached = getFromMemory(cacheKey);
+		if (memCached) {
 			return NextResponse.json({
 				success: true,
-				data: JSON.parse(cached),
+				data: memCached,
+				cached: true,
+			});
+		}
+
+		// 2️⃣ CHECK REDIS CACHE
+		const cached = await redisGet(cacheKey);
+		if (cached) {
+			const parsedData = typeof cached === "string" ? JSON.parse(cached) : cached;
+			setInMemory(cacheKey, parsedData, 600);
+			return NextResponse.json({
+				success: true,
+				data: parsedData,
 				cached: true,
 			});
 		}
@@ -48,44 +71,52 @@ export async function GET(
 		const resolvedImages =
 			res.images ?? (rawData?.Media ? rawData.Media : null);
 
-		// 🔥 Fetch similar properties
-		const communityValue = res.Community || res.MLSAreaMajor || "";
-		
-		const similarRaw: any[] = await prisma.property.findMany({
-			where: {
-				StandardStatus: "Active",
-				City: res.City,
-				OR: [
-					{ Community: communityValue },
-					{ MLSAreaMajor: communityValue },
-				],
-				ListingId: {
-					not: res.ListingId,
-				},
-				NOT: { PropertyType: { contains: "Lease" } },
-				// Match property type logic
-				...(res.PropertyType === "Land" || res.PropertyType?.includes("Lot") || res.PropertyType === "Lots & Land"
-					? { PropertyType: "Land" }
-					: res.PropertySubType === "Single Family Residence"
-					? { PropertySubType: "Single Family Residence" }
-					: res.PropertySubType?.includes("Rise") || res.PropertySubType === "Townhouse" || res.PropertyType?.includes("Condominium")
-					? { PropertySubType: { in: ["Low Rise (1-3)", "Mid Rise (4-7)", "High Rise (8+)", "Townhouse"] } }
-					: { PropertySubType: "Single Family Residence" }
-				)
+		// 🔥 Fetch similar properties using index directly (avoids full-table scan)
+		const similarWhere: any = {
+			StandardStatus: "Active",
+			City: res.City,
+			ListingId: { not: res.ListingId },
+			NOT: { PropertyType: { contains: "Lease" } },
+		};
+
+		if (res.Community) {
+			similarWhere.Community = res.Community;
+		} else if (res.MLSAreaMajor) {
+			similarWhere.MLSAreaMajor = res.MLSAreaMajor;
+		}
+
+		const similarRaw = await prisma.property.findMany({
+			where: similarWhere,
+			select: {
+				id: true,
+				ListingId: true,
+				MLSNumber: true,
+				FullAddress: true,
+				City: true,
+				StateOrProvince: true,
+				ListPrice: true,
+				BedroomsTotal: true,
+				BathroomsFull: true,
+				BathroomsHalf: true,
+				LivingArea: true,
+				PropertyType: true,
+				PropertySubType: true,
+				StandardStatus: true,
+				Community: true,
+				images: true,
 			},
 			take: 9,
 		});
 
-		// Inject images into similar properties too
+		// Format similar properties with image fallback
 		const similar = similarRaw.map((s: any) => {
-			const sRaw = s.raw as any;
-			const sImages = s.images ?? (sRaw?.Media ? sRaw.Media : null);
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			const { raw: _raw, ...rest } = s;
-			return { ...rest, images: sImages };
+			return {
+				...s,
+				images: s.images || null,
+			};
 		});
 
-		// Strip Media and PublicRemarks from raw to save space, but keep the rest for frontend
+		// Strip large Media from raw to save space, but keep the rest for frontend
 		const rawSubset = res.raw as any;
 		if (rawSubset) {
 			delete rawSubset.Media;
@@ -102,8 +133,9 @@ export async function GET(
 			similar,
 		};
 
-		// Cache logged-out version for 5 minutes
-		await redisSet(cacheKey, JSON.stringify(finalData), 1800);
+		// Cache in memory and Redis
+		setInMemory(cacheKey, finalData, 600);
+		await redisSet(cacheKey, finalData, 1800);
 
 		return NextResponse.json({
 			success: true,

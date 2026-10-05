@@ -1,6 +1,7 @@
 import ExtractSearchParams, {
 	SearchParamsResult,
 } from "@/hooks/extractSearchParams";
+import { cache } from "react";
 
 interface MetaData {
 	title: string;
@@ -24,12 +25,15 @@ interface MetaData {
 	};
 }
 
-export default async function fetchMetadataFromSlug(
+const fetchMetadataFromSlug = cache(async function fetchMetadataFromSlug(
 	params: string[]
 ): Promise<MetaData> {
 	try {
 		const slugs = await ExtractSearchParams(params);
-		const url = typeof window === 'undefined' ? (process.env.NEXT_PUBLIC_SERVER_URL || "https://gulfshoregroup.com") : "";
+		let url = typeof window === 'undefined' ? (process.env.NEXT_PUBLIC_SERVER_URL || "https://gulfshoregroup.com") : "";
+		if (typeof window === 'undefined' && process.env.NODE_ENV === 'development') {
+			url = `http://127.0.0.1:${process.env.PORT || 3000}`;
+		}
 
 		const query = new URLSearchParams(slugs as any).toString();
 
@@ -62,4 +66,7 @@ export default async function fetchMetadataFromSlug(
 				"SWFlorida Real-estate, Homes For Sale in Naples Florida, Homes For Sale in Southwest Florida, Southwest Florida Real Estate, Homes in Florida, Naples Real Estate",
 		};
 	}
-}
+});
+
+export default fetchMetadataFromSlug;
+
