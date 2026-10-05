@@ -517,15 +517,15 @@ import {
                         </Text>
                         <Text
                           style={{
-                            fontSize: "13px",
-                            color: "#9CA3AF",
+                            fontSize: "18px",
+                            color: "#4B5563",
                             margin: "0",
                             fontFamily: "'Poppins', Arial, sans-serif",
-                            fontWeight: "400",
+                            fontWeight: "500",
                             lineHeight: "1",
                           }}
                         >
-                          Southwest Florida Real Estate
+                          London Foster Realty
                         </Text>
                       </td>
                     </tr>
