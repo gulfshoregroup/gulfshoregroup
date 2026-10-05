@@ -39,6 +39,7 @@ export async function processSavedSearches() {
 			try {
 				const allMatchingProperties = new Map<string, any>();
 				const processedSearchIds: string[] = [];
+				let primarySearchQuery = "";
 
 				for (const search of searches) {
 					processedSearchIds.push(search.id);
@@ -168,6 +169,11 @@ export async function processSavedSearches() {
 						for (const prop of matchingProperties) {
 							allMatchingProperties.set(prop.id, prop);
 						}
+						
+						if (!primarySearchQuery) {
+							const q = searchParams.toString();
+							if (q) primarySearchQuery = q;
+						}
 					}
 				}
 
@@ -181,6 +187,10 @@ export async function processSavedSearches() {
 					const baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
 					
 					let targetPath = "/Florida-Real-Estate-Search?sort=Newest-First";
+					if (primarySearchQuery) {
+						targetPath = `/Florida-Real-Estate-Search?${primarySearchQuery}&sort=Newest-First`;
+					}
+
 					if (count === 1) {
 						const prop = propertiesArray[0];
 						targetPath = UrlMaker(prop.City || "", prop.Community || "", prop.FullAddress || "", prop.MLSNumber || "");

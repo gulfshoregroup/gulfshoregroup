@@ -222,6 +222,10 @@ export default function MobileFiltersModal({
 
 		// Append new query params
 		const queryParams = new URLSearchParams();
+		const viewParam = searchParams.get("view");
+		if (viewParam) {
+			queryParams.set("view", viewParam);
+		}
 		if (hoa && hoa !== "Any") queryParams.set("hoa", hoa);
 		if (minAcres) queryParams.set("minAcres", minAcres);
 		if (maxAcres) queryParams.set("maxAcres", maxAcres);
@@ -372,6 +376,10 @@ export default function MobileFiltersModal({
 
 		// Append new query params
 		const queryParams = new URLSearchParams();
+		const viewParam = searchParams.get("view");
+		if (viewParam) {
+			queryParams.set("view", viewParam);
+		}
 		if (hoa && hoa !== "Any") queryParams.set("hoa", hoa);
 		if (minAcres) queryParams.set("minAcres", minAcres);
 		if (maxAcres) queryParams.set("maxAcres", maxAcres);

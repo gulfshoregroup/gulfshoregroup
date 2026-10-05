@@ -83,6 +83,9 @@ export async function GET(req: NextRequest) {
     )}&key=${apiKey}`;
 
     const geocodeRes = await fetch(geocodeUrl, {
+      headers: {
+        "Referer": req.headers.get("referer") || "https://gulfshoregroup.com/",
+      },
       signal: AbortSignal.timeout(10000),
     });
     const geocodeData = await geocodeRes.json();
