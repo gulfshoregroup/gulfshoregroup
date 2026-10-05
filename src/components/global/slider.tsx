@@ -77,9 +77,9 @@ const SliderComponent = ({
 										alt={address + "-" + (index + 1)}
 										width={800}
 										height={800}
+										priority={index === 0}
 										loading={index === 0 ? "eager" : "lazy"}
-										placeholder="blur"
-										blurDataURL={image}
+										unoptimized
 										className="rounded-xl h-[calc(100vh/2)] w-full mx-auto object-cover"
 									/>
 									<Button
@@ -111,6 +111,7 @@ const SliderComponent = ({
 								width={550}
 								height={550}
 								loading="lazy"
+								unoptimized
 								className="rounded-lg object-cover h-24 sm:h-32 lg:h-[calc(100vh/4)] w-full"
 							/>
 							{/* Overlay for more images */}
@@ -158,6 +159,8 @@ const SliderComponent = ({
 													alt={address + "-" + (index + 1)}
 													width={2560}
 													height={1440}
+													loading="lazy"
+													unoptimized
 													className="rounded-xl h-full max-w-[98dvw] w-full max-h-[90dvh] mx-auto object-contain"
 												/>
 											</CarouselItem>

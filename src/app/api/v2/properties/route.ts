@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
 import { redisGet, redisSet } from "@/lib/safeRedis";
+import { getFeaturedProperties } from "@/lib/properties/getFeaturedProperties";
 
 const MAX_LIMIT = 200;
 
@@ -11,17 +11,50 @@ function parseNumber(value?: string | null) {
 	return Number.isFinite(n) ? n : undefined;
 }
 
+// High-speed in-memory cache for search results (persisted across Next.js dev server re-evaluations)
+const globalForSearch = globalThis as unknown as {
+	searchMemoryCache?: Map<string, { data: any; expiresAt: number }>;
+	countMemoryCache?: Map<string, { count: number; expiresAt: number }>;
+};
+
+const searchMemoryCache = globalForSearch.searchMemoryCache || new Map<string, { data: any; expiresAt: number }>();
+const countMemoryCache = globalForSearch.countMemoryCache || new Map<string, { count: number; expiresAt: number }>();
+
+if (process.env.NODE_ENV !== "production") {
+	globalForSearch.searchMemoryCache = searchMemoryCache;
+	globalForSearch.countMemoryCache = countMemoryCache;
+}
+
+function getFromSearchMemory(key: string) {
+	const item = searchMemoryCache.get(key);
+	if (item && item.expiresAt > Date.now()) return item.data;
+	if (item) searchMemoryCache.delete(key);
+	return null;
+}
+
+function setInSearchMemory(key: string, data: any, ttlSeconds = 600) {
+	if (searchMemoryCache.size > 2000) {
+		const firstKey = searchMemoryCache.keys().next().value;
+		if (firstKey) searchMemoryCache.delete(firstKey);
+	}
+	searchMemoryCache.set(key, { data, expiresAt: Date.now() + ttlSeconds * 1000 });
+}
+
 export async function GET(req: NextRequest) {
 	try {
 		const query = req.nextUrl.searchParams;
-		const { userId } = await auth();
-
-		const shouldCache = !userId;
 		const cacheKey = "search:v2:" + query.toString();
 
-		if (shouldCache) {
-			const cached = await redisGet(cacheKey);
-			if (cached) return NextResponse.json(JSON.parse(cached));
+		// 1️⃣ FAST IN-MEMORY CACHE (< 1ms response)
+		const memCached = getFromSearchMemory(cacheKey);
+		if (memCached) return NextResponse.json(memCached);
+
+		// 2️⃣ REDIS CACHE
+		const cached = await redisGet(cacheKey);
+		if (cached) {
+			const parsed = typeof cached === "string" ? JSON.parse(cached) : cached;
+			setInSearchMemory(cacheKey, parsed, 600);
+			return NextResponse.json(parsed);
 		}
 
 		// ---- Pagination ----
@@ -31,6 +64,34 @@ export async function GET(req: NextRequest) {
 			Math.max(1, Number(query.get("limit") || 10))
 		);
 		const skip = (page - 1) * limit;
+
+		// 3️⃣ FAST-PATH FOR HOMEPAGE FEATURED WIDGET (< 1ms response)
+		const isHomeFeaturedQuery =
+			(query.get("sort") === "OnMarketTimestamp" || query.get("sort") === "Newest-First") &&
+			limit === 8 &&
+			(query.get("order") === "desc" || !query.get("order")) &&
+			Number(query.get("minPrice")) === 500000 &&
+			!query.get("city") &&
+			!query.get("developmentName") &&
+			!query.get("q") &&
+			!query.get("search") &&
+			!query.get("beds") &&
+			!query.get("baths");
+
+		if (isHomeFeaturedQuery) {
+			const featured = await getFeaturedProperties();
+			const responsePayload = {
+				success: true,
+				count: featured.length,
+				data: featured,
+				total: featured.length,
+				page: 1,
+				limit: 8,
+				totalPages: 1,
+			};
+			setInSearchMemory(cacheKey, responsePayload, 600);
+			return NextResponse.json(responsePayload);
+		}
 
 		// ---- Sorting ----
 		let sortField = query.get("sort") || "ListPrice";
@@ -319,8 +380,27 @@ export async function GET(req: NextRequest) {
 		}
 
 		// ---- Queries ----
+		// For small widget/slider limits (limit <= 12, skip === 0, no page query), skip expensive 12s count scan
+		const isWidgetQuery = skip === 0 && limit <= 12 && !query.get("page") && query.get("count") !== "true";
+		
+		let totalPromise: Promise<number>;
+		if (isWidgetQuery) {
+			totalPromise = Promise.resolve(0);
+		} else {
+			const countKey = JSON.stringify(where);
+			const cachedCount = countMemoryCache.get(countKey);
+			if (cachedCount && cachedCount.expiresAt > Date.now()) {
+				totalPromise = Promise.resolve(cachedCount.count);
+			} else {
+				totalPromise = prisma.property.count({ where }).then(cnt => {
+					countMemoryCache.set(countKey, { count: cnt, expiresAt: Date.now() + 300 * 1000 });
+					return cnt;
+				});
+			}
+		}
+
 		const [total, properties] = await Promise.all([
-			prisma.property.count({ where }),
+			totalPromise,
 			prisma.property.findMany({
 				where,
 				skip,
@@ -466,10 +546,7 @@ export async function GET(req: NextRequest) {
 					images: true,
 					communityId: true,
 				  },
-				orderBy: [
-					{ [sortField]: sortOrder },
-					{ id: "asc" }
-				],
+				orderBy: { [sortField]: sortOrder },
 			}),
 		]);
 
@@ -482,17 +559,17 @@ export async function GET(req: NextRequest) {
 			};
 		});
 
+		const effectiveTotal = total || properties.length;
 		const response = {
 			success: true,
-			total,
+			total: effectiveTotal,
 			page,
-			totalPages: Math.ceil(total / limit),
+			totalPages: Math.max(1, Math.ceil(effectiveTotal / limit)),
 			data,
 		};
 
-		if (shouldCache) {
-			await redisSet(cacheKey, JSON.stringify(response), 7200);
-		}
+		setInSearchMemory(cacheKey, response, 600);
+		await redisSet(cacheKey, response, 7200);
 
 		return NextResponse.json(response);
 	} catch (error: any) {

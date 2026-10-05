@@ -6,38 +6,29 @@ let isConnected = false;
 const isDev = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_ENV === "DEV";
 
 try {
-	if (!isDev) {
-		redis = new Redis({
-			host: "127.0.0.1",
-			port: 6379,
-			password: "t730XEKRdfAY",
-			retryStrategy(times) {
-				// Don't spam retries
-				if (times > 3) return null;
-				return 1000;
-			},
-			maxRetriesPerRequest: 2,
-			connectTimeout: 200,
-		});
-	} else {
-		redis = new Redis({
-			host: "127.0.0.1",
-			port: 6379,
-			retryStrategy(times) {
-				// Fail fast in local dev if Redis isn't running
-				if (times > 1) return null;
-				return 1000;
-			},
-			maxRetriesPerRequest: 2,
-			connectTimeout: 200,
-		});
-	}
+	const redisOptions = {
+		host: process.env.REDIS_HOST || "127.0.0.1",
+		port: Number(process.env.REDIS_PORT) || 6379,
+		password: process.env.REDIS_PASSWORD || (!isDev ? "t730XEKRdfAY" : undefined),
+		enableOfflineQueue: false, // Never hang on offline queue
+		connectTimeout: 500,
+		maxRetriesPerRequest: 1,
+		retryStrategy(times: number) {
+			if (times > 2) return null;
+			return 1000;
+		},
+	};
+
+	redis = new Redis(redisOptions);
 } catch (err) {
 	redis = null;
 }
 
 if (redis) {
 	redis.on("connect", () => {
+		isConnected = true;
+	});
+	redis.on("ready", () => {
 		isConnected = true;
 	});
 	redis.on("error", () => {
@@ -49,7 +40,7 @@ if (redis) {
 }
 
 export function isRedisUp() {
-	return redis !== null && isConnected;
+	return redis !== null && isConnected && redis.status === "ready";
 }
 
 export default redis;

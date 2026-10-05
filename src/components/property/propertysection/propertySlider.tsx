@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import React, {
 	useEffect,
 	useState,
@@ -15,63 +14,32 @@ import PropertySkeletonCard from "@/components/cards/property/propertySkeletonCa
 import capitalizeWords from "@/hooks/capitalize-letter";
 import paramsToLink from "@/hooks/paramsToLink";
 import { Property } from "@/app/generated/prisma/client";
-
-// Dynamically import heavy components to defer their load
-const PropertyCard = dynamic(
-	() => import("@/components/cards/property/property-card"),
-	{
-		ssr: false,
-		loading: () => <PropertySkeletonCard />,
-	}
-);
-const Carousel = dynamic(
-	() => import("@/components/ui/carousel").then((m) => m.Carousel),
-	{
-		ssr: false,
-	}
-);
-const CarouselContent = dynamic(
-	() =>
-		import("@/components/ui/carousel").then((m) => m.CarouselContent),
-	{
-		ssr: false,
-	}
-);
-const CarouselItem = dynamic(
-	() =>
-		import("@/components/ui/carousel").then((m) => m.CarouselItem),
-	{
-		ssr: false,
-	}
-);
-const CarouselNext = dynamic(
-	() =>
-		import("@/components/ui/carousel").then((m) => m.CarouselNext),
-	{
-		ssr: false,
-	}
-);
-const CarouselPrevious = dynamic(
-	() =>
-		import("@/components/ui/carousel").then(
-			(m) => m.CarouselPrevious
-		),
-	{
-		ssr: false,
-	}
-);
+import PropertyCard from "@/components/cards/property/property-card";
+import {
+	Carousel,
+	CarouselContent,
+	CarouselItem,
+	CarouselNext,
+	CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface PropertySectionProps {
 	queryParams: Record<string, any>;
 	props?: React.ReactNode;
+	initialProperties?: Property[];
 }
 
 export default function PropertySection({
 	queryParams,
 	props,
+	initialProperties,
 }: PropertySectionProps) {
-	const [properties, setProperties] = useState<Property[]>([]);
-	const [loading, setLoading] = useState(true);
+	const [properties, setProperties] = useState<Property[]>(
+		initialProperties && initialProperties.length > 0 ? initialProperties : []
+	);
+	const [loading, setLoading] = useState(
+		!(initialProperties && initialProperties.length > 0)
+	);
 	const [isPending, startTransition] = useTransition();
 	const [error, setError] = useState<string | null>(null);
 
@@ -84,10 +52,17 @@ export default function PropertySection({
 		: "";
 
 	useEffect(() => {
+		// If initialProperties are already provided and we have data, skip initial client fetch
+		if (initialProperties && initialProperties.length > 0 && properties.length > 0) {
+			return;
+		}
+
 		startTransition(() => {
 			const fetchData = async () => {
 				try {
-					setLoading(true);
+					if (!properties || properties.length === 0) {
+						setLoading(true);
+					}
 					const baseUrl = typeof window === "undefined" ? (process.env.NEXT_PUBLIC_SERVER_URL || "https://gulfshoregroup.com") : "";
 					const response = await axios.get(
 						`${baseUrl}/api/v2/properties`,
@@ -95,7 +70,9 @@ export default function PropertySection({
 							params: { ...queryParams },
 						}
 					);
-					setProperties(response.data.data);
+					if (response.data && response.data.data) {
+						setProperties(response.data.data);
+					}
 				} catch (err: any) {
 					console.error("Error fetching properties:", err);
 					setError("Failed to load properties.");
@@ -106,7 +83,7 @@ export default function PropertySection({
 
 			fetchData();
 		});
-	}, []);
+	}, [queryParams, initialProperties]);
 
 	// Fallback skeleton while loading
 	if (loading)
