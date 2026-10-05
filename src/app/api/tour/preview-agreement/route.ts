@@ -35,11 +35,11 @@ export async function GET(req: NextRequest) {
     // --- PAGE 1 STAMPING ---
     if (name) page1.drawText(name, { x: 92, y: 672, size: 10 });
     page1.drawText("GulfShore Group with London Foster Realty", { x: 100, y: 652, size: 10 });
-    page1.drawText("X", { x: 88, y: 486, size: 11 }); // Transaction Broker
+    page1.drawText("X", { x: 84.3, y: 488, size: 9.5 }); // Transaction Broker Checkbox (centered in box)
     page1.drawText(todayStr, { x: 85, y: 355, size: 10 }); // Commencement
     page1.drawText(sixMonthsStr, { x: 375, y: 355, size: 10 }); // Termination
-    page1.drawText("X", { x: 75, y: 177, size: 11 }); // 3% Checkbox
-    page1.drawText("3", { x: 110, y: 177, size: 10 }); // 3% Text
+    page1.drawText("X", { x: 74.7, y: 181.5, size: 9.5 }); // 3% Checkbox (centered in box)
+    page1.drawText("3", { x: 92, y: 181, size: 10 }); // 3% Text
 
     // --- PAGE 3 STAMPING ---
     page3.drawText(todayStr, { x: 242, y: 418, size: 10 }); // Buyer Date (on line at y=415.3)

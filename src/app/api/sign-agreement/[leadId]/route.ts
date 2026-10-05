@@ -117,13 +117,13 @@ export async function POST(
     });
 
     // ─── PAGE 1 STAMPING ───
-    page1.drawText(name, { x: 120, y: 712, size: 10 });
-    page1.drawText("GulfShore Group with London Foster Realty", { x: 120, y: 694, size: 10 });
-    page1.drawText("X", { x: 122, y: 628, size: 11 });
-    page1.drawText(todayStr, { x: 160, y: 498, size: 10 });
-    page1.drawText(sixMonthsStr, { x: 480, y: 498, size: 10 });
-    page1.drawText("X", { x: 122, y: 398, size: 11 });
-    page1.drawText("3", { x: 145, y: 398, size: 10 });
+    page1.drawText(name, { x: 92, y: 672, size: 10 });
+    page1.drawText("GulfShore Group with London Foster Realty", { x: 100, y: 652, size: 10 });
+    page1.drawText("X", { x: 84.3, y: 488, size: 9.5 });
+    page1.drawText(todayStr, { x: 85, y: 355, size: 10 });
+    page1.drawText(sixMonthsStr, { x: 375, y: 355, size: 10 });
+    page1.drawText("X", { x: 74.7, y: 181.5, size: 9.5 });
+    page1.drawText("3", { x: 92, y: 181, size: 10 });
 
     // ─── PAGE 3 — BUYER SECTION ───
     page3.drawImage(signatureImage, {

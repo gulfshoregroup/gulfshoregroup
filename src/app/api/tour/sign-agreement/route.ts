@@ -53,15 +53,15 @@ export async function POST(req: NextRequest) {
     page1.drawText(name, { x: 92, y: 672, size: 10 });
     // Broker Name
     page1.drawText("GulfShore Group with London Foster Realty", { x: 100, y: 652, size: 10 });
-    // Transaction Broker Checkbox [X]
-    page1.drawText("X", { x: 88, y: 486, size: 11 });
+    // Transaction Broker Checkbox [X] (centered in box)
+    page1.drawText("X", { x: 84.3, y: 488, size: 9.5 });
     // Commencement Date
     page1.drawText(todayStr, { x: 85, y: 355, size: 10 });
     // Termination Date (6 months later)
     page1.drawText(sixMonthsStr, { x: 375, y: 355, size: 10 });
     // Broker Compensation Checkbox [X] and 3%
-    page1.drawText("X", { x: 75, y: 177, size: 11 });
-    page1.drawText("3", { x: 110, y: 177, size: 10 });
+    page1.drawText("X", { x: 74.7, y: 181.5, size: 9.5 });
+    page1.drawText("3", { x: 92, y: 181, size: 10 });
 
     // --- PAGE 3 STAMPING ---
     // Buyer Signature Image (on line at y=415.3)
