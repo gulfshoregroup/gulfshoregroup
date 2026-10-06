@@ -102,67 +102,104 @@ export async function GET(req: NextRequest) {
     const lat = location.lat;
     const lng = location.lng;
 
-    // 2. Query FEMA NFHL identify API
-    // Try layer-specific identify endpoint first (more reliable for ArcGIS)
-    const mapExtent = `${lng - 0.1},${lat - 0.1},${lng + 0.1},${lat + 0.1}`;
+    // 2. Query FEMA NFHL API
+    const mapExtent = `${lng - 0.05},${lat - 0.05},${lng + 0.05},${lat + 0.05}`;
     const buildFemaUrl = (endpoint: string) => {
       const url = new URL(endpoint);
-      url.searchParams.set("geometry", `${lng},${lat}`);
-      url.searchParams.set("geometryType", "esriGeometryPoint");
-      url.searchParams.set("sr", "4326");
-      url.searchParams.set("tolerance", "0");
-      url.searchParams.set("mapExtent", mapExtent);
-      url.searchParams.set("imageDisplay", "600,400,96");
-      url.searchParams.set("returnGeometry", "false");
-      url.searchParams.set("f", "json");
+      if (endpoint.endsWith("/query")) {
+        url.searchParams.set("geometry", `${lng},${lat}`);
+        url.searchParams.set("geometryType", "esriGeometryPoint");
+        url.searchParams.set("inSR", "4326");
+        url.searchParams.set("spatialRel", "esriSpatialRelIntersects");
+        url.searchParams.set("outFields", "FLD_ZONE,ZONE_SUBTY,SFHA_TF,FIRM_PAN,PANEL,EFF_DATE,PANEL_DATE,FLD_ZONE_CODE");
+        url.searchParams.set("returnGeometry", "false");
+        url.searchParams.set("f", "json");
+      } else {
+        url.searchParams.set("geometry", `${lng},${lat}`);
+        url.searchParams.set("geometryType", "esriGeometryPoint");
+        url.searchParams.set("sr", "4326");
+        url.searchParams.set("tolerance", "5");
+        url.searchParams.set("mapExtent", mapExtent);
+        url.searchParams.set("imageDisplay", "600,400,96");
+        url.searchParams.set("layers", "all:28,0");
+        url.searchParams.set("returnGeometry", "false");
+        url.searchParams.set("f", "json");
+      }
       return url;
     };
 
-    // Layer 28 is the Flood Hazard Zones layer in FEMA NFHL
+    // Valid ArcGIS REST API endpoints for FEMA NFHL
     const femaEndpoints = [
-      "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/identify",
-      "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/identify",
+      "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query",
       "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/identify",
+      "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query",
+      "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/identify",
+      "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query",
     ];
 
     let femaRes: Response | null = null;
+    let femaData: any = null;
     let lastError = "";
 
     for (const endpoint of femaEndpoints) {
       try {
         const url = buildFemaUrl(endpoint);
-        if (endpoint.includes("/MapServer/identify")) {
-          url.searchParams.set("layers", "all:28");
-        }
-
         const res = await fetch(url.toString(), {
           headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            Accept: "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9",
           },
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(10000),
         });
 
         if (res.ok) {
-          femaRes = res;
-          break;
+          const data = await res.json();
+          // Verify valid ArcGIS response (contains features or results array)
+          if (data && (Array.isArray(data.features) || Array.isArray(data.results))) {
+            femaRes = res;
+            femaData = data;
+            break;
+          } else if (data && data.error) {
+            lastError = `${endpoint} -> ArcGIS Error: ${data.error.message || JSON.stringify(data.error)}`;
+            console.log(`[FEMA Lookup] Endpoint error: ${lastError}`);
+          }
         } else {
           const text = await res.text().catch(() => "");
-          lastError = `${endpoint} -> ${res.status}: ${text.slice(0, 100)}`;
-          console.log(`[FEMA Lookup] Endpoint failed: ${lastError}`);
+          lastError = `${endpoint} -> HTTP ${res.status}: ${text.slice(0, 100)}`;
+          console.log(`[FEMA Lookup] Endpoint HTTP failed: ${lastError}`);
         }
       } catch (e: any) {
         lastError = `${endpoint} -> ${e.message}`;
-        console.log(`[FEMA Lookup] Endpoint error: ${lastError}`);
+        console.log(`[FEMA Lookup] Endpoint request error: ${lastError}`);
       }
     }
 
-    if (!femaRes) {
-      throw new Error(`FEMA API failed on all endpoints. Last error: ${lastError}`);
+    // Handle case where live FEMA API is unreachable or fails on all endpoints
+    if (!femaRes || !femaData) {
+      console.warn(`[FEMA Lookup] FEMA endpoints unreachable (${lastError}). Returning graceful fallback.`);
+      return NextResponse.json({
+        address: {
+          input: fullAddress,
+          matched: formattedAddress,
+          lat,
+          lng,
+        },
+        zone: "D",
+        zoneLabel: "Zone D (Undetermined)",
+        riskLevel: "Undetermined",
+        description:
+          "Live FEMA flood zone lookup service is temporarily unreachable or undergoing maintenance. Zone D indicates an area where flood hazards are undetermined, but possible.",
+        panelNumber: null,
+        panelDate: null,
+        isFallback: true,
+        disclaimer:
+          "Live FEMA lookup service is currently unreachable. For official flood determinations, consult an official FEMA FIRM map or surveyor.",
+      });
     }
 
-    const femaData = await femaRes.json();
-    const results = femaData.results || [];
+    // Extract results from either /query (features) or /identify (results)
+    const results = femaData.features || femaData.results || [];
 
     if (!results.length) {
       return NextResponse.json({
@@ -188,7 +225,7 @@ export async function GET(req: NextRequest) {
     const topResult = results[0];
     const attrs = topResult.attributes || {};
 
-    const rawZone = attrs.FLD_ZONE || attrs.FLD_ZONE_CODE || "";
+    const rawZone = attrs.FLD_ZONE || attrs.FLD_ZONE_CODE || attrs.ZONE || "";
     const zone = normalizeZone(rawZone);
     const zoneLabel = `Zone ${zone.replace(/_/g, " ")}`;
     const riskLevel = getRiskLevel(zone);
