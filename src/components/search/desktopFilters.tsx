@@ -163,7 +163,10 @@ export const Filters = ({
 
 	const scrollResultsToTop = () => {
 		if (typeof window !== "undefined") {
-			window.scrollTo({ top: 0, behavior: "smooth" });
+			const isMapView = searchParams.get("view") === "map";
+			if (!isMapView) {
+				window.scrollTo({ top: 0, behavior: "smooth" });
+			}
 			const container = document.getElementById("container");
 			container?.scrollTo({ top: 0, behavior: "smooth" });
 		}
