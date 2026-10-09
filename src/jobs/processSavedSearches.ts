@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { sendSMS } from "@/lib/twilio";
-import { buildQueryFromFilters } from "@/lib/search-filters";
+import { buildQueryFromFilters, buildSearchPathWithLocation } from "@/lib/search-filters";
 import { sendPropertyAlert } from "@/lib/leads/services/property-alerts";
 import UrlMaker from "@/hooks/url-maker";
 
@@ -40,6 +40,7 @@ export async function processSavedSearches() {
 				const allMatchingProperties = new Map<string, any>();
 				const processedSearchIds: string[] = [];
 				let primarySearchQuery = "";
+				let primarySearchBasePath = "/Florida-Real-Estate-Search";
 
 				for (const search of searches) {
 					processedSearchIds.push(search.id);
@@ -170,9 +171,15 @@ export async function processSavedSearches() {
 							allMatchingProperties.set(prop.id, prop);
 						}
 						
-						if (!primarySearchQuery) {
+						if (!primarySearchQuery && !primarySearchBasePath.includes("Florida-Real-Estate-Search/")) {
 							const q = searchParams.toString();
 							if (q) primarySearchQuery = q;
+							
+							const filtersObj = search.filters as any;
+							primarySearchBasePath = buildSearchPathWithLocation({
+								city: filtersObj?.city,
+								developmentName: filtersObj?.developmentName || filtersObj?.subdivision
+							});
 						}
 					}
 				}
@@ -186,9 +193,9 @@ export async function processSavedSearches() {
 					const rawBaseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
 					const baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
 					
-					let targetPath = "/Florida-Real-Estate-Search?sort=Newest-First";
+					let targetPath = `${primarySearchBasePath}?sort=Newest-First`;
 					if (primarySearchQuery) {
-						targetPath = `/Florida-Real-Estate-Search?${primarySearchQuery}&sort=Newest-First`;
+						targetPath = `${primarySearchBasePath}?${primarySearchQuery}&sort=Newest-First`;
 					}
 
 					if (count === 1) {
