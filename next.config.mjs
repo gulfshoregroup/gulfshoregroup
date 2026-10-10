@@ -11,6 +11,17 @@ const nextConfig = {
 		ignoreBuildErrors: true, // ⚠ Use only if you're sure type errors can be ignored
 	},
 
+	// Prevent Node.js-only packages from being bundled into Edge Runtime
+	// This fixes the "Failed to load external module node:dns" error
+	serverExternalPackages: [
+		"@prisma/client",
+		"prisma",
+		"twilio",
+		"nodemailer",
+		"bcrypt",
+		"bcryptjs",
+	],
+
 	images: {
 		formats: ["image/avif", "image/webp"], // modern formats first
 		remotePatterns: [

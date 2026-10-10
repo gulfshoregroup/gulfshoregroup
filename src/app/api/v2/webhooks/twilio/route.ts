@@ -3,6 +3,7 @@ import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import prisma from "@/lib/prisma";
 import { AI_SYSTEM_PROMPT } from "@/lib/ai/prompts";
+import { aiTools } from "@/lib/ai/tools";
 
 function escapeXml(unsafe: string): string {
 	return unsafe
@@ -67,11 +68,11 @@ export async function POST(req: NextRequest) {
 		// 3. Fetch past conversation history for context
 		const pastChats = await prisma.aIChatHistory.findMany({
 			where: { leadId: lead.id, channel: "sms" },
-			orderBy: { createdAt: "asc" },
+			orderBy: { createdAt: "desc" },
 			take: 10,
 		});
 
-		const messages: any = pastChats.map((chat: any) => ({
+		const messages: any = pastChats.reverse().map((chat: any) => ({
 			role: chat.role === "ai" || chat.role === "admin" ? "assistant" : "user",
 			content: chat.message,
 		}));
@@ -81,12 +82,14 @@ export async function POST(req: NextRequest) {
 		try {
 			const result = await generateText({
 				model: openai("gpt-4o-mini"),
+				maxSteps: 5,
 				system: `${AI_SYSTEM_PROMPT}
 
 CRITICAL SMS INSTRUCTIONS:
 You are texting with a lead via SMS. Keep your responses short, friendly, and conversational (under 160 characters if possible).
 Ask qualifying questions about budget, location, and timeline to buy/sell.`,
 				messages,
+				tools: aiTools,
 			});
 			text = result.text;
 		} catch (aiError: any) {

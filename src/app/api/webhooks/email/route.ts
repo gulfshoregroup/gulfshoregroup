@@ -8,6 +8,7 @@ import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { z } from "zod";
 import { AI_SYSTEM_PROMPT } from "@/lib/ai/prompts";
+import { aiTools } from "@/lib/ai/tools";
 
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy");
@@ -485,6 +486,8 @@ Write a polite, professional, and concise email reply to the user.
 
 		const aiResponse = await generateText({
 			model: openai("gpt-4o-mini"),
+			maxSteps: 5,
+			tools: aiTools,
 			prompt: aiPrompt,
 		});
 

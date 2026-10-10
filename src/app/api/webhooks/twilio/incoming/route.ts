@@ -4,6 +4,7 @@ import { sendSMS } from "@/lib/twilio";
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { AI_SYSTEM_PROMPT } from "@/lib/ai/prompts";
+import { aiTools } from "@/lib/ai/tools";
 
 export async function POST(req: NextRequest) {
 	try {
@@ -60,9 +61,12 @@ export async function POST(req: NextRequest) {
 		// 2. Fetch previous chat history for context (last 10 messages)
 		const previousChats = await prisma.aIChatHistory.findMany({
 			where: { leadId: leadId! },
-			orderBy: { createdAt: "asc" },
+			orderBy: { createdAt: "desc" },
 			take: 10,
 		});
+
+		// Reverse to chronological order for OpenAI
+		previousChats.reverse();
 
 		// Format history for OpenAI (admin/ai -> assistant, user -> user)
 		const openaiMessages = previousChats.map((c: any) => ({
@@ -74,6 +78,8 @@ export async function POST(req: NextRequest) {
 		console.log(`[Twilio Webhook] Generating AI reply for Lead ${leadId}...`);
 		const result = await generateText({
 			model: openai('gpt-4o-mini'),
+			maxSteps: 5,
+			tools: aiTools,
 			system: AI_SYSTEM_PROMPT + "\n\nCRITICAL: Keep your response short and suitable for an SMS text message (under 320 characters if possible). Do not use markdown formatting like asterisks or bolding, as SMS doesn't support it.",
 			messages: openaiMessages as any,
 		});
