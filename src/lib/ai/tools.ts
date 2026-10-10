@@ -443,7 +443,7 @@ export const aiTools = {
 
 			return properties.map((p: any) => ({
 				address: p.FullAddress,
-				price: p.ListPrice ? \`$\${p.ListPrice.toLocaleString()}\` : "Price TBD",
+				price: p.ListPrice ? `$${p.ListPrice.toLocaleString()}` : "Price TBD",
 				beds: p.BedroomsTotal,
 				baths: p.BathroomsTotalInteger,
 				pool: p.PoolPrivateYN ? "Yes" : "No",
@@ -485,7 +485,7 @@ export const aiTools = {
 
 			try {
 				// Find or create lead
-				const leadEmail = email || \`\${phone?.replace(/[^0-9]/g, "") || Date.now()}@chatbot-lead.com\`;
+				const leadEmail = email || `${phone?.replace(/[^0-9]/g, "") || Date.now()}@chatbot-lead.com`;
 				let lead = await prisma.lead.findFirst({
 					where: {
 						OR: [
@@ -517,14 +517,14 @@ export const aiTools = {
 						leadId: lead.id,
 						type: "Tour_Request",
 						message: [
-							\`Tour Request from AI Chatbot\`,
-							\`Name: \${name}\`,
-							email ? \`Email: \${email}\` : null,
-							phone ? \`Phone: \${phone}\` : null,
-							preferredDate ? \`Preferred Date: \${preferredDate}\` : null,
-							propertyAddress ? \`Property: \${propertyAddress}\` : null,
-							message ? \`Notes: \${message}\` : null,
-						].filter(Boolean).join("\\n"),
+							"Tour Request from AI Chatbot",
+							`Name: ${name}`,
+							email ? `Email: ${email}` : null,
+							phone ? `Phone: ${phone}` : null,
+							preferredDate ? `Preferred Date: ${preferredDate}` : null,
+							propertyAddress ? `Property: ${propertyAddress}` : null,
+							message ? `Notes: ${message}` : null,
+						].filter(Boolean).join("\n"),
 					},
 				});
 
@@ -535,7 +535,7 @@ export const aiTools = {
 						leadName: name,
 						leadEmail: leadEmail,
 						timestamp: new Date(),
-						message: \`🏠 Tour Request via AI Chatbot\\n\\nName: \${name}\\n\${email ? \`Email: \${email}\\n\` : ""}\${phone ? \`Phone: \${phone}\\n\` : ""}\${preferredDate ? \`Preferred Date: \${preferredDate}\\n\` : ""}\${propertyAddress ? \`Property: \${propertyAddress}\\n\` : ""}\${message ? \`Notes: \${message}\` : ""}\`,
+						message: `🏠 Tour Request via AI Chatbot\n\nName: ${name}\n${email ? `Email: ${email}\n` : ""}${phone ? `Phone: ${phone}\n` : ""}${preferredDate ? `Preferred Date: ${preferredDate}\n` : ""}${propertyAddress ? `Property: ${propertyAddress}\n` : ""}${message ? `Notes: ${message}\n` : ""}`,
 					});
 				} catch (emailErr) {
 					console.error("Failed to send admin alert:", emailErr);
@@ -543,7 +543,7 @@ export const aiTools = {
 
 				return {
 					success: true,
-					message: \`Tour request booked successfully! Dimitri Schwarz will reach out to \${name} to confirm the appointment.\${preferredDate ? \` Preferred date: \${preferredDate}.\` : ""}\`,
+					message: `Tour request booked successfully! Dimitri Schwarz will reach out to ${name} to confirm the appointment.${preferredDate ? ` Preferred date: ${preferredDate}.` : ""}`,
 					leadId: lead.id,
 				};
 			} catch (err: any) {
