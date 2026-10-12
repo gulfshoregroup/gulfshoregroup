@@ -11,6 +11,7 @@ import BlogSection from "@/components/blogs/blogSection";
 import CityFAQ from "@/components/city/city-faq";
 
 import ReviewsSection from "@/components/home/scrollingReviewSection";
+import ClientTestimonialsSection from "@/components/home/client-testimonials-section";
 import { getFeaturedProperties } from "@/lib/properties/getFeaturedProperties";
 // Enhanced metadata generation with comprehensive SEO
 export async function generateMetadata(): Promise<Metadata> {
@@ -139,6 +140,7 @@ export default async function Home() {
 			</div>
 
 				<ReviewsSection />
+			<ClientTestimonialsSection />
 			<WhyChooseUs />
 			<FeaturesSection />
 		
