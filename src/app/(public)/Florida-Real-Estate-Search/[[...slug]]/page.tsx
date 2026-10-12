@@ -41,7 +41,11 @@ export default async function ListingsPage({
 	let heading = seoData?.heading;
 	
 	const searchKeyword = filter.developmentName || filter.city || filter.q || filter.subdivision || filter.school;
-	if (searchKeyword) {
+	if (sp.utm_source === "sms_alert" || sp.utm_source === "email_alert") {
+		heading = searchKeyword
+			? `New Matches in ${capitalizeWords(searchKeyword as string)}, FL`
+			: "Your New Property Matches";
+	} else if (searchKeyword) {
 		heading = `Listings in ${capitalizeWords(searchKeyword as string)}, FL`;
 	} else if (!heading) {
 		heading = "Listings in Florida and Surrounding Area";

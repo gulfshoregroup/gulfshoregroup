@@ -189,13 +189,27 @@ export async function GET(req: NextRequest) {
 
 		const mlsVal = query.get("MLSNumber") || query.get("mls");
 		if (mlsVal) {
-			where.AND = where.AND || [];
-			where.AND.push({
-				OR: [
-					{ MLSNumber: mlsVal },
-					{ ListingId: mlsVal },
-				],
-			});
+			const mlsList = mlsVal
+				.split(",")
+				.map((s) => s.trim())
+				.filter(Boolean);
+			if (mlsList.length === 1) {
+				where.AND = where.AND || [];
+				where.AND.push({
+					OR: [
+						{ MLSNumber: mlsList[0] },
+						{ ListingId: mlsList[0] },
+					],
+				});
+			} else if (mlsList.length > 1) {
+				where.AND = where.AND || [];
+				where.AND.push({
+					OR: [
+						{ MLSNumber: { in: mlsList } },
+						{ ListingId: { in: mlsList } },
+					],
+				});
+			}
 		}
 
 		// ---- Exclude a specific MLS number (used on property detail page to hide current listing) ----

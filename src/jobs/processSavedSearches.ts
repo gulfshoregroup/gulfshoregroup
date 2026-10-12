@@ -193,14 +193,32 @@ export async function processSavedSearches() {
 					const rawBaseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
 					const baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
 					
-					let targetPath = `${primarySearchBasePath}?sort=Newest-First`;
+					// If multiple properties matched across different cities, use base path so none get excluded by city slug
+					const distinctCities = new Set(propertiesArray.map((p) => (p.City || "").trim().toLowerCase()).filter(Boolean));
+					let effectiveBasePath = primarySearchBasePath;
+					if (distinctCities.size > 1) {
+						effectiveBasePath = "/Florida-Real-Estate-Search";
+					}
+
+					let targetPath = `${effectiveBasePath}?sort=Newest-First`;
 					if (primarySearchQuery) {
-						targetPath = `${primarySearchBasePath}?${primarySearchQuery}&sort=Newest-First`;
+						targetPath = `${effectiveBasePath}?${primarySearchQuery}&sort=Newest-First`;
 					}
 
 					if (count === 1) {
 						const prop = propertiesArray[0];
 						targetPath = UrlMaker(prop.City || "", prop.Community || "", prop.FullAddress || "", prop.MLSNumber || "");
+					} else {
+						// Pass exact matched MLS numbers so only the new matches are displayed (not entire city inventory)
+						const matchedMls = propertiesArray
+							.map((p) => p.MLSNumber)
+							.filter(Boolean)
+							.slice(0, 30)
+							.join(",");
+						if (matchedMls) {
+							const sep = targetPath.includes("?") ? "&" : "?";
+							targetPath = `${targetPath}${sep}mls=${encodeURIComponent(matchedMls)}`;
+						}
 					}
 
 					// Using the EXACT same link format as the email (with magic-login and utm tags)
@@ -227,7 +245,8 @@ export async function processSavedSearches() {
 						// shortSearchLink already set to longSearchLink above
 					}
 					
-					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, new properties matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES:\n\n${shortSearchLink}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group By London Foster Realty`;
+					const matchCountText = count === 1 ? "a new property" : `${count} new properties`;
+					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, ${matchCountText} matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES:\n\n${shortSearchLink}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group By London Foster Realty`;
 
 					// SEND SMS
 					if (lead.phone) {
