@@ -12,6 +12,12 @@ import CityFAQ from "@/components/city/city-faq";
 
 import ReviewsSection from "@/components/home/scrollingReviewSection";
 import { getFeaturedProperties } from "@/lib/properties/getFeaturedProperties";
+import dynamic from "next/dynamic";
+
+const FloodZoneLookup = dynamic(
+	() => import("@/components/property/FloodZoneLookup"),
+	{ ssr: false }
+);
 // Enhanced metadata generation with comprehensive SEO
 export async function generateMetadata(): Promise<Metadata> {
 	const siteUrl = "https://gulfshoregroup.com";
@@ -136,6 +142,15 @@ export default async function Home() {
 				<Suspense>
 					<CitiesSection />
 				</Suspense>
+			</div>
+
+			{/* FEMA Flood Zone Lookup Section (Requested after Search by City) */}
+			<div className="w-11/12 max-w-[1400px] mx-auto my-12">
+				<div className="max-w-3xl mx-auto">
+					<Suspense fallback={<div className="h-[250px] w-full rounded-xl bg-gray-100 animate-pulse" />}>
+						<FloodZoneLookup />
+					</Suspense>
+				</div>
 			</div>
 
 				<ReviewsSection />

@@ -144,6 +144,7 @@ export default function PropertyDetail(property: Property) {
 							defaultAddress={property.FullAddress?.split(",")[0] || ""}
 							defaultCity={property.City || ""}
 							defaultZip={property.PostalCode || ""}
+							autoCheck={true}
 						/>
 					</Suspense>
 				</div>
