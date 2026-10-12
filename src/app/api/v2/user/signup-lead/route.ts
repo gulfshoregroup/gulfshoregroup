@@ -25,6 +25,13 @@ export async function POST(req: Request) {
 			);
 		}
 
+		if (!phone || phone.replace(/\D/g, "").length < 10) {
+			return NextResponse.json(
+				{ success: false, error: "A valid phone number (at least 10 digits) is required" },
+				{ status: 400 }
+			);
+		}
+
 		const normalizedEmail = email.toLowerCase().trim();
 
 		// 1. Check if email or phone already exists

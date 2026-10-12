@@ -33,6 +33,7 @@ export default function SignUpForm() {
 	const [error, setError] = useState("");
 	const [showPhoneModal, setShowPhoneModal] = useState(false);
 	const [googleRedirectUrl, setGoogleRedirectUrl] = useState("");
+	const [googleUser, setGoogleUser] = useState<any>(null);
 
 	const [formData, setFormData] = useState({
 		firstName: "",
@@ -152,8 +153,9 @@ export default function SignUpForm() {
 							if (typeof sessionStorage !== "undefined") {
 								sessionStorage.setItem("just_signed_in", "true");
 							}
-							// New user without phone → show phone modal
-							if (data.isNewUser && !data.hasPhone) {
+							// User without phone in DB (new or existing) → show phone modal immediately!
+							if (data.needsPhone || !data.hasPhone) {
+								setGoogleUser(data.user);
 								setGoogleRedirectUrl(redirectUrl);
 								setShowPhoneModal(true);
 								setIsLoading(false);
@@ -311,7 +313,13 @@ export default function SignUpForm() {
 										const res = await fetch("/api/v2/user/update-phone", {
 											method: "POST",
 											headers: { "Content-Type": "application/json" },
-											body: JSON.stringify({ phone: `${countryCode}${phoneNumber.replace(/\D/g, "")}` }),
+											body: JSON.stringify({ 
+												phone: `${countryCode}${phoneNumber.replace(/\D/g, "")}`,
+												email: googleUser?.email || formData.email,
+												firstName: googleUser?.firstName || formData.firstName,
+												lastName: googleUser?.lastName || formData.lastName,
+												fullName: googleUser?.name || `${formData.firstName || ""} ${formData.lastName || ""}`.trim(),
+											}),
 										});
 										const data = await res.json();
 										if (data.success) {

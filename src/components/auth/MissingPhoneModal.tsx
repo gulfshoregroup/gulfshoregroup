@@ -50,33 +50,20 @@ export default function MissingPhoneModal() {
 			return;
 		}
 
-		// Check if user has a phone number in Clerk
-		const hasPhone = user.phoneNumbers && user.phoneNumbers.length > 0;
-        
-        // Check if user signed up with Google
-        const isGoogleAuth = user.externalAccounts && user.externalAccounts.some((acc: any) => acc.provider === "oauth_google");
-        
-        // Also check localStorage in case they just added it during this session
-        const phoneStored = localStorage.getItem(`phone_collected_${user.id}`);
+		// Check if user has a valid 10+ digit phone number
+		const hasPhone = Boolean(
+			user.phoneNumbers &&
+			user.phoneNumbers.length > 0 &&
+			user.phoneNumbers[0]?.phoneNumber &&
+			user.phoneNumbers[0].phoneNumber.replace(/\D/g, "").length >= 10
+		);
 
-        // Debugging logs for you (Check Browser Console)
-        console.log("MissingPhoneModal Debug: ", {
-            hasPhone,
-            phoneLength: user.phoneNumbers?.length,
-            isGoogleAuth,
-            externalAccounts: user.externalAccounts,
-            phoneStored,
-            pathname
-        });
-
-		// Client requested: "Pop up for phone number only needed when signing up with google."
-		if (!hasPhone && !phoneStored && isGoogleAuth) {
-            console.log("MissingPhoneModal: Opening modal");
+		if (!hasPhone) {
+			console.log("MissingPhoneModal: User has no valid phone in DB, opening modal.");
 			setIsOpen(true);
 		} else {
-            console.log("MissingPhoneModal: Not opening modal due to conditions.");
-            setIsOpen(false);
-        }
+			setIsOpen(false);
+		}
 	}, [isLoaded, isSignedIn, user, pathname]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -103,14 +90,16 @@ export default function MissingPhoneModal() {
 					"Content-Type": "application/json",
 					"Authorization": `Bearer ${token}`
 				},
-				body: JSON.stringify({ phone: fullPhoneNumber, email: user?.primaryEmailAddress?.emailAddress }),
+				body: JSON.stringify({ 
+					phone: fullPhoneNumber, 
+					email: user?.primaryEmailAddress?.emailAddress,
+					fullName: user?.fullName 
+				}),
 			});
 
 			if (res.ok) {
-                if (user) {
-                    localStorage.setItem(`phone_collected_${user.id}`, "true");
-                }
 				setIsOpen(false);
+				window.location.reload();
 			} else {
 				const data = await res.json();
 				setError(data.error || "Failed to update phone number");

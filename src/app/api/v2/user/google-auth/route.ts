@@ -53,93 +53,66 @@ export async function POST(req: Request) {
 		const lastName = payload.family_name || "";
 		const emailVerified = payload.email_verified === "true" || payload.email_verified === true;
 
-		// 1. Check if user already exists
-		let user = await prisma.user.findFirst({
+		// 1. Check if user or lead already exists
+		const existingUser = await prisma.user.findFirst({
+			where: { email: normalizedEmail },
+		});
+		const existingLead = await prisma.lead.findFirst({
 			where: { email: normalizedEmail },
 		});
 
-		let clerkId = user?.clerkId;
-		let isNewUser = false;
+		const userPhone = existingLead?.phone || (existingUser?.metadata as any)?.phone;
+		const hasValidPhone = Boolean(
+			userPhone && userPhone.replace(/\D/g, "").length >= 10
+		);
 
-		if (!user) {
-			// Generate a random strong password for Google users
-			const randomPwd = Math.random().toString(36).slice(-10) + Date.now().toString(36);
-			const pwdHash = hashPassword(randomPwd);
+		const clerkId =
+			existingUser?.clerkId ||
+			existingLead?.userId ||
+			`user_${Math.random().toString(36).substr(2, 9)}${Date.now().toString(36)}`;
 
-			// 3. Generate a unique clerkId
-			clerkId = `user_${Math.random().toString(36).substr(2, 9)}${Date.now().toString(36)}`;
+		const cookieStore = await cookies();
+		cookieStore.set("mock_signed_in", "true", { path: "/", maxAge: 31536000, httpOnly: false });
+		cookieStore.set("mock_user_email", normalizedEmail, { path: "/", maxAge: 31536000 });
+		cookieStore.set("mock_user_id", clerkId, { path: "/", maxAge: 31536000 });
+		cookieStore.set("mock_auth_provider", "google", { path: "/", maxAge: 31536000 });
 
-			// 4. Create User record
-			user = await prisma.user.create({
-				data: {
+		if (hasValidPhone) {
+			// Existing user who ALREADY has a phone number in DB
+			cookieStore.set("mock_user_phone", userPhone, { path: "/", maxAge: 31536000 });
+
+			return NextResponse.json({
+				success: true,
+				isNewUser: false,
+				needsPhone: false,
+				hasPhone: true,
+				user: {
+					id: existingUser?.id || existingLead?.id,
+					clerkId,
+					email: normalizedEmail,
+					name: existingUser?.name || existingLead?.fullName || `${firstName} ${lastName}`.trim(),
+				},
+			});
+		} else {
+			// User does NOT have a phone number in DB yet!
+			// DO NOT create lead with phone: null. Prompt for phone number first!
+			cookieStore.set("mock_user_phone", "", { path: "/", maxAge: 31536000 });
+
+			return NextResponse.json({
+				success: true,
+				isNewUser: !existingUser && !existingLead,
+				needsPhone: true,
+				hasPhone: false,
+				user: {
+					id: existingUser?.id || existingLead?.id,
 					clerkId,
 					email: normalizedEmail,
 					firstName,
 					lastName,
-					name: `${firstName} ${lastName}`.trim(),
-					metadata: { passwordHash: pwdHash, googleSignIn: true, emailVerified },
+					name: `${firstName} ${lastName}`.trim() || normalizedEmail.split("@")[0],
 				},
 			});
-			isNewUser = true;
-
-			// 5. Create or update Lead record
-			await prisma.lead.upsert({
-				where: { email: normalizedEmail },
-				update: {
-					userId: clerkId,
-					firstName,
-					lastName,
-					lastContactedAt: new Date(),
-				},
-				create: {
-					userId: clerkId,
-					firstName,
-					lastName,
-					email: normalizedEmail,
-					source: "Signup",
-					status: "New",
-					lastContactedAt: new Date(),
-				},
-			});
-
-			// Fire Admin Notification
-			(async () => {
-				try {
-					await sendAdminLeadAlertEmail({
-						action: "signup",
-						leadName: `${firstName} ${lastName}`.trim() || "New Google Auth User",
-						leadEmail: normalizedEmail,
-						timestamp: new Date(),
-						message: `New user signed up via Continue with Google.`,
-					});
-				} catch (err) {
-					console.error("Signup Admin Email trigger failed:", err);
-				}
-			})();
 		}
-
-		// 6. Set session cookies
-		const existingLead = await prisma.lead.findFirst({ where: { email: normalizedEmail } });
-		const cookieStore = await cookies();
-		cookieStore.set("mock_signed_in", "true", { path: "/", maxAge: 31536000, httpOnly: false });
-		cookieStore.set("mock_user_email", normalizedEmail, { path: "/", maxAge: 31536000 });
-		if (clerkId) {
-			cookieStore.set("mock_user_id", clerkId, { path: "/", maxAge: 31536000 });
-		}
-		cookieStore.set("mock_auth_provider", "google", { path: "/", maxAge: 31536000 });
-		cookieStore.set("mock_user_phone", existingLead?.phone || "", { path: "/", maxAge: 31536000 });
-
-		return NextResponse.json({
-			success: true,
-			isNewUser,
-			hasPhone: !!(existingLead?.phone),
-			user: {
-				id: user.id,
-				clerkId: user.clerkId,
-				email: user.email,
-				name: user.name,
-			},
-		});
 	} catch (err: any) {
 		console.error("Google Auth API error:", err);
 		return NextResponse.json(
