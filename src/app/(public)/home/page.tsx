@@ -15,8 +15,7 @@ import { getFeaturedProperties } from "@/lib/properties/getFeaturedProperties";
 import dynamic from "next/dynamic";
 
 const FloodZoneLookup = dynamic(
-	() => import("@/components/property/FloodZoneLookup"),
-	{ ssr: false }
+	() => import("@/components/property/FloodZoneLookup")
 );
 // Enhanced metadata generation with comprehensive SEO
 export async function generateMetadata(): Promise<Metadata> {
