@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@ai-sdk/openai";
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
 import prisma from "@/lib/prisma";
 import { AI_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { aiTools } from "@/lib/ai/tools";
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
 		try {
 			const result = await generateText({
 				model: openai("gpt-4o-mini"),
-				maxSteps: 5,
+				stopWhen: stepCountIs(5),
 				system: `${AI_SYSTEM_PROMPT}
 
 CRITICAL SMS INSTRUCTIONS:

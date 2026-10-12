@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { streamText, tool, convertToModelMessages } from "ai";
+import { streamText, tool, convertToModelMessages, stepCountIs } from "ai";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import UrlMaker from "@/hooks/url-maker";
@@ -97,11 +97,9 @@ export async function POST(req: Request) {
 			activeMessages = messages.slice(-10);
 		}
 
-		// @ts-ignore
 		const result = streamText({
 			model: openai("gpt-4o-mini"),
-			// @ts-ignore
-			maxSteps: 5,
+			stopWhen: stepCountIs(5),
 			system: getContextInjectedPrompt(propertyContext, currentUrl),
 			messages: await convertToModelMessages(activeMessages),
 			tools: aiTools,
@@ -122,6 +120,8 @@ export async function POST(req: Request) {
 
 					if (count > 0) {
 						finalMessage += `\n\n[Displayed ${count} properties] [Args: ${toolArgs}]`;
+					} else if (toolRet && toolRet.zone) {
+						finalMessage += `\n\n[FEMA Flood Zone: ${toolRet.zone} (${toolRet.riskLevel || ""})] [Args: ${toolArgs}]`;
 					} else if (toolRet && toolRet.found === true) {
 						// For seller check
 						finalMessage += `\n\n[Found Seller Properties] [Args: ${toolArgs}]`;

@@ -87,7 +87,12 @@ export default function AIChatWidget() {
 							</div>
 						)}
 						{messages.map((m) => {
-							const hasTextContent = Boolean(m.content && m.content.trim().length > 0);
+							const textContent = m.parts
+								?.filter((p: any) => p.type === "text" && p.text)
+								.map((p: any) => p.text)
+								.join("") || ((m as any).content || "");
+
+							const hasTextContent = Boolean(textContent.trim().length > 0);
 							const hasRenderableParts = Boolean(
 								m.parts &&
 								m.parts.some((part: any) => {
@@ -97,6 +102,7 @@ export default function AIChatWidget() {
 									if (part.type === "tool-calculateDistance" && "output" in part && part.output) return true;
 									if (part.type === "tool-findNearbyPlaces" && "output" in part && part.output) return true;
 									if (part.type === "tool-scheduleTour" && "output" in part && part.output) return true;
+									if (part.type === "tool-checkFloodZone" && "output" in part && part.output) return true;
 									return false;
 								})
 							);
@@ -120,11 +126,17 @@ export default function AIChatWidget() {
 												: "bg-white text-gray-800 border border-gray-100 rounded-tl-sm"
 										}`}
 									>
-										{m.content && <span>{m.content}</span>}
+										{/* Text content from parts or legacy content */}
 										{m.parts?.map((part: any, index: number) => {
-											if (part.type === "text" && !m.content) {
-												return <span key={index}>{part.text}</span>;
+											if (part.type === "text") {
+												return <span key={index} className="whitespace-pre-wrap">{part.text}</span>;
 											}
+											return null;
+										})}
+										{(!m.parts || m.parts.length === 0) && (m as any).content && (
+											<span className="whitespace-pre-wrap">{(m as any).content}</span>
+										)}
+										{m.parts?.map((part: any, index: number) => {
 											if (part.type === "tool-calculateDistance" && "output" in part && part.output) {
 												const res: any = part.output;
 												if (res.distance_miles && res.duration_traffic) {
@@ -232,6 +244,43 @@ export default function AIChatWidget() {
 														</div>
 													);
 												}
+											}
+											if (part.type === "tool-checkFloodZone" && "output" in part && part.output) {
+												const res: any = part.output;
+												if (res.error) {
+													return (
+														<div key={part.toolCallId || index} className="mt-2 p-2.5 bg-red-50 border border-red-100 rounded-lg text-xs text-red-800">
+															⚠️ {res.error}
+														</div>
+													);
+												}
+												const isHighRisk = Boolean(res.riskLevel && res.riskLevel.toLowerCase().includes("high"));
+												return (
+													<div key={part.toolCallId || index} className="mt-2.5 p-3 bg-gradient-to-br from-blue-50/70 to-gray-50 border border-blue-200/80 rounded-xl text-xs space-y-1.5 shadow-xs">
+														<div className="flex items-center justify-between gap-2 border-b border-blue-100 pb-1.5">
+															<span className="font-semibold text-primary flex items-center gap-1.5">
+																🌊 FEMA Flood Zone Result
+															</span>
+															<span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
+																isHighRisk
+																	? "bg-red-100 text-red-700 border border-red-200"
+																	: "bg-emerald-100 text-emerald-700 border border-emerald-200"
+															}`}>
+																{res.zone || "Zone"} {res.riskLevel ? `• ${res.riskLevel}` : ""}
+															</span>
+														</div>
+														{res.address && (
+															<p className="text-gray-700 font-medium text-[11px]">
+																📍 {res.address}
+															</p>
+														)}
+														{res.description && (
+															<p className="text-gray-600 text-[11px] leading-relaxed">
+																{res.description}
+															</p>
+														)}
+													</div>
+												);
 											}
 											return null;
 										})}

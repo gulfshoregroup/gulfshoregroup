@@ -5,7 +5,7 @@ import UrlMaker from "@/hooks/url-maker";
 import { sendAdminLeadAlertEmail } from "@/lib/email/admin-lead-alert";
 import { recalculateLeadScore } from "@/lib/leads/services/scoring.service";
 import { openai } from "@ai-sdk/openai";
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
 import { z } from "zod";
 import { AI_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { aiTools } from "@/lib/ai/tools";
@@ -486,7 +486,7 @@ Write a polite, professional, and concise email reply to the user.
 
 		const aiResponse = await generateText({
 			model: openai("gpt-4o-mini"),
-			maxSteps: 5,
+			stopWhen: stepCountIs(5),
 			tools: aiTools,
 			prompt: aiPrompt,
 		});

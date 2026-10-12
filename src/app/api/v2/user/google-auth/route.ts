@@ -66,10 +66,22 @@ export async function POST(req: Request) {
 			userPhone && userPhone.replace(/\D/g, "").length >= 10
 		);
 
-		const clerkId =
+		let clerkId =
 			existingUser?.clerkId ||
 			existingLead?.userId ||
 			`user_${Math.random().toString(36).substr(2, 9)}${Date.now().toString(36)}`;
+
+		if (clerkId) {
+			const isTaken = await prisma.lead.findFirst({
+				where: {
+					userId: clerkId,
+					...(existingLead ? { id: { not: existingLead.id } } : {}),
+				},
+			});
+			if (isTaken || clerkId === "guest-user-id") {
+				clerkId = `user_${Math.random().toString(36).substr(2, 9)}${Date.now().toString(36)}`;
+			}
+		}
 
 		const cookieStore = await cookies();
 		cookieStore.set("mock_signed_in", "true", { path: "/", maxAge: 31536000, httpOnly: false });

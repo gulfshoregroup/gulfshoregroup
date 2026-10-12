@@ -46,11 +46,37 @@ export async function POST(req: Request) {
 			where: { email: targetEmail },
 		});
 
-		const resolvedClerkId =
-			existingUser?.clerkId ||
-			existingLead?.userId ||
-			cookieUserId ||
-			`user_${Math.random().toString(36).substr(2, 9)}${Date.now().toString(36)}`;
+		// Determine candidate user ID, verifying that it is NOT in use by any other lead or a guest ID
+		let candidateUserId: string | null = null;
+
+		if (existingLead?.userId) {
+			candidateUserId = existingLead.userId;
+		} else if (existingUser?.clerkId) {
+			const isLeadTaken = await prisma.lead.findFirst({
+				where: {
+					userId: existingUser.clerkId,
+					...(existingLead ? { id: { not: (existingLead as any).id } } : {}),
+				},
+			});
+			if (!isLeadTaken) {
+				candidateUserId = existingUser.clerkId;
+			}
+		} else if (cookieUserId && cookieUserId !== "guest-user-id") {
+			const isLeadTaken = await prisma.lead.findFirst({
+				where: {
+					userId: cookieUserId,
+					...(existingLead ? { id: { not: (existingLead as any).id } } : {}),
+				},
+			});
+			if (!isLeadTaken) {
+				candidateUserId = cookieUserId;
+			}
+		}
+
+		// If no valid unique candidateUserId, generate a guaranteed unique ID
+		if (!candidateUserId) {
+			candidateUserId = `user_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`;
+		}
 
 		const resolvedFirstName =
 			firstName || existingLead?.firstName || existingUser?.firstName || "";
@@ -67,9 +93,17 @@ export async function POST(req: Request) {
 
 		// 1. Update or Create User
 		if (!existingUser) {
+			// Ensure candidateUserId isn't colliding in User table either
+			const userTaken = await prisma.user.findFirst({
+				where: { clerkId: candidateUserId },
+			});
+			const userClerkId = userTaken
+				? `user_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`
+				: candidateUserId;
+
 			existingUser = await prisma.user.create({
 				data: {
-					clerkId: resolvedClerkId,
+					clerkId: userClerkId,
 					email: targetEmail,
 					firstName: resolvedFirstName,
 					lastName: resolvedLastName,
@@ -77,6 +111,7 @@ export async function POST(req: Request) {
 					metadata: { googleSignIn: true, phone },
 				},
 			});
+			candidateUserId = userClerkId;
 		} else {
 			await prisma.user.update({
 				where: { id: existingUser.id },
@@ -89,40 +124,120 @@ export async function POST(req: Request) {
 			});
 		}
 
-		// 2. Update or Create Lead
+		// 2. Update or Create Lead safely
 		if (existingLead) {
 			if (existingLead.phone && existingLead.phone.trim().length >= 10) {
 				hadPhoneAlready = true;
 			}
+
+			// If existingLead doesn't have a userId, assign candidateUserId (verifying uniqueness)
+			let updateUserId = existingLead.userId;
+			if (!updateUserId) {
+				const isTaken = await prisma.lead.findFirst({
+					where: { userId: candidateUserId, id: { not: existingLead.id } },
+				});
+				updateUserId = isTaken
+					? `user_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`
+					: candidateUserId;
+			}
+
 			existingLead = await prisma.lead.update({
 				where: { id: existingLead.id },
 				data: {
 					phone,
-					userId: existingLead.userId || resolvedClerkId,
+					userId: updateUserId,
 					fullName: resolvedFullName,
 					lastContactedAt: new Date(),
 				},
 			});
+			candidateUserId = updateUserId;
 		} else {
-			existingLead = await prisma.lead.create({
-				data: {
-					userId: resolvedClerkId,
-					firstName: resolvedFirstName,
-					lastName: resolvedLastName,
-					fullName: resolvedFullName,
-					email: targetEmail,
-					phone,
-					source: "Signup",
-					status: "New",
-					lastContactedAt: new Date(),
-				},
+			// Double check if lead already exists by email before creating
+			const checkLead = await prisma.lead.findFirst({
+				where: { email: targetEmail },
 			});
+
+			if (checkLead) {
+				if (checkLead.phone && checkLead.phone.trim().length >= 10) {
+					hadPhoneAlready = true;
+				}
+				existingLead = await prisma.lead.update({
+					where: { id: checkLead.id },
+					data: {
+						phone,
+						fullName: resolvedFullName,
+						lastContactedAt: new Date(),
+					},
+				});
+				if (checkLead.userId) {
+					candidateUserId = checkLead.userId;
+				}
+			} else {
+				// Final check: ensure candidateUserId is NOT taken by any lead
+				const leadUserIdTaken = await prisma.lead.findFirst({
+					where: { userId: candidateUserId },
+				});
+				if (leadUserIdTaken) {
+					candidateUserId = `user_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`;
+				}
+
+				try {
+					existingLead = await prisma.lead.create({
+						data: {
+							userId: candidateUserId,
+							firstName: resolvedFirstName,
+							lastName: resolvedLastName,
+							fullName: resolvedFullName,
+							email: targetEmail,
+							phone,
+							source: "Signup",
+							status: "New",
+							lastContactedAt: new Date(),
+						},
+					});
+				} catch (createErr: any) {
+					// Fallback handler if concurrent requests or race condition triggered unique constraint
+					if (createErr.code === "P2002" || createErr.message?.includes("Unique constraint")) {
+						const retryLead = await prisma.lead.findFirst({
+							where: { email: targetEmail },
+						});
+						if (retryLead) {
+							existingLead = await prisma.lead.update({
+								where: { id: retryLead.id },
+								data: {
+									phone,
+									fullName: resolvedFullName,
+									lastContactedAt: new Date(),
+								},
+							});
+						} else {
+							// Collision was on userId, generate a guaranteed fresh unique one
+							candidateUserId = `user_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`;
+							existingLead = await prisma.lead.create({
+								data: {
+									userId: candidateUserId,
+									firstName: resolvedFirstName,
+									lastName: resolvedLastName,
+									fullName: resolvedFullName,
+									email: targetEmail,
+									phone,
+									source: "Signup",
+									status: "New",
+									lastContactedAt: new Date(),
+								},
+							});
+						}
+					} else {
+						throw createErr;
+					}
+				}
+			}
 		}
 
 		// 3. Set persistent cookies
 		cookieStore.set("mock_signed_in", "true", { path: "/", maxAge: 31536000, httpOnly: false });
 		cookieStore.set("mock_user_email", targetEmail, { path: "/", maxAge: 31536000 });
-		cookieStore.set("mock_user_id", resolvedClerkId, { path: "/", maxAge: 31536000 });
+		cookieStore.set("mock_user_id", candidateUserId, { path: "/", maxAge: 31536000 });
 		cookieStore.set("mock_user_phone", phone, { path: "/", maxAge: 31536000 });
 		cookieStore.set("mock_auth_provider", "google", { path: "/", maxAge: 31536000 });
 

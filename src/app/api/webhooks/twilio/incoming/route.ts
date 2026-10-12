@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendSMS } from "@/lib/twilio";
 import { openai } from "@ai-sdk/openai";
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
 import { AI_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { aiTools } from "@/lib/ai/tools";
 
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 		console.log(`[Twilio Webhook] Generating AI reply for Lead ${leadId}...`);
 		const result = await generateText({
 			model: openai('gpt-4o-mini'),
-			maxSteps: 5,
+			stopWhen: stepCountIs(5),
 			tools: aiTools,
 			system: AI_SYSTEM_PROMPT + "\n\nCRITICAL: Keep your response short and suitable for an SMS text message (under 320 characters if possible). Do not use markdown formatting like asterisks or bolding, as SMS doesn't support it.",
 			messages: openaiMessages as any,
