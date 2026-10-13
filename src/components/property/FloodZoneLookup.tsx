@@ -28,12 +28,14 @@ interface FloodZoneLookupProps {
   defaultAddress?: string;
   defaultCity?: string;
   defaultZip?: string;
+  autoCheck?: boolean;
 }
 
 export default function FloodZoneLookup({
   defaultAddress = "",
   defaultCity = "",
   defaultZip = "",
+  autoCheck = false,
 }: FloodZoneLookupProps) {
   const [address, setAddress] = useState(defaultAddress);
   const [city, setCity] = useState(defaultCity);
@@ -41,6 +43,34 @@ export default function FloodZoneLookup({
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<FloodZoneResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-check on mount if autoCheck is enabled and address/city/zip are present
+  React.useEffect(() => {
+    if (autoCheck && defaultAddress && defaultCity && defaultZip) {
+      const doLookup = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const params = new URLSearchParams({
+            address: defaultAddress,
+            city: defaultCity,
+            zip: defaultZip,
+          });
+          const res = await fetch(`/api/fema/lookup?${params.toString()}`);
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error || "Failed to lookup flood zone");
+          }
+          setResult(data);
+        } catch (err: any) {
+          setError(err.message || "Failed to retrieve flood zone data");
+        } finally {
+          setLoading(false);
+        }
+      };
+      doLookup();
+    }
+  }, [autoCheck, defaultAddress, defaultCity, defaultZip]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

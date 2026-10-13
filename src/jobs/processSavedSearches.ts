@@ -170,11 +170,11 @@ export async function processSavedSearches() {
 						for (const prop of matchingProperties) {
 							allMatchingProperties.set(prop.id, prop);
 						}
-						
+
 						if (!primarySearchQuery && !primarySearchBasePath.includes("Florida-Real-Estate-Search/")) {
 							const q = searchParams.toString();
 							if (q) primarySearchQuery = q;
-							
+
 							const filtersObj = search.filters as any;
 							primarySearchBasePath = buildSearchPathWithLocation({
 								city: filtersObj?.city,
@@ -192,7 +192,7 @@ export async function processSavedSearches() {
 					// FORMAT SMS
 					const rawBaseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.SITE_URL || "https://gulfshoregroup.com";
 					const baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
-					
+
 					// If multiple properties matched across different cities, use base path so none get excluded by city slug
 					const distinctCities = new Set(propertiesArray.map((p) => (p.City || "").trim().toLowerCase()).filter(Boolean));
 					let effectiveBasePath = primarySearchBasePath;
@@ -225,7 +225,7 @@ export async function processSavedSearches() {
 					const nameStr = lead.firstName ? lead.firstName : "there";
 					const trackingPrefix = targetPath.includes("?") ? "&" : "?";
 					const longSearchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}${targetPath}${trackingPrefix}utm_source=sms_alert&n=${encodeURIComponent(nameStr)}`)}`;
-					
+
 					// Create short link to avoid sending a massive URL over SMS
 					// Wrapped in its own try/catch — if the shortlink table is missing or the insert
 					// fails for any reason we fall back to sending the long URL so the SMS still works.
@@ -244,7 +244,7 @@ export async function processSavedSearches() {
 						console.warn(`[SavedSearch] Could not create short link for lead ${lead.email}, falling back to long URL. Error: ${shortLinkErr?.message}`);
 						// shortSearchLink already set to longSearchLink above
 					}
-					
+
 					const matchCountText = count === 1 ? "a new property" : `${count} new properties`;
 					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, ${matchCountText} matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES:\n\n${shortSearchLink}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group By London Foster Realty`;
 
