@@ -39,27 +39,52 @@ export async function POST(req: Request) {
 				// Ensure it's a property page: /Florida-Real-Estate-Listings/[City]/[Community]/[Address]/[MLS]
 				if (pathSegments.length >= 4 && pathSegments[0] === "Florida-Real-Estate-Listings") {
 					const mlsNumber = pathSegments[pathSegments.length - 1];
+					// Address segment has hyphens in URL (e.g. "10102-Palazzo-DR") — convert to spaces for DB search
+					const addressSegment = pathSegments[pathSegments.length - 2];
+					const cleanedAddress = addressSegment ? addressSegment.replace(/-/g, " ") : "";
+
+					const contextSelect = {
+						FullAddress: true,
+						City: true,
+						ListPrice: true,
+						BedroomsTotal: true,
+						BathroomsTotalInteger: true,
+						LivingArea: true,
+						PoolPrivateYN: true,
+						WaterfrontYN: true,
+						GulfAccessYN: true,
+						GarageYN: true,
+						HOAFee: true,
+						TaxAnnualAmount: true,
+						YearBuilt: true,
+						StandardStatus: true,
+						PropertyType: true,
+						Description: true,
+					};
+
+					// Primary: lookup by MLS number (exact)
 					if (mlsNumber) {
 						propertyContext = await prisma.property.findFirst({
 							where: { MLSNumber: mlsNumber },
-							select: {
-								FullAddress: true,
-								City: true,
-								ListPrice: true,
-								BedroomsTotal: true,
-								BathroomsTotalInteger: true,
-								LivingArea: true,
-								PoolPrivateYN: true,
-								WaterfrontYN: true,
-								HOAFee: true,
-								TaxAnnualAmount: true,
-								YearBuilt: true
-							}
+							select: contextSelect,
 						});
+					}
+
+					// Fallback: lookup by cleaned address if MLS lookup returned nothing
+					if (!propertyContext && cleanedAddress) {
+						const addrWords = cleanedAddress.split(" ").filter(Boolean);
+						if (addrWords.length > 0) {
+							propertyContext = await prisma.property.findFirst({
+								where: {
+									AND: addrWords.map((w: string) => ({ FullAddress: { contains: w } })),
+								},
+								select: contextSelect,
+							});
+						}
 					}
 				}
 			} catch (e) {
-				console.error("Failed to fetch property context from URL MLS:", e);
+				console.error("Failed to fetch property context from URL:", e);
 			}
 		}
 

@@ -3,20 +3,30 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { X, MessageSquare, Send } from "lucide-react";
 
 export default function AIChatWidget() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [localInput, setLocalInput] = useState("");
-	const [currentUrl, setCurrentUrl] = useState("");
+	// Use a ref so the transport always reads the LATEST url without stale closure
+	const currentUrlRef = useRef("");
 
 	useEffect(() => {
-		setCurrentUrl(window.location.href);
+		// Set immediately on mount and on every navigation (for SPA route changes)
+		const updateUrl = () => { currentUrlRef.current = window.location.href; };
+		updateUrl();
+		window.addEventListener("popstate", updateUrl);
+		return () => window.removeEventListener("popstate", updateUrl);
+	}, []);
+
+	const getApiUrl = useCallback(() => {
+		const url = currentUrlRef.current || (typeof window !== "undefined" ? window.location.href : "");
+		return url ? `/api/v2/ai/chat?url=${encodeURIComponent(url)}` : `/api/v2/ai/chat`;
 	}, []);
 
 	const { messages, sendMessage, status } = useChat({
-		transport: new DefaultChatTransport({ api: `/api/v2/ai/chat` }),
+		transport: new DefaultChatTransport({ api: getApiUrl() }),
 	});
 	const isLoading = status === "submitted" || status === "streaming";
 	const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -37,9 +47,9 @@ export default function AIChatWidget() {
 
 	const handleSend = () => {
 		if (localInput && localInput.trim() && !isLoading) {
-			// Capture current URL fresh at send time so the AI always knows which page the user is on
+			// Always get fresh URL right before sending
 			const freshUrl = typeof window !== "undefined" ? window.location.href : "";
-			setCurrentUrl(freshUrl);
+			currentUrlRef.current = freshUrl;
 			sendMessage(
 				{ role: 'user', parts: [{ type: 'text', text: localInput }] },
 				{ body: { currentUrl: freshUrl } }
