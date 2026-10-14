@@ -90,12 +90,12 @@ export async function POST(req: NextRequest) {
     if (fs.existsSync(brokerSigPath)) {
         const brokerSigBytes = fs.readFileSync(brokerSigPath);
         const brokerSigImage = await pdfDoc.embedPng(brokerSigBytes);
-        const brokerSigDims = brokerSigImage.scale(0.25);
+        const brokerSigDims = brokerSigImage.scale(0.17);
         page3.drawImage(brokerSigImage, {
             x: 60,
             y: 245,
-            width: Math.min(brokerSigDims.width, 160),
-            height: Math.min(brokerSigDims.height, 45),
+            width: Math.min(brokerSigDims.width, 110),
+            height: Math.min(brokerSigDims.height, 30),
         });
     } else {
         page3.drawText("Dimitri Schwarz", { x: 60, y: 246, size: 12 });
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
     page3.drawText(todayStr, { x: 246, y: 246, size: 10 });
     page3.drawText("DIMITRI SCHWARZ", { x: 335, y: 246, size: 10 });
     page3.drawText("London Foster Realty", { x: 160, y: 195, size: 10 });
-    page3.drawText("2367 Vanderbilt Beach Rd Suite 812, Naples, FL 34109", { x: 150, y: 157, size: 9 });
+    // Broker mailing address removed per client request
 
     const pdfBytes = await pdfDoc.save();
 
