@@ -54,15 +54,12 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 	}, [filteredLeadIds, selectedLeadId]);
 
 	const selectedThread = selectedLeadId ? groupedChats[selectedLeadId] : null;
+	// Messages come from DB in desc order — reverse to get oldest first (chronological)
 	const messages = selectedThread ? [...selectedThread.messages].reverse() : [];
 	
-	const filteredMessages = messages.filter((c: any) => {
-		// Apply channel filter
-		if (filter !== 'all') {
-			return c.channel === filter;
-		}
-		return true;
-	});
+	// Right pane always shows ALL messages for the selected user regardless of tab/channel
+	// (channel filter only affects which icon/badge shows in sidebar preview)
+	const filteredMessages = messages;
 
 	const channelIcon = (channel: string) => {
 		if (channel === 'sms') return <Smartphone className="w-4 h-4 text-blue-500" />;
