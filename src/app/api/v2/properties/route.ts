@@ -406,6 +406,30 @@ export async function GET(req: NextRequest) {
 			);
 		}
 
+		// ---- Bounds Only (opt-in, used by map auto-fit) ----
+		// Returns the geographic extent of ALL matching listings, not just one page.
+		if (query.get("boundsOnly") === "1") {
+			const agg = await prisma.property.aggregate({
+				where: {
+					AND: [
+						where,
+						{ Latitude: { not: 0 } },
+						{ Longitude: { not: 0 } },
+					],
+				},
+				_min: { Latitude: true, Longitude: true },
+				_max: { Latitude: true, Longitude: true },
+				_count: { _all: true },
+			});
+			const s = agg._min.Latitude, n = agg._max.Latitude;
+			const w = agg._min.Longitude, e = agg._max.Longitude;
+			const bounds =
+				s != null && n != null && w != null && e != null
+					? { north: Number(n), south: Number(s), east: Number(e), west: Number(w) }
+					: null;
+			return NextResponse.json({ success: true, bounds, count: agg._count._all });
+		}
+
 		// ---- Queries ----
 		// For small widget/slider limits (limit <= 12, skip === 0, no page query), skip expensive 12s count scan
 		const isWidgetQuery = skip === 0 && limit <= 12 && !query.get("page") && query.get("count") !== "true";

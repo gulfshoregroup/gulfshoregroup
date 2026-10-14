@@ -1,5 +1,6 @@
 "use client";
 import React, { useRef, useCallback, useState } from "react";
+import axios from "axios";
 import { GoogleMap, useJsApiLoader, MarkerClustererF } from "@react-google-maps/api";
 import MarkerItem from "@/components/map/marker";
 import { useSelector } from "react-redux";
@@ -168,6 +169,9 @@ export default function MapComponent({
 	const femaOverlayRef = useRef<google.maps.ImageMapType | null>(null);
 	const hasCenteredRef = useRef(false);
 	const isInitialLoadRef = useRef(true);
+	// Full-result bounds lookup: key of the last request + whether it is still running
+	const boundsKeyRef = useRef<string | null>(null);
+	const [boundsPending, setBoundsPending] = useState(false);
 
 	const dispatch = useAppDispatch();
 	const properties = useSelector(selectAllProperties);
@@ -232,6 +236,39 @@ export default function MapComponent({
 	React.useEffect(() => {
 		if (hasCenteredRef.current || !mapRef.current) return;
 
+		// Step 1 (preferred): fit to the extent of ALL matching listings, not just the loaded page.
+		// Map-viewport bounds are stripped so the whole search area is measured.
+		const { north, south, east, west, ...searchFilters } = { ...EMPTY_FILTERS, ...filterParams } as any;
+		const boundsKey = JSON.stringify(searchFilters);
+		if (boundsKeyRef.current !== boundsKey) {
+			boundsKeyRef.current = boundsKey;
+			setBoundsPending(true);
+			axios
+				.get("/api/v2/properties", { params: { ...searchFilters, boundsOnly: 1 } })
+				.then((res) => {
+					const b = res.data?.bounds;
+					if (boundsKeyRef.current !== boundsKey || hasCenteredRef.current || !mapRef.current || !b) return;
+					const gBounds = new window.google.maps.LatLngBounds(
+						{ lat: b.south, lng: b.west },
+						{ lat: b.north, lng: b.east }
+					);
+					mapRef.current.fitBounds(gBounds);
+					window.google.maps.event.addListenerOnce(mapRef.current, "bounds_changed", () => {
+						if (mapRef.current!.getZoom()! > 16) mapRef.current!.setZoom(16);
+					});
+					hasCenteredRef.current = true;
+				})
+				.catch(() => {
+					// ignore — fall back to the original logic below
+				})
+				.finally(() => {
+					if (boundsKeyRef.current === boundsKey) setBoundsPending(false);
+				});
+			return;
+		}
+		if (boundsPending) return;
+
+		// Step 2 (fallback, original logic): fit to loaded properties, else known city center
 		if (properties.length > 0) {
 			const bounds = new window.google.maps.LatLngBounds();
 			let hasValidCoords = false;
@@ -267,7 +304,7 @@ export default function MapComponent({
 				hasCenteredRef.current = true;
 			}
 		}
-	}, [filterParams?.city, filterParams?.developmentName, properties, isLoaded]);
+	}, [filterParams, properties, isLoaded, boundsPending]);
 
 
 
