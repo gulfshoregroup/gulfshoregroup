@@ -16,7 +16,7 @@ export default function AIChatWidget() {
 	}, []);
 
 	const { messages, sendMessage, status } = useChat({
-		transport: new DefaultChatTransport({ api: `/api/v2/ai/chat${currentUrl ? `?url=${encodeURIComponent(currentUrl)}` : ""}` }),
+		transport: new DefaultChatTransport({ api: `/api/v2/ai/chat` }),
 	});
 	const isLoading = status === "submitted" || status === "streaming";
 	const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -37,7 +37,13 @@ export default function AIChatWidget() {
 
 	const handleSend = () => {
 		if (localInput && localInput.trim() && !isLoading) {
-			sendMessage({ role: 'user', parts: [{ type: 'text', text: localInput }] });
+			// Capture current URL fresh at send time so the AI always knows which page the user is on
+			const freshUrl = typeof window !== "undefined" ? window.location.href : "";
+			setCurrentUrl(freshUrl);
+			sendMessage(
+				{ role: 'user', parts: [{ type: 'text', text: localInput }] },
+				{ body: { currentUrl: freshUrl } }
+			);
 			setLocalInput('');
 		}
 	};

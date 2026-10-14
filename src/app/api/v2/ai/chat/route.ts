@@ -40,7 +40,7 @@ export async function POST(req: Request) {
 				if (pathSegments.length >= 4 && pathSegments[0] === "Florida-Real-Estate-Listings") {
 					const mlsNumber = pathSegments[pathSegments.length - 1];
 					if (mlsNumber) {
-						propertyContext = await prisma.property.findUnique({
+						propertyContext = await prisma.property.findFirst({
 							where: { MLSNumber: mlsNumber },
 							select: {
 								FullAddress: true,
