@@ -236,18 +236,28 @@ export default function MapComponent({
 	React.useEffect(() => {
 		if (hasCenteredRef.current || !mapRef.current) return;
 
-		// Step 1 (preferred): fit to the extent of ALL matching listings, not just the loaded page.
-		// Map-viewport bounds are stripped so the whole search area is measured.
-		const { north, south, east, west, ...searchFilters } = { ...EMPTY_FILTERS, ...filterParams } as any;
-		const boundsKey = JSON.stringify(searchFilters);
-		if (boundsKeyRef.current !== boundsKey) {
-			boundsKeyRef.current = boundsKey;
+		// Step 1 (preferred): fit to the extent of ALL matching listings for this LOCATION.
+		// Only location params are used — not propertyType/price/beds — so switching
+		// Homes/Lots/Waterfront/Price does NOT trigger a new bounds call or re-fit the map.
+		const locationKey = JSON.stringify({
+			city: filterParams?.city ?? null,
+			community: filterParams?.community ?? null,
+			developmentName: filterParams?.developmentName ?? null,
+			postalCode: filterParams?.postalCode ?? null,
+		});
+		if (boundsKeyRef.current !== locationKey) {
+			boundsKeyRef.current = locationKey;
 			setBoundsPending(true);
+			const params: Record<string, any> = { boundsOnly: 1 };
+			if (filterParams?.city) params.city = filterParams.city;
+			if (filterParams?.community) params.community = filterParams.community;
+			if (filterParams?.developmentName) params.developmentName = filterParams.developmentName;
+			if (filterParams?.postalCode) params.postalCode = filterParams.postalCode;
 			axios
-				.get("/api/v2/properties", { params: { ...searchFilters, boundsOnly: 1 } })
+				.get("/api/v2/properties", { params })
 				.then((res) => {
 					const b = res.data?.bounds;
-					if (boundsKeyRef.current !== boundsKey || hasCenteredRef.current || !mapRef.current || !b) return;
+					if (boundsKeyRef.current !== locationKey || hasCenteredRef.current || !mapRef.current || !b) return;
 					const gBounds = new window.google.maps.LatLngBounds(
 						{ lat: b.south, lng: b.west },
 						{ lat: b.north, lng: b.east }
@@ -262,7 +272,7 @@ export default function MapComponent({
 					// ignore — fall back to the original logic below
 				})
 				.finally(() => {
-					if (boundsKeyRef.current === boundsKey) setBoundsPending(false);
+					if (boundsKeyRef.current === locationKey) setBoundsPending(false);
 				});
 			return;
 		}
@@ -304,7 +314,7 @@ export default function MapComponent({
 				hasCenteredRef.current = true;
 			}
 		}
-	}, [filterParams, properties, isLoaded, boundsPending]);
+	}, [filterParams?.city, filterParams?.community, filterParams?.developmentName, filterParams?.postalCode, properties, isLoaded, boundsPending]);
 
 
 

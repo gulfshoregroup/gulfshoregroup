@@ -28,7 +28,8 @@ export async function fetchPropertiesApi({
 			},
 		});
 
-		await syncSearchToDb(filters, res.data?.total ?? undefined);
+		// Fire-and-forget: don't make the user wait for search-history save before showing results
+		void syncSearchToDb(filters, res.data?.total ?? undefined);
 
 		return res.data;
 	} catch (error) {

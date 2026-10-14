@@ -450,8 +450,10 @@ export async function GET(req: NextRequest) {
 			}
 		}
 
-		const [total, properties] = await Promise.all([
-			totalPromise,
+		// Avoid unhandled rejection if we end up not awaiting the count (see below)
+		totalPromise = totalPromise.catch(() => 0);
+
+		const properties = await (
 			prisma.property.findMany({
 				where,
 				skip,
@@ -598,14 +600,33 @@ export async function GET(req: NextRequest) {
 					communityId: true,
 				  },
 				orderBy: { [sortField]: sortOrder },
-			}),
-		]);
+			})
+		);
+
+		// PERF: the COUNT query is the slowest part (LIKE '%..%' => full scan, ~5-7s).
+		// If page 1 already returned fewer rows than `limit`, that IS the total —
+		// no need to wait for COUNT. It keeps running in the background and fills the cache.
+		const total =
+			skip === 0 && properties.length < limit
+				? properties.length
+				: await totalPromise;
+
+		// PERF: each stored image object has ~10 fields (~370 bytes) but the UI only reads
+		// MediaURL + MediaCategory. Trimming keeps ALL photos while cutting payload ~70%.
+		const slimImages = (imgs: any) =>
+			Array.isArray(imgs)
+				? imgs.map((img: any) =>
+						img && typeof img === "object"
+							? { MediaURL: img.MediaURL, MediaCategory: img.MediaCategory }
+							: img
+				  )
+				: [];
 
 		const data = properties.map((p: any) => {
 			return {
 				...p,
 				StandardStatus: isMockingClosed ? "Closed" : p.StandardStatus,
-				images: p.images || [],
+				images: slimImages(p.images),
 				isWishlisted: false,
 			};
 		});
