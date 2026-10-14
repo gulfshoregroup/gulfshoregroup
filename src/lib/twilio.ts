@@ -5,13 +5,20 @@ const client = Twilio(
 	process.env.TWILIO_TOKEN
 );
 
+// Helper: safely format Twilio sender number (handles env vars with or without + prefix)
+const formatTwilioNumber = (raw: string | undefined): string => {
+	if (!raw) return "";
+	const digits = raw.replace(/[^0-9]/g, "");
+	return digits ? `+${digits}` : "";
+};
+
 export const sendSMS = async (to: string, body: string) => {
-	const from = process.env.TWILIO_NUMBER ? "+" + process.env.TWILIO_NUMBER.replace(/[^0-9]/g, "") : "";
+	const from = formatTwilioNumber(process.env.TWILIO_NUMBER);
 	if (!process.env.TWILIO_SID || !process.env.TWILIO_TOKEN || !from) {
 		throw new Error("Twilio credentials missing (TWILIO_SID / TWILIO_TOKEN / TWILIO_NUMBER)");
 	}
 
-	// Auto-format the phone number
+	// Auto-format the recipient phone number
 	let formattedTo = to.replace(/[^0-9+]/g, ""); // keep only digits and +
 	if (!formattedTo.startsWith("+")) {
 		if (formattedTo.startsWith("1") && formattedTo.length === 11) {
@@ -51,7 +58,7 @@ export const sendSMS = async (to: string, body: string) => {
 
 export const sendWhatsAppMessage = async (to: string) => {
 	try {
-		const from = process.env.TWILIO_NUMBER ? "+" + process.env.TWILIO_NUMBER.replace(/[^0-9]/g, "") : "";
+		const from = formatTwilioNumber(process.env.TWILIO_NUMBER);
 		const res = await client.messages.create({
 			from: `whatsapp:${from}`,
 			to: `whatsapp:${to}`,
