@@ -139,7 +139,7 @@ export default function FloodZoneLookup({
             </Label>
             <Input
               id="flood-address"
-              placeholder="e.g. 212 s 1st st"
+              placeholder="e.g. 2367 Vanderbilt Beach Rd"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               className="h-11"
@@ -156,7 +156,7 @@ export default function FloodZoneLookup({
               </Label>
               <Input
                 id="flood-city"
-                placeholder="e.g. Immokalee"
+                placeholder="e.g. Naples"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 className="h-11"
@@ -168,7 +168,7 @@ export default function FloodZoneLookup({
               </Label>
               <Input
                 id="flood-zip"
-                placeholder="e.g. 34142"
+                placeholder="e.g. 34109"
                 value={zip}
                 onChange={(e) => setZip(e.target.value)}
                 className="h-11"
