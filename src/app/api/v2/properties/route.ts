@@ -260,21 +260,14 @@ export async function GET(req: NextRequest) {
 		}
 
 		// ---- Beds & Baths ----
+		// NOTE: These are resolved AFTER propTypes is parsed (see below) via isLotsOnly.
+		// We store the raw values here and apply them conditionally after propTypes check.
 		const beds = parseNumber(query.get("beds"));
-		if (beds) where.BedroomsTotal = { gte: beds };
-
 		const baths = parseNumber(query.get("baths"));
-		if (baths) where.BathroomsFull = { gte: baths };
 
 		// ---- Living Area (Sqft) ----
 		const minSqft = parseNumber(query.get("minSqft") || query.get("minSqFt") || query.get("sqft"));
 		const maxSqft = parseNumber(query.get("maxSqft") || query.get("maxSqFt"));
-		if (minSqft || maxSqft) {
-			where.LivingArea = {
-				...(minSqft && { gte: minSqft }),
-				...(maxSqft && { lte: maxSqft }),
-			};
-		}
 
 		// ---- Year Built ----
 		const builtMin = parseNumber(query.get("builtYearMin"));
@@ -333,6 +326,11 @@ export async function GET(req: NextRequest) {
 			propTypes = query.getAll("propertyTypes[]");
 		}
 
+		// Detect if ONLY Lots are requested — in this case, beds/baths/sqft filters
+		// must be skipped because vacant land has 0 beds, 0 baths, and null living area.
+		// Mixed selections (e.g. Homes + Lots) still apply beds/baths for the Homes portion.
+		const isLotsOnly = propTypes.length > 0 && propTypes.every(t => t === "Residential-Lots");
+
 		if (propTypes.length) {
 			const propTypeOR: any[] = [];
 
@@ -377,6 +375,21 @@ export async function GET(req: NextRequest) {
 			where.PropertyType = {
 				not: "Land",
 			};
+		}
+
+		// ---- Apply Beds / Baths / Sqft only when NOT a Lots-only search ----
+		// When isLotsOnly = true: vacant land has BedroomsTotal=0, BathroomsFull=0, LivingArea=null
+		// so applying these filters would incorrectly block all 1,200+ land listings.
+		// For Homes, Condos, or mixed searches these filters work exactly as before.
+		if (!isLotsOnly) {
+			if (beds) where.BedroomsTotal = { gte: beds };
+			if (baths) where.BathroomsFull = { gte: baths };
+			if (minSqft || maxSqft) {
+				where.LivingArea = {
+					...(minSqft && { gte: minSqft }),
+					...(maxSqft && { lte: maxSqft }),
+				};
+			}
 		}
 
 		// ---- Geo Bounding Box ----

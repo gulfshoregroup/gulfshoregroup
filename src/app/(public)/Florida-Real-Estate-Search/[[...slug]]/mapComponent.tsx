@@ -27,6 +27,7 @@ const mapContainerStyle = {
 } as const;
 
 const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
+	// Cities
 	"NAPLES": { lat: 26.142, lng: -81.7948 },
 	"BONITA SPRINGS": { lat: 26.3398, lng: -81.7787 },
 	"ESTERO": { lat: 26.4381, lng: -81.8068 },
@@ -38,6 +39,112 @@ const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
 	"IMMOKALEE": { lat: 26.4194, lng: -81.4219 },
 	"SANIBEL": { lat: 26.4433, lng: -82.0244 },
 	"CAPE CORAL": { lat: 26.5629, lng: -81.9495 },
+	"FORT MYERS BEACH": { lat: 26.4534, lng: -81.9481 },
+	"NAPLES PARK": { lat: 26.2554, lng: -81.8073 },
+	"NORTH NAPLES": { lat: 26.2430, lng: -81.7787 },
+	"EAST NAPLES": { lat: 26.1290, lng: -81.7454 },
+	"GOLDEN GATE": { lat: 26.1723, lng: -81.6948 },
+	// Naples-area communities & subdivisions
+	"GOLDEN GATE ESTATES": { lat: 26.2200, lng: -81.5800 },
+	"GOLDEN GATE CITY": { lat: 26.1723, lng: -81.6948 },
+	"LELY RESORT": { lat: 26.0787, lng: -81.7064 },
+	"LELY": { lat: 26.0787, lng: -81.7064 },
+	"PELICAN BAY": { lat: 26.2289, lng: -81.8094 },
+	"PELICAN MARSH": { lat: 26.2501, lng: -81.7886 },
+	"PELICAN LANDING": { lat: 26.3681, lng: -81.8048 },
+	"TIBURON": { lat: 26.2033, lng: -81.7792 },
+	"GREY OAKS": { lat: 26.1664, lng: -81.7792 },
+	"GREY OAKS COUNTRY CLUB": { lat: 26.1664, lng: -81.7792 },
+	"WYNDEMERE": { lat: 26.1887, lng: -81.7584 },
+	"QUAIL CREEK": { lat: 26.2646, lng: -81.7463 },
+	"QUAIL WEST": { lat: 26.3019, lng: -81.7289 },
+	"MEDITERRA": { lat: 26.3219, lng: -81.7416 },
+	"TALIS PARK": { lat: 26.2925, lng: -81.7952 },
+	"VINEYARDS": { lat: 26.2019, lng: -81.7442 },
+	"FIDDLER S CREEK": { lat: 26.0353, lng: -81.6489 },
+	"FIDDLERS CREEK": { lat: 26.0353, lng: -81.6489 },
+	"ISLAND WALK": { lat: 26.2393, lng: -81.7320 },
+	"TOWN LAKE": { lat: 26.2474, lng: -81.7387 },
+	"OLDE CYPRESS": { lat: 26.2561, lng: -81.7219 },
+	"SATURNIA LAKES": { lat: 26.2564, lng: -81.7256 },
+	"VANDERBILT BEACH": { lat: 26.2636, lng: -81.8202 },
+	"MARCO SHORES": { lat: 26.0177, lng: -81.6943 },
+	"NAPLES MANOR": { lat: 26.0885, lng: -81.7498 },
+	"ROYAL HARBOR": { lat: 26.1230, lng: -81.7869 },
+	"PORT ROYAL": { lat: 26.1059, lng: -81.7953 },
+	"AQUALANE SHORES": { lat: 26.1195, lng: -81.7886 },
+	"COQUINA SANDS": { lat: 26.1397, lng: -81.8010 },
+	"MOORINGS": { lat: 26.1516, lng: -81.8039 },
+	"PARK SHORE": { lat: 26.1671, lng: -81.8057 },
+	"PINE RIDGE": { lat: 26.1873, lng: -81.7694 },
+	"PALMETTO RIDGE": { lat: 26.2914, lng: -81.5681 },
+	"ORANGE BLOSSOM RANCH": { lat: 26.2872, lng: -81.5367 },
+	"NAPLES RESERVE": { lat: 26.0569, lng: -81.6531 },
+	"ESPLANADE": { lat: 26.2661, lng: -81.7231 },
+	"ESPLANADE GOLF AND COUNTRY CLUB": { lat: 26.2661, lng: -81.7231 },
+	"TWIN EAGLES": { lat: 26.2982, lng: -81.6873 },
+	"STONECREEK": { lat: 26.2774, lng: -81.7106 },
+	"COMPASS LANDING": { lat: 26.2869, lng: -81.7198 },
+	"ABACO POINTE": { lat: 26.2856, lng: -81.7186 },
+	"RIVERSTONE": { lat: 26.2792, lng: -81.7163 },
+	"LOGAN WOODS": { lat: 26.1961, lng: -81.7260 },
+	"WOLF CREEK": { lat: 26.2836, lng: -81.7384 },
+	"RAFFIA PRESERVE": { lat: 26.2836, lng: -81.7384 },
+	// Bonita Springs / Estero communities
+	"SHADOW WOOD": { lat: 26.3896, lng: -81.7638 },
+	"SHADOW WOOD AT THE BROOKS": { lat: 26.3896, lng: -81.7638 },
+	"COCONUT POINT": { lat: 26.4196, lng: -81.8074 },
+	"THE COLONY": { lat: 26.3665, lng: -81.8085 },
+	"BONITA BAY": { lat: 26.3399, lng: -81.8175 },
+	"WORTHINGTON": { lat: 26.3648, lng: -81.7713 },
+	"BAREFOOT BEACH": { lat: 26.3590, lng: -81.8407 },
+	"IMPERIAL GOLF ESTATES": { lat: 26.2811, lng: -81.7873 },
+	// Fort Myers communities
+	"GATEWAY": { lat: 26.5706, lng: -81.7517 },
+	"DANIELS CORRIDOR": { lat: 26.5510, lng: -81.7915 },
+	"VERANDAH": { lat: 26.6327, lng: -81.6580 },
+	"PASEO": { lat: 26.6156, lng: -81.8480 },
+	"REFLECTION ISLES": { lat: 26.5872, lng: -81.7728 },
+	"WINKLER ROAD": { lat: 26.5910, lng: -81.8461 },
+};
+
+// Map well-known communities/developments to their parent city center
+// Used as fallback when city is not resolved from the URL slug
+const COMMUNITY_CITY_MAP: Record<string, string> = {
+	"GOLDEN GATE ESTATES": "GOLDEN GATE ESTATES",
+	"GOLDEN GATE CITY": "GOLDEN GATE CITY",
+	"LELY RESORT": "LELY RESORT",
+	"LELY": "LELY",
+	"PELICAN BAY": "PELICAN BAY",
+	"PELICAN MARSH": "PELICAN MARSH",
+	"PELICAN LANDING": "PELICAN LANDING",
+	"TIBURON": "TIBURON",
+	"GREY OAKS": "GREY OAKS",
+	"GREY OAKS COUNTRY CLUB": "GREY OAKS COUNTRY CLUB",
+	"WYNDEMERE": "WYNDEMERE",
+	"QUAIL CREEK": "QUAIL CREEK",
+	"QUAIL WEST": "QUAIL WEST",
+	"MEDITERRA": "MEDITERRA",
+	"TALIS PARK": "TALIS PARK",
+	"VINEYARDS": "VINEYARDS",
+	"FIDDLER S CREEK": "FIDDLER S CREEK",
+	"FIDDLERS CREEK": "FIDDLERS CREEK",
+	"ISLAND WALK": "ISLAND WALK",
+	"NAPLES RESERVE": "NAPLES RESERVE",
+	"ESPLANADE": "ESPLANADE",
+	"ESPLANADE GOLF AND COUNTRY CLUB": "ESPLANADE GOLF AND COUNTRY CLUB",
+	"TWIN EAGLES": "TWIN EAGLES",
+	"STONECREEK": "STONECREEK",
+	"RIVERSTONE": "RIVERSTONE",
+	"PORT ROYAL": "PORT ROYAL",
+	"PARK SHORE": "PARK SHORE",
+	"MOORINGS": "MOORINGS",
+	"PINE RIDGE": "PINE RIDGE",
+	"SHADOW WOOD": "SHADOW WOOD",
+	"BONITA BAY": "BONITA BAY",
+	"BAREFOOT BEACH": "BAREFOOT BEACH",
+	"GATEWAY": "GATEWAY",
+	"VERANDAH": "VERANDAH",
 };
 
 export default function MapComponent({
@@ -147,13 +254,20 @@ export default function MapComponent({
 				hasCenteredRef.current = true;
 			}
 		} else {
+			// Try city first, then developmentName as fallback
 			const searchCity = filterParams?.city?.toUpperCase() || "";
-			if (searchCity && CITY_CENTERS[searchCity]) {
-				setCenter(CITY_CENTERS[searchCity]);
+			const searchDev = filterParams?.developmentName?.toUpperCase() || "";
+			const lookupKey =
+				(searchCity && CITY_CENTERS[searchCity] ? searchCity : null) ??
+				(searchDev && CITY_CENTERS[searchDev] ? searchDev : null) ??
+				(searchDev && COMMUNITY_CITY_MAP[searchDev] ? COMMUNITY_CITY_MAP[searchDev] : null) ??
+				null;
+			if (lookupKey && CITY_CENTERS[lookupKey]) {
+				setCenter(CITY_CENTERS[lookupKey]);
 				hasCenteredRef.current = true;
 			}
 		}
-	}, [filterParams?.city, properties, isLoaded]);
+	}, [filterParams?.city, filterParams?.developmentName, properties, isLoaded]);
 
 
 
