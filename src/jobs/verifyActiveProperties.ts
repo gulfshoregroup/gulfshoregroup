@@ -46,7 +46,9 @@ async function processVerificationChunk(properties: { id: string; ListingId: str
 	let pendingCount = 0;
 	let expiredCount = 0;
 	const now = new Date();
-	const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+	// 20h (not 24h) so a listing flagged on one daily run expires on the next daily run,
+	// even if that batch gets processed a few minutes earlier than the day before.
+	const twentyFourHoursAgo = new Date(now.getTime() - 20 * 60 * 60 * 1000);
 
 	for (const prop of properties) {
 		if (returnedListingIds.has(prop.ListingId)) {
@@ -93,19 +95,24 @@ async function processVerificationChunk(properties: { id: string; ListingId: str
 export async function verifyActiveProperties() {
 	console.log(`[VerifyActive] Starting verification job...`);
 
-	let offset = 0;
+	// Cursor-based pagination on `id` (immutable). Using skip + updatedAt caused rows to
+	// shift (updates bump updatedAt, expired rows leave the Active set) and get skipped.
+	let lastId: string | undefined = undefined;
 	let totalChecked = 0;
 	let totalPending = 0;
 	let totalExpired = 0;
 
 	while (true) {
-		const properties = await prisma.property.findMany({
-			where: { StandardStatus: "Active" },
-			select: { id: true, ListingId: true, verificationPendingAt: true },
-			take: BATCH_SIZE,
-			skip: offset,
-			orderBy: { updatedAt: "asc" },
-		});
+		const properties: { id: string; ListingId: string; verificationPendingAt: Date | null }[] =
+			await prisma.property.findMany({
+				where: {
+					StandardStatus: "Active",
+					...(lastId ? { id: { gt: lastId } } : {}),
+				},
+				select: { id: true, ListingId: true, verificationPendingAt: true },
+				take: BATCH_SIZE,
+				orderBy: { id: "asc" },
+			});
 
 		if (properties.length === 0) break;
 
@@ -115,9 +122,9 @@ export async function verifyActiveProperties() {
 		totalPending += result.pending;
 		totalExpired += result.expired;
 
-		console.log(`[VerifyActive] Processed batch at offset ${offset}. Total Checked: ${totalChecked}`);
+		console.log(`[VerifyActive] Processed batch after id ${lastId ?? "start"}. Total Checked: ${totalChecked}`);
 		
-		offset += BATCH_SIZE;
+		lastId = properties[properties.length - 1].id;
 
 		// Brief pause between Bridge API page fetches
 		await sleep(200);
