@@ -712,6 +712,7 @@ export default function MapComponent({
 						streetViewControl: false,
 						fullscreenControl: false,
 						zoomControl: true,
+						minZoom: 8, // Prevent zooming out past Florida state level
 						zoomControlOptions: {
 							position: window.google.maps.ControlPosition.RIGHT_CENTER,
 						},
