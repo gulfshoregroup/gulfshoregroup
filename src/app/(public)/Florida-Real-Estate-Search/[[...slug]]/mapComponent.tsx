@@ -717,7 +717,13 @@ export default function MapComponent({
 						},
 					}}
 				>
-					<MarkerClustererF>
+					<MarkerClustererF
+						// Stop clustering once the user zooms in past city level so
+						// individual price markers show (Realtor.com-style).
+						maxZoom={12}
+						gridSize={40}
+						minimumClusterSize={4}
+					>
 						{(clusterer) => (
 							<>
 								{processedProperties.map((item) => (
