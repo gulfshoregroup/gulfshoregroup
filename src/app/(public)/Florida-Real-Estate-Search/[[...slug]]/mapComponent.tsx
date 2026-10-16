@@ -232,19 +232,48 @@ export default function MapComponent({
 		dispatch(fetchProperties());
 	}, [dispatch, filterParams]);
 
+	// Southwest Florida core center fallback (Naples / Bonita Springs / Fort Myers / Cape Coral)
+	const SW_FL_CENTER = React.useMemo(() => ({ lat: 26.25, lng: -81.78 }), []);
+
 	// Auto-center map EXACTLY ONCE on city search change or initial property load
 	React.useEffect(() => {
 		if (hasCenteredRef.current || !mapRef.current) return;
 
-		// Step 1 (preferred): fit to the extent of ALL matching listings for this LOCATION.
-		// Only location params are used — not propertyType/price/beds — so switching
-		// Homes/Lots/Waterfront/Price does NOT trigger a new bounds call or re-fit the map.
+		const searchCity = filterParams?.city?.toUpperCase() || "";
+		const searchDev = filterParams?.developmentName?.toUpperCase() || "";
+		const searchComm = filterParams?.community?.toUpperCase() || "";
+		const lookupKey =
+			(searchCity && CITY_CENTERS[searchCity] ? searchCity : null) ??
+			(searchComm && CITY_CENTERS[searchComm] ? searchComm : null) ??
+			(searchDev && CITY_CENTERS[searchDev] ? searchDev : null) ??
+			(searchDev && COMMUNITY_CITY_MAP[searchDev] ? COMMUNITY_CITY_MAP[searchDev] : null) ??
+			null;
+		const knownCenter = lookupKey && CITY_CENTERS[lookupKey] ? CITY_CENTERS[lookupKey] : null;
+
+		const hasSpecificLocation = Boolean(
+			filterParams?.city ||
+			filterParams?.community ||
+			filterParams?.developmentName ||
+			filterParams?.postalCode
+		);
+
+		// If no specific city/community is selected (browsing all properties), default directly
+		// to Southwest Florida core at zoom 10 without doing a statewide bounding query.
+		if (!hasSpecificLocation) {
+			mapRef.current.setCenter(SW_FL_CENTER);
+			mapRef.current.setZoom(10);
+			hasCenteredRef.current = true;
+			return;
+		}
+
+		// Step 1 (preferred): fit to the extent of ALL matching listings for this specific LOCATION.
 		const locationKey = JSON.stringify({
 			city: filterParams?.city ?? null,
 			community: filterParams?.community ?? null,
 			developmentName: filterParams?.developmentName ?? null,
 			postalCode: filterParams?.postalCode ?? null,
 		});
+
 		if (boundsKeyRef.current !== locationKey) {
 			boundsKeyRef.current = locationKey;
 			setBoundsPending(true);
@@ -253,18 +282,54 @@ export default function MapComponent({
 			if (filterParams?.community) params.community = filterParams.community;
 			if (filterParams?.developmentName) params.developmentName = filterParams.developmentName;
 			if (filterParams?.postalCode) params.postalCode = filterParams.postalCode;
+
 			axios
 				.get("/api/v2/properties", { params })
 				.then((res) => {
 					const b = res.data?.bounds;
 					if (boundsKeyRef.current !== locationKey || hasCenteredRef.current || !mapRef.current || !b) return;
+
+					// Validate that the returned bounds are strictly inside Florida
+					const isValidFloridaBounds =
+						typeof b.north === "number" &&
+						typeof b.south === "number" &&
+						typeof b.east === "number" &&
+						typeof b.west === "number" &&
+						b.south >= 24.0 &&
+						b.north <= 31.5 &&
+						b.west >= -88.0 &&
+						b.east <= -79.5 &&
+						b.north >= b.south &&
+						b.east >= b.west;
+
+					if (!isValidFloridaBounds) {
+						if (knownCenter) {
+							mapRef.current.setCenter(knownCenter);
+							mapRef.current.setZoom(12);
+							hasCenteredRef.current = true;
+						}
+						return;
+					}
+
+					// Verify bounds center does not deviate wildly (> 40 miles) from known city center
+					const centerLat = (b.north + b.south) / 2;
+					const centerLng = (b.east + b.west) / 2;
+					if (knownCenter && (Math.abs(centerLat - knownCenter.lat) > 0.6 || Math.abs(centerLng - knownCenter.lng) > 0.6)) {
+						mapRef.current.setCenter(knownCenter);
+						mapRef.current.setZoom(12);
+						hasCenteredRef.current = true;
+						return;
+					}
+
 					const gBounds = new window.google.maps.LatLngBounds(
 						{ lat: b.south, lng: b.west },
 						{ lat: b.north, lng: b.east }
 					);
 					mapRef.current.fitBounds(gBounds);
 					window.google.maps.event.addListenerOnce(mapRef.current, "bounds_changed", () => {
-						if (mapRef.current!.getZoom()! > 16) mapRef.current!.setZoom(16);
+						const z = mapRef.current?.getZoom();
+						if (z && z > 15) mapRef.current?.setZoom(15);
+						if (z && z < 9) mapRef.current?.setZoom(9);
 					});
 					hasCenteredRef.current = true;
 				})
@@ -278,43 +343,33 @@ export default function MapComponent({
 		}
 		if (boundsPending) return;
 
-		// Step 2 (fallback, original logic): fit to loaded properties, else known city center
+		// Step 2 (fallback): fit to loaded properties with valid Florida coordinates, else known city center
 		if (properties.length > 0) {
 			const bounds = new window.google.maps.LatLngBounds();
 			let hasValidCoords = false;
 			properties.forEach((p: any) => {
 				const lat = parseFloat(p.Latitude);
 				const lng = parseFloat(p.Longitude);
-				if (!isNaN(lat) && !isNaN(lng)) {
+				if (!isNaN(lat) && !isNaN(lng) && lat >= 24.0 && lat <= 31.5 && lng >= -88.0 && lng <= -79.5) {
 					bounds.extend({ lat, lng });
 					hasValidCoords = true;
 				}
 			});
 			if (hasValidCoords) {
 				mapRef.current.fitBounds(bounds);
-				// Prevent it from zooming in too close for a single property
-				const listener = window.google.maps.event.addListenerOnce(mapRef.current, "bounds_changed", () => {
-					if (mapRef.current!.getZoom()! > 16) {
-						mapRef.current!.setZoom(16);
-					}
+				window.google.maps.event.addListenerOnce(mapRef.current, "bounds_changed", () => {
+					const z = mapRef.current?.getZoom();
+					if (z && z > 15) mapRef.current?.setZoom(15);
+					if (z && z < 9) mapRef.current?.setZoom(9);
 				});
 				hasCenteredRef.current = true;
 			}
-		} else {
-			// Try city first, then developmentName as fallback
-			const searchCity = filterParams?.city?.toUpperCase() || "";
-			const searchDev = filterParams?.developmentName?.toUpperCase() || "";
-			const lookupKey =
-				(searchCity && CITY_CENTERS[searchCity] ? searchCity : null) ??
-				(searchDev && CITY_CENTERS[searchDev] ? searchDev : null) ??
-				(searchDev && COMMUNITY_CITY_MAP[searchDev] ? COMMUNITY_CITY_MAP[searchDev] : null) ??
-				null;
-			if (lookupKey && CITY_CENTERS[lookupKey]) {
-				setCenter(CITY_CENTERS[lookupKey]);
-				hasCenteredRef.current = true;
-			}
+		} else if (knownCenter) {
+			mapRef.current.setCenter(knownCenter);
+			mapRef.current.setZoom(12);
+			hasCenteredRef.current = true;
 		}
-	}, [filterParams?.city, filterParams?.community, filterParams?.developmentName, filterParams?.postalCode, properties, isLoaded, boundsPending]);
+	}, [filterParams?.city, filterParams?.community, filterParams?.developmentName, filterParams?.postalCode, properties, isLoaded, boundsPending, SW_FL_CENTER]);
 
 
 
@@ -354,6 +409,17 @@ export default function MapComponent({
 				south: b.getSouthWest().lat(),
 				west: b.getSouthWest().lng(),
 			};
+
+			// Guard: ignore bounds updates that are outside Florida
+			if (
+				bounds.north < 24.0 ||
+				bounds.south > 31.5 ||
+				bounds.east < -88.0 ||
+				bounds.west > -79.5
+			) {
+				return;
+			}
+
 			const currentFilters = filtersRef.current;
 			const currentParams = filterParamsRef.current;
 
@@ -495,14 +561,19 @@ export default function MapComponent({
 		mapRef.current = null;
 	}, []);
 
-	// Group properties by lat/lng to detect duplicates and offset them
+	// Group properties by lat/lng to detect duplicates and offset them (strictly valid Florida coords only)
 	const processedProperties = React.useMemo(() => {
 		const coordinateCounts: Record<string, number> = {};
 		
-		return properties.map((item) => {
+		const validListings = properties.filter((item) => {
 			const lat = parseFloat(item.Latitude);
 			const lng = parseFloat(item.Longitude);
-			if (isNaN(lat) || isNaN(lng)) return item;
+			return !isNaN(lat) && !isNaN(lng) && lat >= 24.0 && lat <= 31.5 && lng >= -88.0 && lng <= -79.5;
+		});
+
+		return validListings.map((item) => {
+			const lat = parseFloat(item.Latitude);
+			const lng = parseFloat(item.Longitude);
 			
 			// Round to 5 decimal places to catch very close or identical coordinates
 			const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
@@ -712,7 +783,17 @@ export default function MapComponent({
 						streetViewControl: false,
 						fullscreenControl: false,
 						zoomControl: true,
-						minZoom: 8, // Prevent zooming out past Florida state level
+						minZoom: 8,
+						maxZoom: 20,
+						restriction: {
+							latLngBounds: {
+								north: 31.5,
+								south: 24.0,
+								west: -88.0,
+								east: -79.5,
+							},
+							strictBounds: false,
+						},
 						zoomControlOptions: {
 							position: window.google.maps.ControlPosition.RIGHT_CENTER,
 						},
@@ -735,14 +816,19 @@ export default function MapComponent({
 										clusterer={clusterer}
 									/>
 								))}
-								{ui.details && !processedProperties.some(p => p.MLSNumber === ui.details?.MLSNumber) && (
-									<MarkerItem
-										key={ui.details.MLSNumber}
-										item={ui.details}
-										handleMarkerClick={handlemarkerClick}
-										clusterer={clusterer}
-									/>
-								)}
+								{ui.details &&
+									!processedProperties.some((p) => p.MLSNumber === ui.details?.MLSNumber) &&
+									parseFloat(ui.details.Latitude) >= 24.0 &&
+									parseFloat(ui.details.Latitude) <= 31.5 &&
+									parseFloat(ui.details.Longitude) >= -88.0 &&
+									parseFloat(ui.details.Longitude) <= -79.5 && (
+										<MarkerItem
+											key={ui.details.MLSNumber}
+											item={ui.details}
+											handleMarkerClick={handlemarkerClick}
+											clusterer={clusterer}
+										/>
+									)}
 							</>
 						)}
 					</MarkerClustererF>

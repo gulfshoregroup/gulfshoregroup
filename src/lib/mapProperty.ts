@@ -119,12 +119,29 @@ export function mapProperty(raw: any) {
 		Directions: raw.Directions ?? null,
 
 		// ---- Geo ----
-		Latitude: raw.Latitude ? Number(raw.Latitude) : null,
-		Longitude: raw.Longitude ? Number(raw.Longitude) : null,
-		MapCoordinate:
-			raw.Latitude && raw.Longitude
-				? `${raw.Latitude},${raw.Longitude}`
-				: null,
+		// Strictly validate coordinates to Florida boundaries (24.0°N - 31.5°N, -88.0°W - -79.5°W)
+		...(() => {
+			const rawLat = raw.Latitude != null && raw.Latitude !== "" ? Number(raw.Latitude) : null;
+			const rawLng = raw.Longitude != null && raw.Longitude !== "" ? Number(raw.Longitude) : null;
+			const isValidGeo =
+				rawLat !== null &&
+				rawLng !== null &&
+				!isNaN(rawLat) &&
+				!isNaN(rawLng) &&
+				rawLat >= 24.0 &&
+				rawLat <= 31.5 &&
+				rawLng >= -88.0 &&
+				rawLng <= -79.5;
+
+			const lat = isValidGeo ? rawLat : null;
+			const lng = isValidGeo ? rawLng : null;
+
+			return {
+				Latitude: lat,
+				Longitude: lng,
+				MapCoordinate: lat && lng ? `${lat},${lng}` : null,
+			};
+		})(),
 
 		// ---- Flags ----
 		HeatingYN: raw.HeatingYN === true,

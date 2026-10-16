@@ -17,6 +17,11 @@ function MarkerItem({
 	const ui = useSelector(selectUi);
 	const Latitude = parseFloat(item.Latitude);
 	const Longitude = parseFloat(item.Longitude);
+
+	if (isNaN(Latitude) || isNaN(Longitude) || Latitude < 24.0 || Latitude > 31.5 || Longitude < -88.0 || Longitude > -79.5) {
+		return null;
+	}
+
 	const isHighlighted = ui.details?.MLSNumber === item.MLSNumber || ui.hoveredMLS === item.MLSNumber;
 	return (
 		<div>

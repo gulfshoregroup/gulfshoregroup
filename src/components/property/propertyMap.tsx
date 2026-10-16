@@ -151,7 +151,17 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 		mapRef.current = null;
 	}, []);
 
-	if (!Latitude || !Longitude) {
+	const isInvalidCoord =
+		!Latitude ||
+		!Longitude ||
+		isNaN(Latitude) ||
+		isNaN(Longitude) ||
+		Latitude < 24.0 ||
+		Latitude > 31.5 ||
+		Longitude < -88.0 ||
+		Longitude > -79.5;
+
+	if (isInvalidCoord) {
 		return (
 			<div className="text-gray-500 text-sm p-4 bg-gray-50 border rounded-lg text-center">
 				Map location not available for this property.
@@ -326,6 +336,16 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 								streetViewControl: false,
 								fullscreenControl: true,
 								zoomControl: true,
+								minZoom: 9,
+								restriction: {
+									latLngBounds: {
+										north: 31.5,
+										south: 24.0,
+										west: -88.0,
+										east: -79.5,
+									},
+									strictBounds: false,
+								},
 							}}
 						>
 							<Marker position={{ lat: Latitude, lng: Longitude }} />

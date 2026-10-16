@@ -399,22 +399,30 @@ export async function GET(req: NextRequest) {
 		const west = parseNumber(query.get("west"));
 
 		if (north && south && east && west) {
-			where.AND = where.AND || [];
-			where.AND.push(
-				{ Latitude: { gte: south, lte: north } },
-				{ Longitude: { gte: west, lte: east } }
-			);
+			// Clamp search bounding box to Florida boundaries (24.0°N - 31.5°N, -88.0°W - -79.5°W)
+			const clampedSouth = Math.max(24.0, south);
+			const clampedNorth = Math.min(31.5, north);
+			const clampedWest = Math.max(-88.0, west);
+			const clampedEast = Math.min(-79.5, east);
+
+			if (clampedSouth < clampedNorth && clampedWest < clampedEast) {
+				where.AND = where.AND || [];
+				where.AND.push(
+					{ Latitude: { gte: clampedSouth, lte: clampedNorth } },
+					{ Longitude: { gte: clampedWest, lte: clampedEast } }
+				);
+			}
 		}
 
 		// ---- Bounds Only (opt-in, used by map auto-fit) ----
-		// Returns the geographic extent of ALL matching listings, not just one page.
+		// Returns the geographic extent of ALL matching listings within Florida, not just one page.
 		if (query.get("boundsOnly") === "1") {
 			const agg = await prisma.property.aggregate({
 				where: {
 					AND: [
 						where,
-						{ Latitude: { not: 0 } },
-						{ Longitude: { not: 0 } },
+						{ Latitude: { gte: 24.0, lte: 31.5 } },
+						{ Longitude: { gte: -88.0, lte: -79.5 } },
 					],
 				},
 				_min: { Latitude: true, Longitude: true },
