@@ -67,7 +67,7 @@ export async function processSavedSearches() {
 					// Locations
 					if (filtersObj.city) baseWhere.City = { contains: filtersObj.city.replace(/-/g, " ") };
 					if (filtersObj.postalCode) baseWhere.PostalCode = String(filtersObj.postalCode);
-					if (filtersObj.mls || filtersObj.MLSNumber) baseWhere.MLSNumber = String(filtersObj.mls || filtersObj.MLSNumber);
+					if (filtersObj.mls || filtersObj.MLSNumber || filtersObj.mlsNumber) baseWhere.MLSNumber = String(filtersObj.mls || filtersObj.MLSNumber || filtersObj.mlsNumber);
 					if (filtersObj.subdivision) baseWhere.Development = { contains: String(filtersObj.subdivision) };
 					if (filtersObj.developmentName) baseWhere.Community = { contains: String(filtersObj.developmentName).replace(/-/g, " ") };
 
@@ -116,8 +116,9 @@ export async function processSavedSearches() {
 						if (features.some((f: string) => f.includes("spa"))) baseWhere.SpaYN = true;
 						if (features.some((f: string) => f.includes("waterfront"))) baseWhere.WaterfrontYN = true;
 						if (features.some((f: string) => f.includes("pool"))) baseWhere.PoolPrivateYN = true;
-						if (features.some((f: string) => f.includes("gulf"))) baseWhere.GulfAccessYN = true;
+						if (features.some((f: string) => f.includes("gulf access") || f === "gulfaccess" || (f.includes("gulf") && !f.includes("view")))) baseWhere.GulfAccessYN = true;
 						if (features.some((f: string) => f.includes("garage"))) baseWhere.GarageYN = true;
+						if (features.some((f: string) => f.includes("view"))) baseWhere.ViewYN = true;
 					}
 					if (searchParams.get("hoa") === "yes") baseWhere.WaterfrontYN = { not: null };
 

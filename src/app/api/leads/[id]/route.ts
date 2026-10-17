@@ -64,6 +64,7 @@ async function getMappedLead(id: string) {
 			school: f.school || "",
 			postalCode: f.postalCode || "",
 			address: f.address || "",
+			mlsNumber: f.mlsNumber || f.mls || f.MLSNumber || "",
 			hoa: f.hoa || "",
 			builtYearMin: f.builtYearMin || "",
 			builtYearMax: f.builtYearMax || "",

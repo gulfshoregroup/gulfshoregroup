@@ -50,6 +50,7 @@ export default function PropertyCriteria({
 		school: "",
 		postalCode: "",
 		address: "",
+		mlsNumber: "",
 		hoa: "",
 		builtYearMin: "",
 		builtYearMax: "",
@@ -67,7 +68,20 @@ export default function PropertyCriteria({
 	// static lists
 	const bedBathOptions = ["1", "2", "3", "4"];
 	const propertyTypeOptions = ["Homes", "Condos", "Residential-Lots"];
-	const featureOptions = ["Waterfront", "Pool", "GulfAccess"];
+	const featureOptions = [
+		"Gulf Access",
+		"Waterfront",
+		"Pool",
+		"Garage",
+		"Spa",
+		"Gulf View",
+		"Bay View",
+		"City View",
+		"Lake View",
+		"Canal View",
+		"Garden View",
+		"Golf Course View",
+	];
 
 	// fetch communities when city changes
 	useEffect(() => {
@@ -107,6 +121,9 @@ export default function PropertyCriteria({
 	) => {
 		setCriteria((prev) => {
 			const arr = new Set(prev[name]);
+			if (name === "features" && value === "Gulf Access") {
+				arr.delete("GulfAccess");
+			}
 			checked ? arr.add(value) : arr.delete(value);
 			return { ...prev, [name]: Array.from(arr) };
 		});
@@ -128,6 +145,7 @@ export default function PropertyCriteria({
 				school: "",
 				postalCode: "",
 				address: "",
+				mlsNumber: "",
 				hoa: "",
 				builtYearMin: "",
 				builtYearMax: "",
@@ -362,6 +380,13 @@ export default function PropertyCriteria({
 							onChange={handleChange}
 							placeholder="Postal Code"
 						/>
+						<Input
+							name="mlsNumber"
+							value={criteria.mlsNumber}
+							onChange={handleChange}
+							placeholder="MLS Number"
+							className="col-span-2"
+						/>
 					</div>
 
 					{/* HOA */}
@@ -401,7 +426,7 @@ export default function PropertyCriteria({
 											)
 										}
 									/>
-									<label htmlFor={`ptype-${type}`} className="cursor-pointer">{type}</label>
+									<label htmlFor={`ptype-${type}`} className="cursor-pointer text-sm">{type}</label>
 								</div>
 							))}
 						</div>
@@ -410,14 +435,17 @@ export default function PropertyCriteria({
 					{/* Features */}
 					<div>
 						<p className="text-sm font-medium mb-2">Features</p>
-						<div className="flex flex-wrap gap-3">
+						<div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
 							{featureOptions.map((feature) => (
 								<div
 									key={feature}
 									className="flex items-center gap-2">
 									<Checkbox
 										id={`feat-${feature}`}
-										checked={criteria.features.includes(feature)}
+										checked={
+											criteria.features.includes(feature) ||
+											(feature === "Gulf Access" && criteria.features.includes("GulfAccess"))
+										}
 										onCheckedChange={(checked) =>
 											handleCheckboxChange(
 												"features",
@@ -426,7 +454,7 @@ export default function PropertyCriteria({
 											)
 										}
 									/>
-									<label htmlFor={`feat-${feature}`} className="cursor-pointer">{feature}</label>
+									<label htmlFor={`feat-${feature}`} className="cursor-pointer text-sm">{feature}</label>
 								</div>
 							))}
 						</div>
@@ -493,11 +521,12 @@ export default function PropertyCriteria({
 									{c.subdivision && <p>Subdivision: {c.subdivision}</p>}
 									{c.school && <p>School: {c.school}</p>}
 									{c.postalCode && <p>Zip: {c.postalCode}</p>}
+									{c.mlsNumber && <p>MLS: {c.mlsNumber}</p>}
 									{c.propertyTypes?.length > 0 && (
 										<p>Types: {Array.isArray(c.propertyTypes) ? c.propertyTypes.join(", ") : c.propertyTypes}</p>
 									)}
 									{c.features?.length > 0 && (
-										<p>Features: {Array.isArray(c.features) ? c.features.join(", ") : c.features}</p>
+										<p>Features: {Array.isArray(c.features) ? c.features.map((f: string) => f === "GulfAccess" ? "Gulf Access" : f).join(", ") : c.features}</p>
 									)}
 								</div>
 								<div className="flex flex-col gap-2">

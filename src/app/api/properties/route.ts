@@ -66,8 +66,9 @@ export async function GET(req: NextRequest) {
 			if (features.some((f: string) => f.includes("spa"))) where.SpaYN = true;
 			if (features.some((f: string) => f.includes("waterfront"))) where.WaterfrontYN = true;
 			if (features.some((f: string) => f.includes("pool"))) where.PoolPrivateYN = true;
-			if (features.some((f: string) => f.includes("gulf"))) where.GulfAccessYN = true;
+			if (features.some((f: string) => f.includes("gulf access") || f === "gulfaccess" || (f.includes("gulf") && !f.includes("view")))) where.GulfAccessYN = true;
 			if (features.some((f: string) => f.includes("garage"))) where.GarageYN = true;
+			if (features.some((f: string) => f.includes("view"))) where.ViewYN = true;
 		}
 
 		// HOA Filter

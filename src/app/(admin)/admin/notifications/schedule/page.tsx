@@ -84,11 +84,18 @@ const propertyTypeOptions = [
 	"Residential-Lots",
 ];
 const amenitiesOptions = [
+	"Gulf Access",
+	"Waterfront",
 	"Pool",
 	"Garage",
-	"Parking",
-	"Waterfront",
-	"Gulf Access",
+	"Spa",
+	"Gulf View",
+	"Bay View",
+	"City View",
+	"Lake View",
+	"Canal View",
+	"Garden View",
+	"Golf Course View",
 ];
 
 function ScheduleNotificationContent() {
