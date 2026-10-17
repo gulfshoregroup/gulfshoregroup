@@ -134,7 +134,7 @@ export async function POST(
     });
     page3.drawText(todayStr, { x: 242, y: 418, size: 10 });
     page3.drawText(name, { x: 60, y: 381, size: 10 });
-    page3.drawText("Provided on Tour Request", { x: 140, y: 346, size: 10 });
+    // Buyer Address left blank per client request
     page3.drawText(phone, { x: 240, y: 318, size: 10 });
     page3.drawText(email, { x: 95, y: 300, size: 10 });
 

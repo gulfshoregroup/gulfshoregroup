@@ -78,8 +78,7 @@ export async function POST(req: NextRequest) {
     page3.drawText(todayStr, { x: 242, y: 418, size: 10 });
     // Buyer Printed Name (on line at y=378.3)
     page3.drawText(name, { x: 60, y: 381, size: 10 });
-    // Buyer Address (on line at y=344.0)
-    page3.drawText("Provided on Tour Request", { x: 140, y: 346, size: 10 });
+    // Buyer Address left blank per client request
     // Buyer Telephone (on line at y=316.0)
     page3.drawText(phone || "N/A", { x: 240, y: 318, size: 10 });
     // Buyer Email Address (on line at y=297.7)

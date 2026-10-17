@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     // --- PAGE 3 STAMPING ---
     page3.drawText(todayStr, { x: 242, y: 418, size: 10 }); // Buyer Date (on line at y=415.3)
     page3.drawText(name || "", { x: 60, y: 381, size: 10 }); // Buyer Printed Name (on line at y=378.3)
-    page3.drawText("Provided on Tour Request", { x: 140, y: 346, size: 10 }); // Mailing Address (on line at y=344.0)
+    // Buyer mailing address left blank per client request
     if (phone) page3.drawText(phone, { x: 240, y: 318, size: 10 }); // Phone (on line at y=316.0)
     if (email) page3.drawText(email, { x: 95, y: 300, size: 10 }); // Email (on line at y=297.7)
 
