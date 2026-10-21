@@ -4,6 +4,7 @@ import { generateText, stepCountIs } from "ai";
 import prisma from "@/lib/prisma";
 import { AI_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { aiTools } from "@/lib/ai/tools";
+import { notifyAdminOnIncomingSms } from "@/lib/leads/admin-sms-alert";
 
 function escapeXml(unsafe: string): string {
 	return unsafe
@@ -48,12 +49,22 @@ export async function POST(req: NextRequest) {
 			lead = await prisma.lead.create({
 				data: {
 					phone: From,
-					email: `${cleanPhone || Date.now()}@placeholder.com`,
+					email: `sms_${cleanPhone || Date.now()}@incoming.gulfshoregroup.com`,
+					firstName: "SMS",
+					lastName: "Lead",
 					source: "General",
-					status: "New"
+					status: "New",
+					lastContactedAt: new Date()
 				}
 			});
 		}
+
+		// Immediately notify Admin (Dimitri) via SMS (+12399929119) and Email
+		await notifyAdminOnIncomingSms({
+			fromPhone: From,
+			messageBody: Body,
+			lead
+		});
 
 		// 2. Save user message to AIChatHistory
 		await prisma.aIChatHistory.create({
@@ -110,6 +121,12 @@ Ask qualifying questions about budget, location, and timeline to buy/sell.`,
 				message: text,
 			}
 		});
+
+		// Update lead's last contacted timestamp
+		await prisma.lead.update({
+			where: { id: lead.id },
+			data: { lastContactedAt: new Date() }
+		}).catch((err: any) => console.error("[Twilio Webhook] Failed to update lastContactedAt:", err));
 
 		// Recalculate score asynchronously after the chat interaction
 		import("@/lib/leads/services/scoring.service").then(({ recalculateLeadScore }) => {
