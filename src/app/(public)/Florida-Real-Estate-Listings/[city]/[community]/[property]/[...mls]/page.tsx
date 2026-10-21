@@ -47,6 +47,8 @@ import { Property } from "@/app/generated/prisma/client";
 import SimilarPropertiesCarousel from "@/components/property/similarPropertiesCarousel";
 import WalkScore from "@/components/property/walkscore";
 
+export const revalidate = 300; // ISR: cache property details for 5 minutes
+
 export default async function Listing({
 	params,
 }: {

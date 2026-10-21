@@ -82,9 +82,8 @@ export default function CardCarousel({
 												alt={`${property.FullAddress}-${index}`}
 												fill={true}
 												sizes="(max-width: 768px) 100vw, 456px"
-												loading={index === 0 ? "eager" : "lazy"}
-												priority={index === 0}
-												unoptimized
+												loading="lazy"
+												quality={75}
 												onError={() => setImageErrors(prev => ({ ...prev, [index]: true }))}
 												className="object-cover group-hover:scale-105 transition duration-700 ease-in-out"
 											/>

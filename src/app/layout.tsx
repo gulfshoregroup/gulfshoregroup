@@ -3,16 +3,16 @@ import "./globals.css";
 import { Inter, Poppins } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import StoreProvider from "../state/StoreProvider";
+import Script from "next/script";
 
 const inter = Inter({
 	subsets: ["latin"],
-	weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 	variable: "--font-inter",
 	display: "swap",
 });
 const poppins = Poppins({
 	subsets: ["latin"],
-	weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+	weight: ["400", "500", "600", "700"],
 	variable: "--font-poppins",
 	display: "swap",
 });
@@ -79,6 +79,14 @@ export default function RootLayout({
 				lang="en"
 				suppressHydrationWarning
 				className={`${inter.variable} ${poppins.variable}`}>
+				<head>
+					<link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
+					<link rel="dns-prefetch" href="https://res.cloudinary.com" />
+					<link rel="preconnect" href="https://dvvjkgh94f2v6.cloudfront.net" crossOrigin="anonymous" />
+					<link rel="dns-prefetch" href="https://dvvjkgh94f2v6.cloudfront.net" />
+					<link rel="preconnect" href="https://cdn.onesignal.com" />
+					<link rel="preconnect" href="https://www.googletagmanager.com" />
+				</head>
 				<body className="antialiased">
 					<script
 						dangerouslySetInnerHTML={{
@@ -115,11 +123,13 @@ export default function RootLayout({
 						{children}
 					</StoreProvider>
 
-					<script
+					<Script
 						src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
-						defer
+						strategy="lazyOnload"
 					/>
-					<script
+					<Script
+						id="onesignal-init"
+						strategy="lazyOnload"
 						dangerouslySetInnerHTML={{
 							__html: `
 							window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -134,11 +144,13 @@ export default function RootLayout({
 						`,
 						}}
 					/>
-					<script
-						async
+					<Script
 						src="https://www.googletagmanager.com/gtag/js?id=G-1VDEW2DPN8"
+						strategy="afterInteractive"
 					/>
-					<script
+					<Script
+						id="google-analytics"
+						strategy="afterInteractive"
 						dangerouslySetInnerHTML={{
 							__html: `
 							window.dataLayer = window.dataLayer || [];

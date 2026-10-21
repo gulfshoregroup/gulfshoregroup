@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/global/footer";
 
+export const revalidate = 3600; // ISR: cache blog post for 1 hour
+
 export default async function BlogDetailPage({
 	params,
 }: {
@@ -19,7 +21,7 @@ export default async function BlogDetailPage({
 		"http://localhost:3000";
 	const res = await fetch(
 		`${baseUrl}/api/v2/blogs?slug=${slug}`,
-		{ cache: "no-store" }
+		{ next: { revalidate: 3600 } }
 	);
 
 	if (!res.ok) {

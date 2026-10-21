@@ -24,7 +24,11 @@ function getGeneralSettings() {
 
 export async function GET() {
 	const settings = getGeneralSettings();
-	return NextResponse.json(settings);
+	return NextResponse.json(settings, {
+		headers: {
+			"Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+		},
+	});
 }
 
 export async function POST(req: Request) {

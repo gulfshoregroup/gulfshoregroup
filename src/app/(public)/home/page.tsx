@@ -92,6 +92,8 @@ export async function generateMetadata(): Promise<Metadata> {
 	}
 }
 
+export const revalidate = 180; // ISR: revalidate every 3 minutes for instant edge TTFB
+
 export default async function Home() {
 	const latestProperties = await getFeaturedProperties();
 

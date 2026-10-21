@@ -117,8 +117,8 @@ export default function CitiesSection() {
 										className="h-64 w-52 md:w-56 group relative overflow-hidden hover:cursor-pointer rounded-2xl border-0 shadow-md shrink-0">
 										<div className="relative h-full w-full">
 											<Image
-												unoptimized
-												loading={index < 4 ? "eager" : "lazy"}
+												loading="lazy"
+												quality={75}
 												src={city.defaultImage || (Array.isArray(city.images) ? city.images[0] : null) || "/map-bg.webp"}
 												width={240}
 												height={320}

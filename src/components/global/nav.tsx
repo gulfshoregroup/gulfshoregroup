@@ -138,9 +138,10 @@ const Navbar = () => {
 							<Image
 								src={"/logored.svg"}
 								alt="Gulfshoregroup"
-								className="w-6 md:w-9"
-								width={35}
-								height={8}
+								className="w-6 h-6 md:w-9 md:h-9 object-contain"
+								width={36}
+								height={36}
+								priority
 							/>
 
 							<div className="flex flex-col">

@@ -4,7 +4,11 @@ import { Suspense } from "react";
 import Navbar from "@/components/global/nav";
 import { Toaster } from "@/components/ui/sonner";
 import { usePathname } from "next/navigation";
-import AIChatWidget from "@/components/chat/AIChatWidget";
+import dynamic from "next/dynamic";
+
+const AIChatWidget = dynamic(() => import("@/components/chat/AIChatWidget"), {
+	ssr: false,
+});
 
 export default function PublicLayout({
 	children,

@@ -79,7 +79,7 @@ const SliderComponent = ({
 										height={800}
 										priority={index === 0}
 										loading={index === 0 ? "eager" : "lazy"}
-										unoptimized
+										quality={80}
 										className="rounded-xl h-[calc(100vh/2)] w-full mx-auto object-cover"
 									/>
 									<Button
@@ -111,7 +111,7 @@ const SliderComponent = ({
 								width={550}
 								height={550}
 								loading="lazy"
-								unoptimized
+								quality={75}
 								className="rounded-lg object-cover h-24 sm:h-32 lg:h-[calc(100vh/4)] w-full"
 							/>
 							{/* Overlay for more images */}

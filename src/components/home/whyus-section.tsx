@@ -16,9 +16,11 @@ export default function WhyChooseUs() {
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 					<div className="p-6 bg-white rounded-lg">
 						<Image
-						  unoptimized
 							width={500}
 							height={500}
+							loading="lazy"
+							quality={75}
+							sizes="(max-width: 768px) 100vw, 33vw"
 							src="https://res.cloudinary.com/dm68hqwp9/image/upload/v1752289230/financial-analysts-doing_hnls5f.jpg"
 							alt="Knowledge"
 						/>
@@ -34,9 +36,11 @@ export default function WhyChooseUs() {
 					</div>
 					<div className="p-6 bg-white rounded-lg">
 						<Image
-						  unoptimized
 							width={500}
 							height={500}
+							loading="lazy"
+							quality={75}
+							sizes="(max-width: 768px) 100vw, 33vw"
 							src="https://res.cloudinary.com/dm68hqwp9/image/upload/v1752289230/experts-concept-illustration_ww93ft.jpg"
 							alt="Expertise"
 						/>
@@ -52,9 +56,11 @@ export default function WhyChooseUs() {
 					</div>
 					<div className="p-6 bg-white rounded-lg">
 						<Image
-						  unoptimized
 							width={500}
 							height={500}
+							loading="lazy"
+							quality={75}
+							sizes="(max-width: 768px) 100vw, 33vw"
 							src="https://res.cloudinary.com/dm68hqwp9/image/upload/v1752289241/successful-businessman-celebrating-victory_1150-39772_nu6lci.jpg"
 							alt="Success"
 						/>

@@ -272,10 +272,9 @@ export const PropertyCard2 = ({
 							width={200}
 							height={420}
 							src={images[0]}
-							priority
-							loading="eager"
+							loading="lazy"
+							quality={75}
 							alt={property.FullAddress}
-							unoptimized
 							onError={() => setImageError(true)}
 							className="w-full h-full object-cover"
 						/>

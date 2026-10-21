@@ -1,4 +1,5 @@
 import React, { Suspense } from "react";
+import Image from "next/image";
 import SearchBox from "./home-searchbox";
 
 
@@ -8,13 +9,18 @@ const HeroSection = () => {
 
     return (
         <section className="relative w-full min-h-[65vh] md:min-h-[85vh] bg-slate-950">
-            {/* Background Image */}
-            <div
-                className="absolute inset-0 overflow-hidden bg-cover bg-center bg-no-repeat"
-                style={{
-                    backgroundImage: `url("${heroImage}")`,
-                }}
-            />
+            {/* Background Image - Optimized Next/Image with priority for instant LCP */}
+            <div className="absolute inset-0 overflow-hidden">
+                <Image
+                    src={heroImage}
+                    alt="Buy Or Sell In Naples, FL And Surrounding Area"
+                    fill
+                    priority
+                    quality={80}
+                    sizes="100vw"
+                    className="object-cover object-center"
+                />
+            </div>
 
             {/* Overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/50 to-black/30" />

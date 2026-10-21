@@ -62,6 +62,33 @@ const nextConfig = {
 	poweredByHeader: false,
 	compress: true,
 
+	experimental: {
+		optimizePackageImports: ["lucide-react", "date-fns"],
+	},
+
+	async headers() {
+		return [
+			{
+				source: "/:all*(svg|jpg|jpeg|png|webp|avif|ico|woff|woff2)",
+				headers: [
+					{
+						key: "Cache-Control",
+						value: "public, max-age=31536000, immutable",
+					},
+				],
+			},
+			{
+				source: "/_next/static/:path*",
+				headers: [
+					{
+						key: "Cache-Control",
+						value: "public, max-age=31536000, immutable",
+					},
+				],
+			},
+		];
+	},
+
 	turbopack: {
 		...(process.env.NEXT_PUBLIC_USE_REAL_CLERK !== "true" ? {
 			resolveAlias: {
