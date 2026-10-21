@@ -1,8 +1,8 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useUser } from "@clerk/nextjs";
-import { Clock, ArrowRight, ArrowLeft } from "lucide-react";
+import { Clock, ArrowRight, ArrowLeft, ExternalLink, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import SignatureCanvas from "react-signature-canvas";
 
@@ -58,19 +58,32 @@ const ScheduleTourForm = ({
 		fetchProfile();
 	}, [user]);
 
-
-
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [successMessage, setSuccessMessage] = useState("");
 	
 	// Signature flow states
 	const [step, setStep] = useState(1);
 	const [signatureData, setSignatureData] = useState<string | null>(null);
-	let sigPad: any = {};
+	const sigPadRef = useRef<any>(null);
+	const [activePage, setActivePage] = useState<number | "all">(1);
 	const formType = propertyId && propertyId !== MLSNumber ? "Property-Specific" : "General";
 	
 	const fullName = `${formData.firstName} ${formData.lastName}`.trim() || "Client Name";
 	const previewPdfUrl = `/api/tour/preview-agreement?name=${encodeURIComponent(fullName)}&email=${encodeURIComponent(formData.email)}&phone=${encodeURIComponent(formData.phone)}&formType=${encodeURIComponent(formType)}`;
+
+	useEffect(() => {
+		const checkMobile = () => {
+			const mobile = typeof window !== "undefined" && window.innerWidth < 768;
+			if (!mobile) {
+				setActivePage("all");
+			} else {
+				setActivePage(1);
+			}
+		};
+		checkMobile();
+		window.addEventListener("resize", checkMobile);
+		return () => window.removeEventListener("resize", checkMobile);
+	}, []);
 
 	const handleChange = (e: { target: { name: any; value: any } }) => {
 		setFormData({
@@ -240,22 +253,193 @@ const ScheduleTourForm = ({
 
 					{step === 2 && (
 						<div className="mb-4 space-y-4">
-							<div className="bg-gray-50 border rounded-lg p-2 h-[50vh] overflow-hidden">
-								<iframe src={previewPdfUrl || pdfUrl} width="100%" height="100%" className="rounded" title="Buyer Broker Agreement" />
-							</div>
-							<div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
-								<div className="bg-gray-100 px-3 py-2 border-b text-sm font-medium flex justify-between items-center">
-									<span>Sign Here</span>
-									<button type="button" onClick={() => sigPad.clear()} className="text-xs text-blue-600 hover:underline">Clear</button>
+							{/* Document Header & Page Navigation Toolbar */}
+							<div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+								<div className="bg-gray-100 px-3 py-2 border-b flex flex-wrap items-center justify-between gap-2">
+									<div className="flex items-center gap-1.5 flex-wrap">
+										<span className="text-xs font-semibold text-gray-700 mr-1 flex items-center gap-1">
+											<FileText className="w-3.5 h-3.5 text-primary" /> Pages:
+										</span>
+										<button
+											type="button"
+											onClick={() => setActivePage(1)}
+											className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+												activePage === 1
+													? "bg-primary text-white shadow-xs font-bold"
+													: "bg-white text-gray-700 hover:bg-gray-200 border border-gray-300"
+											}`}>
+											Page 1
+										</button>
+										<button
+											type="button"
+											onClick={() => setActivePage(2)}
+											className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+												activePage === 2
+													? "bg-primary text-white shadow-xs font-bold"
+													: "bg-white text-gray-700 hover:bg-gray-200 border border-gray-300"
+											}`}>
+											Page 2
+										</button>
+										<button
+											type="button"
+											onClick={() => setActivePage(3)}
+											className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+												activePage === 3
+													? "bg-primary text-white shadow-xs font-bold"
+													: "bg-white text-gray-700 hover:bg-gray-200 border border-gray-300"
+											}`}>
+											Page 3 (Signatures)
+										</button>
+										<button
+											type="button"
+											onClick={() => setActivePage("all")}
+											className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+												activePage === "all"
+													? "bg-primary text-white shadow-xs font-bold"
+													: "bg-white text-gray-700 hover:bg-gray-200 border border-gray-300"
+											}`}>
+											All Pages
+										</button>
+									</div>
+
+									<a
+										href={previewPdfUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-xs text-blue-700 hover:text-blue-900 font-semibold underline flex items-center gap-1 ml-auto">
+										<ExternalLink className="w-3.5 h-3.5" /> Full PDF
+									</a>
 								</div>
-								<SignatureCanvas 
-									penColor="black"
-									canvasProps={{className: "w-full h-32 cursor-crosshair"}}
-									ref={(ref) => { sigPad = ref }}
-									onEnd={() => setSignatureData(sigPad.getTrimmedCanvas().toDataURL('image/png'))}
-								/>
+
+								{/* PDF Viewer Body */}
+								{activePage === "all" ? (
+									<>
+										{/* Desktop view: Native full 3-page PDF viewer with scrollbar */}
+										<div className="hidden md:block h-[50vh] p-1 bg-gray-100">
+											<iframe
+												src={previewPdfUrl}
+												width="100%"
+												height="100%"
+												className="rounded border border-gray-200"
+												title="Buyer Broker Agreement Full"
+											/>
+										</div>
+										{/* Mobile view: Stack all 3 pages vertically so iOS Safari doesn't cut off page 2 & 3 */}
+										<div className="block md:hidden max-h-[55vh] overflow-y-auto p-2 space-y-3 bg-gray-100">
+											<div className="bg-white border rounded shadow-xs overflow-hidden">
+												<div className="bg-gray-50 px-2 py-1 text-[11px] font-bold text-gray-600 border-b">
+													Page 1 of 3: Terms & Compensation
+												</div>
+												<iframe
+													src={`${previewPdfUrl}&page=1`}
+													width="100%"
+													height="420px"
+													className="border-0"
+													title="Agreement Page 1"
+												/>
+											</div>
+											<div className="bg-white border rounded shadow-xs overflow-hidden">
+												<div className="bg-gray-50 px-2 py-1 text-[11px] font-bold text-gray-600 border-b">
+													Page 2 of 3: Standard Provisions
+												</div>
+												<iframe
+													src={`${previewPdfUrl}&page=2`}
+													width="100%"
+													height="420px"
+													className="border-0"
+													title="Agreement Page 2"
+												/>
+											</div>
+											<div className="bg-white border rounded shadow-xs overflow-hidden">
+												<div className="bg-gray-50 px-2 py-1 text-[11px] font-bold text-gray-600 border-b">
+													Page 3 of 3: Signatures & Licensee Info
+												</div>
+												<iframe
+													src={`${previewPdfUrl}&page=3`}
+													width="100%"
+													height="420px"
+													className="border-0"
+													title="Agreement Page 3"
+												/>
+											</div>
+										</div>
+									</>
+								) : (
+									/* Single-page viewer for the active page (Page 1, 2, or 3) */
+									<div className="h-[50vh] p-1 bg-gray-100">
+										<iframe
+											src={`${previewPdfUrl}&page=${activePage}`}
+											width="100%"
+											height="100%"
+											className="rounded border border-gray-200"
+											title={`Buyer Broker Agreement Page ${activePage}`}
+										/>
+									</div>
+								)}
+
+								{/* Page Footer Navigation */}
+								{activePage !== "all" && (
+									<div className="bg-gray-100 px-3 py-2 border-t flex justify-between items-center text-xs text-gray-700">
+										<button
+											type="button"
+											disabled={activePage === 1}
+											onClick={() => setActivePage((prev) => (typeof prev === "number" && prev > 1 ? prev - 1 : 1))}
+											className="flex items-center gap-1 font-semibold text-primary disabled:opacity-30 disabled:cursor-not-allowed hover:underline">
+											<ChevronLeft className="w-4 h-4" /> Previous Page
+										</button>
+										<span className="font-medium text-gray-600">
+											{activePage === 1 && "Page 1: Terms & Compensation"}
+											{activePage === 2 && "Page 2: Standard NABOR Provisions"}
+											{activePage === 3 && "Page 3: Signatures & Licensee Info"}
+										</span>
+										<button
+											type="button"
+											disabled={activePage === 3}
+											onClick={() => setActivePage((prev) => (typeof prev === "number" && prev < 3 ? prev + 1 : 3))}
+											className="flex items-center gap-1 font-semibold text-primary disabled:opacity-30 disabled:cursor-not-allowed hover:underline">
+											Next Page <ChevronRight className="w-4 h-4" />
+										</button>
+									</div>
+								)}
 							</div>
-							<p className="text-xs text-gray-500">By signing, you agree to the terms of the Buyer Broker Agreement.</p>
+
+							{/* Signature Pad */}
+							<div className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-xs">
+								<div className="bg-gray-100 px-3 py-2 border-b text-sm font-medium flex justify-between items-center">
+									<span className="flex items-center gap-1 font-semibold text-gray-800">
+										✍️ Sign Here <span className="text-xs text-red-500 font-normal">*required</span>
+									</span>
+									<button
+										type="button"
+										onClick={() => {
+											sigPadRef.current?.clear();
+											setSignatureData(null);
+										}}
+										className="text-xs text-red-600 hover:underline font-medium">
+										Clear Signature
+									</button>
+								</div>
+								<SignatureCanvas
+									penColor="black"
+									canvasProps={{ className: "w-full h-32 cursor-crosshair touch-none" }}
+									ref={(ref: any) => {
+										sigPadRef.current = ref;
+									}}
+									onEnd={() => {
+										if (sigPadRef.current) {
+											setSignatureData(sigPadRef.current.getTrimmedCanvas().toDataURL("image/png"));
+										}
+									}}
+								/>
+								{signatureData && (
+									<div className="bg-green-50 px-3 py-1.5 border-t border-green-200 text-green-700 text-xs font-semibold flex items-center gap-1">
+										✓ Signature captured successfully
+									</div>
+								)}
+							</div>
+							<p className="text-xs text-gray-500">
+								By signing, you agree to the terms of the Buyer Broker Agreement (NABOR) with GulfShore Group & London Foster Realty.
+							</p>
 						</div>
 					)}
 

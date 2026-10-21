@@ -68,13 +68,25 @@ export async function GET(req: NextRequest) {
     page3.drawText("London Foster Realty", { x: 160, y: 195, size: 10 }); // Brokerage Name (on line at y=192.3)
     // Broker mailing address removed per client request
 
-    const pdfBytes = await pdfDoc.save();
+    // Check if a specific single page is requested (e.g. for mobile view where multi-page iframes only show page 1)
+    const requestedPage = searchParams.get('page');
+    let finalPdfBytes: Uint8Array;
 
-    return new NextResponse(pdfBytes, {
+    if (requestedPage && ["1", "2", "3"].includes(requestedPage)) {
+      const pageIndex = parseInt(requestedPage, 10) - 1;
+      const singleDoc = await PDFDocument.create();
+      const [copiedPage] = await singleDoc.copyPages(pdfDoc, [pageIndex]);
+      singleDoc.addPage(copiedPage);
+      finalPdfBytes = await singleDoc.save();
+    } else {
+      finalPdfBytes = await pdfDoc.save();
+    }
+
+    return new NextResponse(finalPdfBytes, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": 'inline; filename="preview.pdf"',
+        "Content-Disposition": `inline; filename="preview${requestedPage ? `-page-${requestedPage}` : ""}.pdf"`,
       },
     });
   } catch (error) {
