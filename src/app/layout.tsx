@@ -84,6 +84,10 @@ export default function RootLayout({
 					<link rel="dns-prefetch" href="https://res.cloudinary.com" />
 					<link rel="preconnect" href="https://dvvjkgh94f2v6.cloudfront.net" crossOrigin="anonymous" />
 					<link rel="dns-prefetch" href="https://dvvjkgh94f2v6.cloudfront.net" />
+					<link rel="preconnect" href="https://maps.googleapis.com" />
+					<link rel="preconnect" href="https://maps.gstatic.com" crossOrigin="anonymous" />
+					<link rel="dns-prefetch" href="https://maps.googleapis.com" />
+					<link rel="dns-prefetch" href="https://maps.gstatic.com" />
 					<link rel="preconnect" href="https://cdn.onesignal.com" />
 					<link rel="preconnect" href="https://www.googletagmanager.com" />
 				</head>

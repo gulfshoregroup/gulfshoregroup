@@ -4,7 +4,7 @@ import axios from "axios";
 import { GoogleMap, useJsApiLoader, MarkerClustererF } from "@react-google-maps/api";
 import MarkerItem from "@/components/map/marker";
 import { useSelector } from "react-redux";
-import { Layers, ChevronDown } from "lucide-react";
+import { Layers, ChevronDown, MapPin } from "lucide-react";
 import { useAppDispatch } from "@/state/store";
 import {
 	fetchProperties,
@@ -154,10 +154,20 @@ export default function MapComponent({
 	filterParams: SearchParamsResult;
 }) {
 	const { user, isSignedIn, isLoaded: isUserLoaded } = useUser();
-	const [center, setCenter] = useState({
-		lat: 26.142,
-		lng: -81.7948,
-	});
+	const initialCenter = React.useMemo(() => {
+		const searchCity = filterParams?.city?.toUpperCase() || "";
+		const searchDev = filterParams?.developmentName?.toUpperCase() || "";
+		const searchComm = filterParams?.community?.toUpperCase() || "";
+		const lookupKey =
+			(searchCity && CITY_CENTERS[searchCity] ? searchCity : null) ??
+			(searchComm && CITY_CENTERS[searchComm] ? searchComm : null) ??
+			(searchDev && CITY_CENTERS[searchDev] ? searchDev : null) ??
+			(searchDev && COMMUNITY_CITY_MAP[searchDev] ? COMMUNITY_CITY_MAP[searchDev] : null) ??
+			null;
+		return (lookupKey && CITY_CENTERS[lookupKey]) ? CITY_CENTERS[lookupKey] : { lat: 26.142, lng: -81.7948 };
+	}, [filterParams?.city, filterParams?.developmentName, filterParams?.community]);
+
+	const [center, setCenter] = useState(initialCenter);
 	const [mapTypeId, setMapTypeId] = useState<"roadmap" | "satellite" | "hybrid" | "terrain">("hybrid");
 
 	const [showDrone, setShowDrone] = useState(false);
@@ -169,9 +179,6 @@ export default function MapComponent({
 	const femaOverlayRef = useRef<google.maps.ImageMapType | null>(null);
 	const hasCenteredRef = useRef(false);
 	const isInitialLoadRef = useRef(true);
-	// Full-result bounds lookup: key of the last request + whether it is still running
-	const boundsKeyRef = useRef<string | null>(null);
-	const [boundsPending, setBoundsPending] = useState(false);
 
 	const dispatch = useAppDispatch();
 	const properties = useSelector(selectAllProperties);
@@ -250,100 +257,15 @@ export default function MapComponent({
 			null;
 		const knownCenter = lookupKey && CITY_CENTERS[lookupKey] ? CITY_CENTERS[lookupKey] : null;
 
-		const hasSpecificLocation = Boolean(
-			filterParams?.city ||
-			filterParams?.community ||
-			filterParams?.developmentName ||
-			filterParams?.postalCode
-		);
-
-		// If no specific city/community is selected (browsing all properties), default directly
-		// to Southwest Florida core at zoom 10 without doing a statewide bounding query.
-		if (!hasSpecificLocation) {
-			mapRef.current.setCenter(SW_FL_CENTER);
-			mapRef.current.setZoom(10);
+		// 1. If known city / community center is found, center immediately at zoom 12
+		if (knownCenter) {
+			mapRef.current.setCenter(knownCenter);
+			mapRef.current.setZoom(12);
 			hasCenteredRef.current = true;
 			return;
 		}
 
-		// Step 1 (preferred): fit to the extent of ALL matching listings for this specific LOCATION.
-		const locationKey = JSON.stringify({
-			city: filterParams?.city ?? null,
-			community: filterParams?.community ?? null,
-			developmentName: filterParams?.developmentName ?? null,
-			postalCode: filterParams?.postalCode ?? null,
-		});
-
-		if (boundsKeyRef.current !== locationKey) {
-			boundsKeyRef.current = locationKey;
-			setBoundsPending(true);
-			const params: Record<string, any> = { boundsOnly: 1 };
-			if (filterParams?.city) params.city = filterParams.city;
-			if (filterParams?.community) params.community = filterParams.community;
-			if (filterParams?.developmentName) params.developmentName = filterParams.developmentName;
-			if (filterParams?.postalCode) params.postalCode = filterParams.postalCode;
-
-			axios
-				.get("/api/v2/properties", { params })
-				.then((res) => {
-					const b = res.data?.bounds;
-					if (boundsKeyRef.current !== locationKey || hasCenteredRef.current || !mapRef.current || !b) return;
-
-					// Validate that the returned bounds are strictly inside Florida
-					const isValidFloridaBounds =
-						typeof b.north === "number" &&
-						typeof b.south === "number" &&
-						typeof b.east === "number" &&
-						typeof b.west === "number" &&
-						b.south >= 24.0 &&
-						b.north <= 31.5 &&
-						b.west >= -88.0 &&
-						b.east <= -79.5 &&
-						b.north >= b.south &&
-						b.east >= b.west;
-
-					if (!isValidFloridaBounds) {
-						if (knownCenter) {
-							mapRef.current.setCenter(knownCenter);
-							mapRef.current.setZoom(12);
-							hasCenteredRef.current = true;
-						}
-						return;
-					}
-
-					// Verify bounds center does not deviate wildly (> 40 miles) from known city center
-					const centerLat = (b.north + b.south) / 2;
-					const centerLng = (b.east + b.west) / 2;
-					if (knownCenter && (Math.abs(centerLat - knownCenter.lat) > 0.6 || Math.abs(centerLng - knownCenter.lng) > 0.6)) {
-						mapRef.current.setCenter(knownCenter);
-						mapRef.current.setZoom(12);
-						hasCenteredRef.current = true;
-						return;
-					}
-
-					const gBounds = new window.google.maps.LatLngBounds(
-						{ lat: b.south, lng: b.west },
-						{ lat: b.north, lng: b.east }
-					);
-					mapRef.current.fitBounds(gBounds);
-					window.google.maps.event.addListenerOnce(mapRef.current, "bounds_changed", () => {
-						const z = mapRef.current?.getZoom();
-						if (z && z > 15) mapRef.current?.setZoom(15);
-						if (z && z < 9) mapRef.current?.setZoom(9);
-					});
-					hasCenteredRef.current = true;
-				})
-				.catch(() => {
-					// ignore — fall back to the original logic below
-				})
-				.finally(() => {
-					if (boundsKeyRef.current === locationKey) setBoundsPending(false);
-				});
-			return;
-		}
-		if (boundsPending) return;
-
-		// Step 2 (fallback): fit to loaded properties with valid Florida coordinates, else known city center
+		// 2. If properties are already loaded with valid coordinates, fit to listings
 		if (properties.length > 0) {
 			const bounds = new window.google.maps.LatLngBounds();
 			let hasValidCoords = false;
@@ -363,13 +285,15 @@ export default function MapComponent({
 					if (z && z < 9) mapRef.current?.setZoom(9);
 				});
 				hasCenteredRef.current = true;
+				return;
 			}
-		} else if (knownCenter) {
-			mapRef.current.setCenter(knownCenter);
-			mapRef.current.setZoom(12);
-			hasCenteredRef.current = true;
 		}
-	}, [filterParams?.city, filterParams?.community, filterParams?.developmentName, filterParams?.postalCode, properties, isLoaded, boundsPending, SW_FL_CENTER]);
+
+		// 3. Fallback: Southwest Florida regional center
+		mapRef.current.setCenter(SW_FL_CENTER);
+		mapRef.current.setZoom(10);
+		hasCenteredRef.current = true;
+	}, [filterParams?.city, filterParams?.community, filterParams?.developmentName, filterParams?.postalCode, properties, isLoaded, SW_FL_CENTER]);
 
 
 
@@ -768,7 +692,19 @@ export default function MapComponent({
 					className="w-full h-full border-0 rounded-xl"
 					title="Drone / Real View"
 				/>
-			) : isLoaded && (
+			) : !isLoaded ? (
+				<div className="absolute inset-0 bg-slate-100 flex flex-col items-center justify-center rounded-xl z-20 border border-slate-200">
+					<div className="relative flex flex-col items-center gap-3">
+						<div className="w-12 h-12 rounded-full bg-[#B89A6A]/15 border border-[#B89A6A]/30 flex items-center justify-center animate-pulse">
+							<MapPin className="w-6 h-6 text-[#B89A6A] animate-bounce" />
+						</div>
+						<div className="flex flex-col items-center text-center">
+							<span className="text-sm font-semibold text-gray-800">Loading Interactive Map...</span>
+							<span className="text-xs text-gray-500">Connecting Southwest Florida MLS listings</span>
+						</div>
+					</div>
+				</div>
+			) : (
 				<GoogleMap
 					onLoad={onLoad}
 					onUnmount={onUnmount}

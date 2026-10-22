@@ -275,16 +275,18 @@ export default function PropertyDetailsTable({
 							/>
 							<InfoRow
 								label="Status"
-								value={property.StandardStatus}
+								value={isOffMarket ? "Off-Market" : property.StandardStatus}
 							/>
 							<InfoRow
 								label="Year Built"
 								value={property.YearBuilt}
 							/>
-							<InfoRow
-								label="List Office Name"
-								value={property.ListOfficeName}
-							/>
+							{!isOffMarket && (
+								<InfoRow
+									label="List Office Name"
+									value={property.ListOfficeName}
+								/>
+							)}
 							<InfoRow
 								label="MLS Number"
 								value={property.MLSNumber}
@@ -313,11 +315,18 @@ export default function PropertyDetailsTable({
 					</AccordionTrigger>
 					<AccordionContent>
 						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6">
-							<InfoRow
-								label="Price"
-								value={property.ListPrice}
-								formatter={formatCurrency}
-							/>
+							{isOffMarket ? (
+								<InfoRow
+									label="Price"
+									value="Off-Market"
+								/>
+							) : (
+								<InfoRow
+									label="Price"
+									value={property.ListPrice}
+									formatter={formatCurrency}
+								/>
+							)}
 
 							{(property.raw as any)?.NABOR_MandatoryHOAYN ? (
 								<>

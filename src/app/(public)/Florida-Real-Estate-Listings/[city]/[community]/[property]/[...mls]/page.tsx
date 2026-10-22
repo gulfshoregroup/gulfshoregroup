@@ -30,6 +30,7 @@ import {
 	Expand,
 	Calendar,
 	Search,
+	AlertCircle,
 } from "lucide-react";
 import React, { Suspense } from "react";
 import PropertyDetail from "./pageComponent";
@@ -171,6 +172,23 @@ export default async function Listing({
 					</BreadcrumbList>
 				</Breadcrumb>
 
+				{/* Off-Market Compliance Notice */}
+				{isOffMarket && (
+					<div className="my-4 p-4 rounded-xl bg-amber-50/90 border border-amber-200 flex items-start gap-3.5 shadow-xs">
+						<div className="p-2 rounded-lg bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+							<AlertCircle className="w-5 h-5" />
+						</div>
+						<div>
+							<h2 className="text-base font-semibold text-amber-950">
+								Off Market — This listing is not currently for sale
+							</h2>
+							<p className="text-sm text-amber-800 mt-0.5 leading-relaxed">
+								This property is no longer active on the MLS. It may have expired, been withdrawn, or sold. Contact Gulfshore Group for current availability or similar active listings in this community.
+							</p>
+						</div>
+					</div>
+				)}
+
 				<SliderComponent
 					address={property.FullAddress || ""}
 					images={images || []}
@@ -203,8 +221,17 @@ export default async function Listing({
 								</div>
 							</div>
 
-							{/* Price with enhanced styling */}
-							{!isOffMarket && (
+							{/* Price or Off-Market Status with enhanced styling */}
+							{isOffMarket ? (
+								<div className="mb-3 flex flex-wrap items-center gap-3">
+									<span className="text-2xl lg:text-3xl font-bold text-gray-500 uppercase tracking-wide">
+										Off Market
+									</span>
+									<span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 border border-gray-300">
+										No Longer Active
+									</span>
+								</div>
+							) : (
 								<div className="mb-3 flex flex-wrap items-center gap-3">
 									<span className="text-3xl inline-flex gap-2 lg:text-4xl font-bold text-gray-900 tracking-tight">
 										$
@@ -329,13 +356,13 @@ export default async function Listing({
 											Listing Office:
 										</span>{" "}
 										{property.ListOfficeName || (property.raw as any)?.ListOfficeName || "N/A"}
+										<br />
+										<span className="font-medium">
+											Showing Office:
+										</span>{" "}
+										GULFSHORE GROUP
 									</>
 								)}
-								<br />
-								<span className="font-medium">
-									Showing Office:
-								</span>{" "}
-								GULFSHORE GROUP
 							</div>
 						</CardFooter>
 					</Card>
@@ -362,11 +389,13 @@ export default async function Listing({
 					</Suspense>
 				</div> */}
 				<PropertyDetailsTable property={property} />
-				<Suspense>
-					<MortgageCalculator
-						propertyPrice={Number(property.ListPrice)}
-					/>
-				</Suspense>
+				{!isOffMarket && (
+					<Suspense>
+						<MortgageCalculator
+							propertyPrice={Number(property.ListPrice)}
+						/>
+					</Suspense>
+				)}
 			</div>
 
 			<Suspense>

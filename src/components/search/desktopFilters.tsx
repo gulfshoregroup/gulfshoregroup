@@ -859,7 +859,7 @@ export const Filters = ({
 							</DropdownMenuTrigger>
 							<DropdownMenuContent>
 								<DropdownMenuRadioGroup value={statusFilter} onValueChange={setStatusFilter}>
-									{["Active", "Sold", "Pending", "Short Sale", "Foreclosure", "All"].map((v) => (
+									{["Active", "Sold", "Pending", "Closed/Expired", "Expired", "Short Sale", "Foreclosure", "All"].map((v) => (
 										<DropdownMenuRadioItem key={v} value={v}>{v}</DropdownMenuRadioItem>
 									))}
 								</DropdownMenuRadioGroup>

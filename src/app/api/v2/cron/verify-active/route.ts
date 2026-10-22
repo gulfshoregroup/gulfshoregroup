@@ -12,18 +12,18 @@ export async function GET(req: Request) {
 		console.log(`[VerifyActive Cron] Triggered via API`);
 		
 		const url = new URL(req.url);
-		// Background is the default so cron-job.org (30s limit) never times out.
-		// Pass ?sync=true to run synchronously (manual testing only).
-		const runSync = url.searchParams.get("sync") === "true";
+		const runAsync = url.searchParams.get("async") === "true";
+		const batchesParam = url.searchParams.get("batches");
+		const maxBatches = batchesParam ? parseInt(batchesParam, 10) : 10;
 
 		if (isRunning) {
 			return NextResponse.json({
 				success: true,
-				message: "Verification is already running in background.",
+				message: "Verification is already running.",
 			});
 		}
 
-		if (!runSync) {
+		if (runAsync) {
 			isRunning = true;
 			verifyActiveProperties()
 				.then((res) => console.log("[VerifyActive Cron] Completed in background:", res))
@@ -39,11 +39,11 @@ export async function GET(req: Request) {
 			});
 		}
 
-		// Run verification synchronously
+		// Run verification synchronously with batch limit so cron-job.org gets real results
 		isRunning = true;
 		let result;
 		try {
-			result = await verifyActiveProperties();
+			result = await verifyActiveProperties({ maxBatches });
 		} finally {
 			isRunning = false;
 		}

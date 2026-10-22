@@ -128,6 +128,10 @@ export async function GET(req: NextRequest) {
 			if (statusVal === "Sold" || statusVal === "Closed") {
 				where.StandardStatus = { in: ["Closed", "Sold"] };
 				isMockingClosed = false;
+			} else if (statusVal === "Expired") {
+				where.StandardStatus = { in: ["Expired", "Withdrawn", "Canceled"] };
+			} else if (statusVal === "Closed/Expired" || statusVal === "Closed / Expired") {
+				where.StandardStatus = { in: ["Closed", "Sold", "Expired", "Withdrawn", "Canceled"] };
 			} else if (statusVal === "Short Sale" || statusVal === "Foreclosure") {
 				// Short sale / foreclosure fall back to Active or check description/raw if they exist in active listings
 				where.StandardStatus = "Active";

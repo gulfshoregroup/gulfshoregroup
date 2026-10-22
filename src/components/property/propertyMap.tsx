@@ -2,7 +2,7 @@
 
 import React, { useRef, useCallback, useState } from "react";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
-import { Layers, ChevronDown } from "lucide-react";
+import { Layers, ChevronDown, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 interface PropertyMapProps {
@@ -322,9 +322,17 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 						className="w-full h-full border-0"
 						title="Drone / Real View"
 					/>
+				) : !isLoaded ? (
+					<div className="w-full h-full bg-slate-100 flex flex-col items-center justify-center border border-slate-200">
+						<div className="flex flex-col items-center gap-2">
+							<div className="w-10 h-10 rounded-full bg-[#B89A6A]/15 border border-[#B89A6A]/30 flex items-center justify-center animate-pulse">
+								<MapPin className="w-5 h-5 text-[#B89A6A] animate-bounce" />
+							</div>
+							<span className="text-xs font-semibold text-gray-700">Loading Property Location...</span>
+						</div>
+					</div>
 				) : (
-					isLoaded && (
-						<GoogleMap
+					<GoogleMap
 							onLoad={onLoad}
 							onUnmount={onUnmount}
 							center={{ lat: Latitude, lng: Longitude }}
@@ -350,7 +358,6 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 						>
 							<Marker position={{ lat: Latitude, lng: Longitude }} />
 						</GoogleMap>
-					)
 				)}
 			</div>
 		</div>

@@ -51,6 +51,8 @@ export default function PropertyDetail(property: Property) {
 	const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 	useTrackViewedProperty(property.id);
 
+	const isOffMarket = ["Withdrawn", "Canceled", "Expired"].includes(property.StandardStatus || "");
+
 
 	const handleSendEmail = () => {
 		const subject = `Inquiry about ${property.MLSNumber}`;
@@ -190,8 +192,7 @@ export default function PropertyDetail(property: Property) {
 					{/* School Information Card */}
 					<SchoolInfoSection property={property} />
 				</div>
-				{!property.VirtualTourURLBranded &&
-				!property.VirtualTourURLUnbranded ? null : (() => {
+				{!isOffMarket && (property.VirtualTourURLBranded || property.VirtualTourURLUnbranded) && (() => {
 					const rawThumbnail = (property.raw as any)?.VirtualTourThumbnail;
 					let thumbnailSrc = "/default-virtual-tour-thumbnail.jpg";
 					if (rawThumbnail && typeof rawThumbnail === "string" && rawThumbnail.trim() !== "") {
@@ -297,16 +298,18 @@ export default function PropertyDetail(property: Property) {
 							</DialogContent>
 						</Dialog>
 
-						<Button
-							className="border-2 flex-1 text-primary border-(--primary-color) cursor-pointer"
-							variant={"outline"}
-							onClick={handleScheduleTour}>
-							{" "}
-							<span className="flex flex-nowrap font-medium text-sm  gap-2 justify-center lg:font-bold items-center text-center">
-								<Clock />
-								Schedule Tour
-							</span>
-						</Button>
+						{!isOffMarket && (
+							<Button
+								className="border-2 flex-1 text-primary border-(--primary-color) cursor-pointer"
+								variant={"outline"}
+								onClick={handleScheduleTour}>
+								{" "}
+								<span className="flex flex-nowrap font-medium text-sm  gap-2 justify-center lg:font-bold items-center text-center">
+									<Clock />
+									Schedule Tour
+								</span>
+							</Button>
+						)}
 					</CardContent>
 				</Card>
 			</div>

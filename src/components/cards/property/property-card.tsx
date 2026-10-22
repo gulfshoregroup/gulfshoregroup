@@ -93,21 +93,29 @@ const PropertyCard = (property: Property & { isSelected?: boolean }) => {
 					{/* Price row */}
 					<div className="flex items-start justify-between mb-1">
 						<div className="flex items-center gap-2">
-							<p className="
-								text-[1.35rem] leading-tight tracking-tight
-								font-semibold text-[#1C1712]
-							">
-								{formatPrice(
-									((property as any).StandardStatus === "Closed" || (property as any).MlsStatus === "Sold")
-										? (property.ClosePrice || property.ListPrice || 0)
-										: (property.ListPrice || 0)
-								)}
-							</p>
-							{property.OriginalListPrice && property.ListPrice && property.OriginalListPrice > property.ListPrice && ((property as any).StandardStatus !== "Closed" && (property as any).MlsStatus !== "Sold") && (
-								<span className="text-green-600 font-medium text-[11px] bg-green-50 px-1.5 py-0.5 rounded flex items-center gap-0.5" title={`Original Price: $${property.OriginalListPrice.toLocaleString()}`}>
-									<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
-									${(property.OriginalListPrice - property.ListPrice).toLocaleString()}
-								</span>
+							{["Withdrawn", "Canceled", "Expired"].includes((property as any).StandardStatus || "") ? (
+								<p className="text-[1.15rem] leading-tight tracking-tight font-bold text-gray-500 uppercase">
+									Off Market
+								</p>
+							) : (
+								<>
+									<p className="
+										text-[1.35rem] leading-tight tracking-tight
+										font-semibold text-[#1C1712]
+									">
+										{formatPrice(
+											((property as any).StandardStatus === "Closed" || (property as any).MlsStatus === "Sold")
+												? (property.ClosePrice || property.ListPrice || 0)
+												: (property.ListPrice || 0)
+										)}
+									</p>
+									{property.OriginalListPrice && property.ListPrice && property.OriginalListPrice > property.ListPrice && ((property as any).StandardStatus !== "Closed" && (property as any).MlsStatus !== "Sold") && (
+										<span className="text-green-600 font-medium text-[11px] bg-green-50 px-1.5 py-0.5 rounded flex items-center gap-0.5" title={`Original Price: $${property.OriginalListPrice.toLocaleString()}`}>
+											<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+											${(property.OriginalListPrice - property.ListPrice).toLocaleString()}
+										</span>
+									)}
+								</>
 							)}
 						</div>
 						<Image
@@ -290,13 +298,19 @@ export const PropertyCard2 = ({
 				{/* Content */}
 				<div className="flex flex-col flex-1 min-w-0 px-4 py-3.5">
 
-					<p className="text-lg sm:text-xl font-semibold text-[#1C1712] leading-tight mb-0.5">
-						{formatPrice(
-							(property.StandardStatus === "Closed" || property.MlsStatus === "Sold")
-								? (property.ClosePrice || property.ListPrice)
-								: property.ListPrice
-						)}
-					</p>
+					{["Withdrawn", "Canceled", "Expired"].includes(property.StandardStatus || "") ? (
+						<p className="text-base sm:text-lg font-bold text-gray-500 uppercase leading-tight mb-0.5">
+							Off Market
+						</p>
+					) : (
+						<p className="text-lg sm:text-xl font-semibold text-[#1C1712] leading-tight mb-0.5">
+							{formatPrice(
+								(property.StandardStatus === "Closed" || property.MlsStatus === "Sold")
+									? (property.ClosePrice || property.ListPrice)
+									: property.ListPrice
+							)}
+						</p>
+					)}
 
 					{/* Address */}
 					<p className="text-[12px] sm:text-[13px] text-[#7A7060] line-clamp-2 leading-snug mb-3">

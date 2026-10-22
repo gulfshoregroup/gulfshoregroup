@@ -1,6 +1,10 @@
 "use client";
 import React from "react";
-import MapComponent from "./[[...slug]]/mapComponent";
+import dynamic from "next/dynamic";
+
+const MapComponent = dynamic(() => import("./[[...slug]]/mapComponent"), {
+	ssr: false,
+});
 import { useSearchParams } from "next/navigation";
 import { SearchParamsResult } from "@/hooks/extractSearchParams";
 import { parseFiltersFromSearchParams } from "@/lib/search-filters";

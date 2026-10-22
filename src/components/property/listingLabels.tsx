@@ -52,16 +52,18 @@ export default function ListingLabels({
 		setTimeAgo(calculateTimeDifference(CreatedDate));
 	}, [CreatedDate]);
 
+	const isOffMarket = ["Withdrawn", "Canceled", "Expired", "Off Market", "Off-Market"].includes(Status || "");
+
 	return (
 		<div className="flex flex-wrap gap-2 items-center justify-start">
-			{timeAgo && (
+			{timeAgo && !isOffMarket && (
 				<div className="text-center w-fit">
 					<p className="font-semibold text-xs w-fit  px-2 py-1.5 rounded-2xl bg-black/70 focus:ring-4 focus:outline-none shadow-md  text-white">
 						{timeAgo}
 					</p>
 				</div>
 			)}
-			{StatusType && StatusType !== "Resale Property" && (
+			{StatusType && StatusType !== "Resale Property" && !isOffMarket && (
 				<span className="px-2.5 py-1 text-xs  font-normal md:font-medium bg-red-700 text-white rounded">
 					{StatusType}
 				</span>
@@ -74,14 +76,14 @@ export default function ListingLabels({
 								<div className="w-2 h-2 rounded bg-green-600"></div>
 							</>
 						)}
-						{["Withdrawn", "Canceled", "Expired"].includes(Status) && (
+						{isOffMarket && (
 							<>
 								<div className="w-2 h-2 rounded bg-gray-500"></div>
 							</>
 						)}
 					</span>
-					<span className="lg:lg:font-semibold  text-xs font-normal md:font-medium ">
-						{Status === "Active" ? "Active" : ["Withdrawn", "Canceled", "Expired"].includes(Status) ? "Off-Market" : Status}
+					<span className="lg:font-semibold text-xs font-normal md:font-medium">
+						{Status === "Active" ? "Active" : isOffMarket ? "Off-Market" : Status}
 					</span>
 				</div>
 			)}

@@ -41,7 +41,9 @@ async function processVerificationChunk(properties: { id: string; ListingId: str
 
 	const data = await res.json();
 	const returnedListings: any[] = data.bundle || [];
-	const returnedListingIds = new Set(returnedListings.map((l: any) => l.ListingId));
+	const returnedListingMap = new Map<string, any>(
+		returnedListings.map((l: any) => [l.ListingId, l])
+	);
 
 	let pendingCount = 0;
 	let expiredCount = 0;
@@ -51,9 +53,31 @@ async function processVerificationChunk(properties: { id: string; ListingId: str
 	const twentyFourHoursAgo = new Date(now.getTime() - 20 * 60 * 60 * 1000);
 
 	for (const prop of properties) {
-		if (returnedListingIds.has(prop.ListingId)) {
-			// It exists in Bridge API. If it was pending, clear the pending flag.
-			if (prop.verificationPendingAt) {
+		const returned = returnedListingMap.get(prop.ListingId);
+		if (returned) {
+			const bridgeStatus = returned.StandardStatus || returned.MlsStatus;
+			if (
+				bridgeStatus &&
+				["Expired", "Withdrawn", "Canceled", "Closed", "Pending"].includes(bridgeStatus)
+			) {
+				// Bridge explicitly reports this property is no longer Active!
+				const newStatus =
+					bridgeStatus === "Withdrawn" || bridgeStatus === "Canceled"
+						? "Expired"
+						: bridgeStatus;
+				await prisma.property.update({
+					where: { id: prop.id },
+					data: {
+						StandardStatus: newStatus,
+						verificationPendingAt: null,
+					},
+				});
+				if (newStatus === "Expired") {
+					expiredCount++;
+					console.log(`[VerifyActive] Property ${prop.ListingId} updated to Expired from Bridge.`);
+				}
+			} else if (prop.verificationPendingAt) {
+				// It exists and is Active in Bridge API. Clear pending flag.
 				await prisma.property.update({
 					where: { id: prop.id },
 					data: { verificationPendingAt: null },
@@ -92,7 +116,7 @@ async function processVerificationChunk(properties: { id: string; ListingId: str
 /**
  * Main job to verify all Active properties in the database.
  */
-export async function verifyActiveProperties() {
+export async function verifyActiveProperties(options: { maxBatches?: number } = {}) {
 	console.log(`[VerifyActive] Starting verification job...`);
 
 	// Cursor-based pagination on `id` (immutable). Using skip + updatedAt caused rows to
@@ -101,8 +125,11 @@ export async function verifyActiveProperties() {
 	let totalChecked = 0;
 	let totalPending = 0;
 	let totalExpired = 0;
+	let batchCount = 0;
 
 	while (true) {
+		if (options.maxBatches && batchCount >= options.maxBatches) break;
+
 		const properties: { id: string; ListingId: string; verificationPendingAt: Date | null }[] =
 			await prisma.property.findMany({
 				where: {
@@ -121,6 +148,7 @@ export async function verifyActiveProperties() {
 		totalChecked += result.checked;
 		totalPending += result.pending;
 		totalExpired += result.expired;
+		batchCount++;
 
 		console.log(`[VerifyActive] Processed batch after id ${lastId ?? "start"}. Total Checked: ${totalChecked}`);
 		
