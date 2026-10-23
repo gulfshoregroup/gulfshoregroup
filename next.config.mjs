@@ -63,7 +63,17 @@ const nextConfig = {
 	compress: true,
 
 	experimental: {
-		optimizePackageImports: ["lucide-react", "date-fns"],
+		optimizePackageImports: [
+			"lucide-react",
+			"date-fns",
+			"@tabler/icons-react",
+			"@radix-ui/react-dialog",
+			"@radix-ui/react-dropdown-menu",
+			"@radix-ui/react-select",
+			"@radix-ui/react-tooltip",
+			"@radix-ui/react-navigation-menu",
+			"@radix-ui/react-accordion",
+		],
 	},
 
 	async headers() {

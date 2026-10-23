@@ -24,7 +24,11 @@ export function ClerkProvider({ children }: { children: React.ReactNode }) {
 			}
 		};
 		check();
-		const interval = setInterval(check, 1000);
+		const handleFocus = () => check();
+		if (typeof window !== "undefined") {
+			window.addEventListener("focus", handleFocus);
+			window.addEventListener("visibilitychange", handleFocus);
+		}
 
 		const handleOpenSignIn = () => {
 			setShowModal(true);
@@ -38,8 +42,9 @@ export function ClerkProvider({ children }: { children: React.ReactNode }) {
 		}
 
 		return () => {
-			clearInterval(interval);
 			if (typeof window !== "undefined") {
+				window.removeEventListener("focus", handleFocus);
+				window.removeEventListener("visibilitychange", handleFocus);
 				window.removeEventListener("open-mock-signin", handleOpenSignIn);
 			}
 		};
@@ -74,7 +79,6 @@ export function ClerkProvider({ children }: { children: React.ReactNode }) {
 
 	return (
 		<>
-			<script src="https://accounts.google.com/gsi/client" async defer></script>
 			{children}
 			{showModal && (
 				<div style={{

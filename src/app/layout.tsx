@@ -128,33 +128,48 @@ export default function RootLayout({
 					</StoreProvider>
 
 					<Script
-						src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
-						strategy="lazyOnload"
-					/>
-					<Script
-						id="onesignal-init"
+						id="onesignal-deferred-loader"
 						strategy="lazyOnload"
 						dangerouslySetInnerHTML={{
 							__html: `
-							window.OneSignalDeferred = window.OneSignalDeferred || [];
-							if (window.location.hostname === "gulfshoregroup.com" || window.location.hostname === "www.gulfshoregroup.com") {
-								OneSignalDeferred.push(function(OneSignal) {
-									OneSignal.init({
-										appId: "3d518653-fe92-44ae-8e74-882e36c738a5",
-										safari_web_id: "web.onesignal.auto.5abdae74-1423-41c2-a45a-5cf3c8870ffd",
-									});
-								});
-							}
-						`,
+							(function() {
+								if (window.location.hostname !== "gulfshoregroup.com" && window.location.hostname !== "www.gulfshoregroup.com") return;
+								var loaded = false;
+								function loadOneSignal() {
+									if (loaded) return;
+									loaded = true;
+									window.removeEventListener('scroll', loadOneSignal);
+									window.removeEventListener('click', loadOneSignal);
+									window.removeEventListener('touchstart', loadOneSignal);
+									var script = document.createElement('script');
+									script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+									script.async = true;
+									script.onload = function() {
+										window.OneSignalDeferred = window.OneSignalDeferred || [];
+										window.OneSignalDeferred.push(function(OneSignal) {
+											OneSignal.init({
+												appId: "3d518653-fe92-44ae-8e74-882e36c738a5",
+												safari_web_id: "web.onesignal.auto.5abdae74-1423-41c2-a45a-5cf3c8870ffd",
+											});
+										});
+									};
+									document.head.appendChild(script);
+								}
+								window.addEventListener('scroll', loadOneSignal, { passive: true, once: true });
+								window.addEventListener('click', loadOneSignal, { once: true });
+								window.addEventListener('touchstart', loadOneSignal, { passive: true, once: true });
+								setTimeout(loadOneSignal, 4500);
+							})();
+							`,
 						}}
 					/>
 					<Script
 						src="https://www.googletagmanager.com/gtag/js?id=G-1VDEW2DPN8"
-						strategy="afterInteractive"
+						strategy="lazyOnload"
 					/>
 					<Script
 						id="google-analytics"
-						strategy="afterInteractive"
+						strategy="lazyOnload"
 						dangerouslySetInnerHTML={{
 							__html: `
 							window.dataLayer = window.dataLayer || [];

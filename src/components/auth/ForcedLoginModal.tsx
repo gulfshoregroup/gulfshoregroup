@@ -45,6 +45,13 @@ export default function ForcedLoginModal() {
 			return;
 		}
 
+		// Only trigger on property detail pages
+		const isDetailPage = pathname.includes("/Florida-Real-Estate-Listings/");
+		if (!isDetailPage) {
+			setIsOpen(false);
+			return;
+		}
+
 		// Track property views in localStorage
 		const viewsKey = "gulfshore_property_views";
 		const currentViews = Number(localStorage.getItem(viewsKey) || "0");
@@ -58,8 +65,7 @@ export default function ForcedLoginModal() {
 			return;
 		}
 
-		// If user has viewed 2 or more properties, or is on a detail page, trigger modal after brief delay
-		const isDetailPage = pathname.includes("/Florida-Real-Estate-Listings/");
+		// If user has viewed 3 or more properties, or is on a detail page, trigger modal after brief delay
 		if (newViews >= 3 || isDetailPage) {
 			const timer = setTimeout(() => {
 				setIsOpen(true);
