@@ -1,5 +1,6 @@
 import capitalizeWords from "@/hooks/capitalize-letter";
 import { Search } from "lucide-react";
+import Link from "next/link";
 import React from "react";
 
 const cities = [
@@ -25,8 +26,9 @@ export default function SearchSuggestions() {
 				</h2>
 				<div className="grid gap-1 lg:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] lg:font-medium grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
 					{cities.map((city) => (
-						<a
+						<Link
 							key={city}
+							prefetch={false}
 							href={`/Florida-Real-Estate-Search/Homes/${capitalizeWords(
 								city
 							).replaceAll(" ", "-")}`}
@@ -36,7 +38,7 @@ export default function SearchSuggestions() {
 								Single Family Homes For Sale in{" "}
 								{capitalizeWords(city)}
 							</span>
-						</a>
+						</Link>
 					))}
 				</div>
 			</section>
@@ -47,8 +49,9 @@ export default function SearchSuggestions() {
 				</h2>
 				<div className="grid gap-2 lg:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] lg:font-medium grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
 					{cities.map((city) => (
-						<a
+						<Link
 							key={city}
+							prefetch={false}
 							href={`/Florida-Real-Estate-Search/Condos/${capitalizeWords(
 								city
 							).replaceAll(" ", "-")}`}
@@ -57,7 +60,7 @@ export default function SearchSuggestions() {
 							<span className="font-normal lg:font-medium">
 								Condos For Sale in {capitalizeWords(city)}
 							</span>
-						</a>
+						</Link>
 					))}
 				</div>
 			</section>
@@ -68,8 +71,9 @@ export default function SearchSuggestions() {
 				</h2>
 				<div className="grid gap-2 lg:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] lg:font-medium  grid-cols-[repeat(auto-fit,minmax(250px,1fr))]">
 					{cities.map((city) => (
-						<a
+						<Link
 							key={city}
+							prefetch={false}
 							href={`/Florida-Real-Estate-Search/Residential-Lots/${capitalizeWords(
 								city
 							).replaceAll(" ", "-")}`}
@@ -78,7 +82,7 @@ export default function SearchSuggestions() {
 							<span className="font-normal lg:font-medium">
 								Residential Lots For Sale in {capitalizeWords(city)}
 							</span>
-						</a>
+						</Link>
 					))}
 				</div>
 			</section>

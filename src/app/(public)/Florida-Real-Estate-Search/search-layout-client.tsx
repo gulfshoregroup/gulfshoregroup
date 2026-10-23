@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { useSearchParams, usePathname } from "next/navigation";
+import Link from "next/link";
 import Map from "./map";
 import { SearchParamsResult } from "@/hooks/extractSearchParams";
 import { Button } from "@/components/ui/button";
@@ -39,8 +40,11 @@ export default function SearchLayoutClient({
 			</div>
 
 			{/* Universal Floating Toggle Button for Mobile */}
-			<a
+			<Link
 				className="fixed bottom-3 z-50 right-3 md:hidden"
+				prefetch={true}
+				replace
+				scroll={false}
 				href={`${path}?${(() => {
 					const next = new URLSearchParams(searchParams.toString());
 					next.set("view", isMapView ? "list" : "map");
@@ -60,7 +64,7 @@ export default function SearchLayoutClient({
 						</>
 					)}
 				</Button>
-			</a>
+			</Link>
 		</div>
 	);
 }

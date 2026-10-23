@@ -36,6 +36,7 @@ import { Skeleton } from "../ui/skeleton";
 import { Button } from "../ui/button";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { fetchClientGeneralSettings } from "@/lib/general-settings-client";
 
 const Navbar = () => {
 	const path = usePathname();
@@ -72,16 +73,9 @@ const Navbar = () => {
 	});
 
 	useEffect(() => {
-		fetch("/api/admin/general-settings")
-			.then((res) => res.json())
+		fetchClientGeneralSettings()
 			.then((data) => {
-				if (data.siteName || data.contactEmail) {
-					setGeneralSettings((prev) => ({
-						siteName: data.siteName ? data.siteName.toUpperCase() : prev.siteName,
-						contactEmail: data.contactEmail || prev.contactEmail,
-						siteUrl: data.siteUrl || prev.siteUrl,
-					}));
-				}
+				setGeneralSettings(data);
 			})
 			.catch(() => {});
 	}, []);
@@ -132,6 +126,7 @@ const Navbar = () => {
 				<div className="flex justify-between w-full items-center">
 					<Link
 						href="/"
+						prefetch={true}
 						className={`text-sm md:text-xl md:font-bold font-semibold tracking-tight hover:scale-105 transition-transform duration-200 ${logoTextClass}`}
 						aria-label="Gulfshore Group Home">
 						<div className="flex flex-row items-center justify-center gap-2">
@@ -165,13 +160,16 @@ const Navbar = () => {
 								{ path: "/sell", label: "Sell" },
 							].map(({ path: navPath, label }) => (
 								<NavigationMenuItem key={navPath}>
-									<NavigationMenuLink
-										className="relative px-4 py-3 rounded-xl font-medium text-black hover:bg-gray-100 hover:text-black transition-all duration-200"
-										href={navPath}>
-										{label}
-										{path === navPath && (
-											<div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-4/5 h-1 bg-current rounded-full" />
-										)}
+									<NavigationMenuLink asChild active={path === navPath}>
+										<Link
+											href={navPath}
+											prefetch={true}
+											className="relative px-4 py-3 rounded-xl font-medium text-black hover:bg-gray-100 hover:text-black transition-all duration-200">
+											{label}
+											{path === navPath && (
+												<div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-4/5 h-1 bg-current rounded-full" />
+											)}
+										</Link>
 									</NavigationMenuLink>
 								</NavigationMenuItem>
 							))}
@@ -313,6 +311,7 @@ export const DrawerMenu = ({
 							<SheetClose key={navPath} asChild>
 								<Link
 									href={navPath}
+									prefetch={true}
 									className="relative block w-full px-4 py-3 rounded-xl hover:bg-linear-to-r hover:from-blue-50 hover:to-purple-50 hover:text-black text-gray-800 transition-all duration-200 font-medium text-base">
 									<span className="relative z-10">{label}</span>
 									{path === navPath && (

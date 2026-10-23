@@ -5,14 +5,14 @@ import Link from "next/link";
 import FooterLinks from "./footerLinks";
 import SearchSuggestions from "./searchSuggestions";
 import { useState, useEffect } from "react";
+import { fetchClientGeneralSettings } from "@/lib/general-settings-client";
 
 export default function Footer() {
 	const [siteName, setSiteName] = useState("GulfshoreGroup");
 	const [siteUrl, setSiteUrl] = useState("https://gulfshoregroup.com");
 
 	useEffect(() => {
-		fetch("/api/admin/general-settings")
-			.then((res) => res.json())
+		fetchClientGeneralSettings()
 			.then((data) => {
 				if (data.siteName) setSiteName(data.siteName);
 				if (data.siteUrl) setSiteUrl(data.siteUrl);

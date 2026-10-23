@@ -52,7 +52,8 @@ export default function CardCarousel({
 			})
 			.filter(Boolean) as string[];
 	}
-	const imageArray = images;
+	// Limit carousel preview to at most 8 photos to keep DOM lightweight and fast
+	const imageArray = images.slice(0, 8);
 
 	return (
 		<div className="p-0 bg-gray-300 w-full h-full rounded-t-2xl">

@@ -87,18 +87,6 @@ export default function MapViewList({
 			? "grid w-11/12 mx-auto lg:w-full lg:px-2 xl:px-4 gap-4 lg:grid-cols-1 xl:grid-cols-2 md:grid-cols-1"
 			: "grid w-11/12 max-w-[1600px] mx-auto gap-4 lg:grid-cols-3 grid-cols-1 xl:grid-cols-3 md:grid-cols-2";
 
-	if (loading) {
-		return (
-			<div className={"h-full flex justify-center items-center"}>
-				<div className={gridClass}>
-					{Array.from({ length: 18 }).map((_, i) => (
-						<PropertySkeletonCard key={i} />
-					))}
-				</div>
-			</div>
-		);
-	}
-
 	const currentStatus = filters.status || "Active";
 
 	const handleStatusChange = (newStatus: string) => {
@@ -172,6 +160,21 @@ export default function MapViewList({
 			</div>
 		</div>
 	);
+
+	if (loading || (list.length === 0 && success === null && !error)) {
+		return (
+			<div className="w-full">
+				{StickyHeader}
+				<div className={"h-full flex justify-center items-center"}>
+					<div className={gridClass}>
+						{Array.from({ length: 18 }).map((_, i) => (
+							<PropertySkeletonCard key={i} />
+						))}
+					</div>
+				</div>
+			</div>
+		);
+	}
 
 	if ((success && total === 0) || error) {
 		return (

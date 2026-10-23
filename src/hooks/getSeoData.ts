@@ -3,12 +3,30 @@ import { SearchParamsResult } from "./extractSearchParams";
 import prisma from "@/lib/prisma";
 import { formatPrice } from "./formatPrice";
 import UrlMaker from "./url-maker";
+import { cache } from "react";
 
-export default async function GetSeoData({
+// In-memory cache across server requests (persists across module re-evaluations in dev)
+const globalForSeo = globalThis as unknown as {
+	seoMemoryCache?: Map<string, { data: any; expiresAt: number }>;
+};
+const seoMemoryCache =
+	globalForSeo.seoMemoryCache ||
+	new Map<string, { data: any; expiresAt: number }>();
+
+if (process.env.NODE_ENV !== "production") {
+	globalForSeo.seoMemoryCache = seoMemoryCache;
+}
+
+const GetSeoDataInternal = async ({
 	params,
 }: {
 	params: SearchParamsResult;
-}) {
+}) => {
+	const cacheKey = JSON.stringify(params || {});
+	const cached = seoMemoryCache.get(cacheKey);
+	if (cached && cached.expiresAt > Date.now()) {
+		return cached.data;
+	}
 	const city = params.city
 		? capitalizeWords(params.city.replaceAll(/[^a-zA-Z0-9&]+/g, " "))
 		: "";
@@ -285,7 +303,7 @@ export default async function GetSeoData({
 	if (params.city) canonicalUrl += `/${params.city}`;
 	if (params.developmentName) canonicalUrl += `/${params.developmentName}`;
 
-	return {
+	const result = {
 		title: dbSeo.title || title,
 		description: dbSeo.metaDescription || description,
 		heading,
@@ -308,4 +326,19 @@ export default async function GetSeoData({
 		similar,
 		canonicalUrl,
 	};
-}
+
+	// Cache for 10 minutes (600 seconds)
+	if (seoMemoryCache.size > 1000) {
+		const firstKey = seoMemoryCache.keys().next().value;
+		if (firstKey) seoMemoryCache.delete(firstKey);
+	}
+	seoMemoryCache.set(cacheKey, {
+		data: result,
+		expiresAt: Date.now() + 600 * 1000,
+	});
+
+	return result;
+};
+
+const GetSeoData = cache(GetSeoDataInternal);
+export default GetSeoData;
