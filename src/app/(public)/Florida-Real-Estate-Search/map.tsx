@@ -18,10 +18,12 @@ export default function Map({
 	const view = params.get("view");
 	const isMapView = view === "map";
 	const queryFilters = parseFiltersFromSearchParams(params);
-	const effectiveFilters = {
+	const filterParamsKey = JSON.stringify(filterParams);
+	const queryKey = params.toString();
+	const effectiveFilters = React.useMemo(() => ({
 		...filterParams,
 		...queryFilters,
-	};
+	}), [filterParamsKey, queryKey]);
 
 	return isMapView ? (
 		<MapComponent filterParams={effectiveFilters} />

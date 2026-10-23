@@ -178,7 +178,8 @@ export default function MapComponent({
 	const dropdownRef = useRef<HTMLDivElement>(null);
 	const femaOverlayRef = useRef<google.maps.ImageMapType | null>(null);
 	const hasCenteredRef = useRef(false);
-	const isInitialLoadRef = useRef(true);
+	const isCenteringRef = useRef(false);
+	const lastFetchedBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
 
 	const dispatch = useAppDispatch();
 	const properties = useSelector(selectAllProperties);
@@ -198,20 +199,35 @@ export default function MapComponent({
 	}, [ui.filters]);
 
 	const filterParamsRef = useRef(filterParams);
+	const filterParamsSerialized = JSON.stringify(filterParams);
+
 	React.useEffect(() => {
 		const prev = filterParamsRef.current;
 		const locationChanged =
 			prev.city !== filterParams.city ||
 			prev.community !== filterParams.community ||
 			prev.postalCode !== filterParams.postalCode ||
-			prev.developmentName !== filterParams.developmentName;
+			prev.developmentName !== filterParams.developmentName ||
+			prev.q !== filterParams.q ||
+			prev.subdivision !== filterParams.subdivision;
 
 		filterParamsRef.current = filterParams;
 
 		if (locationChanged) {
-			hasCenteredRef.current = false; // Reset centering flag when search query / city parameters change
+			hasCenteredRef.current = false;
+			isCenteringRef.current = true;
+			lastFetchedBoundsRef.current = null;
+			// Reset filters to new search parameters without conflicting old bounds
+			dispatch(
+				setFilters({
+					...EMPTY_FILTERS,
+					...filterParams,
+				})
+			);
+			dispatch(setLimit(100));
+			dispatch(fetchProperties());
 		}
-	}, [filterParams]);
+	}, [filterParams, dispatch]);
 
 	// Close dropdown when clicking outside
 	React.useEffect(() => {
@@ -228,21 +244,25 @@ export default function MapComponent({
 		};
 	}, []);
 
-	// Concurrent properties prefetch on mount
+	// Initial properties fetch on mount with limit 100
+	const hasMountedRef = useRef(false);
 	React.useEffect(() => {
+		if (hasMountedRef.current) return;
+		hasMountedRef.current = true;
 		dispatch(
 			setFilters({
 				...EMPTY_FILTERS,
 				...filterParams,
 			})
 		);
+		dispatch(setLimit(100));
 		dispatch(fetchProperties());
-	}, [dispatch, filterParams]);
+	}, [dispatch, filterParamsSerialized]);
 
 	// Southwest Florida core center fallback (Naples / Bonita Springs / Fort Myers / Cape Coral)
 	const SW_FL_CENTER = React.useMemo(() => ({ lat: 26.25, lng: -81.78 }), []);
 
-	// Auto-center map EXACTLY ONCE on city search change or initial property load
+	// Auto-center map on city search change or initial property load
 	React.useEffect(() => {
 		if (hasCenteredRef.current || !mapRef.current) return;
 
@@ -262,6 +282,7 @@ export default function MapComponent({
 			mapRef.current.setCenter(knownCenter);
 			mapRef.current.setZoom(12);
 			hasCenteredRef.current = true;
+			setTimeout(() => { isCenteringRef.current = false; }, 300);
 			return;
 		}
 
@@ -283,6 +304,7 @@ export default function MapComponent({
 					const z = mapRef.current?.getZoom();
 					if (z && z > 15) mapRef.current?.setZoom(15);
 					if (z && z < 9) mapRef.current?.setZoom(9);
+					setTimeout(() => { isCenteringRef.current = false; }, 300);
 				});
 				hasCenteredRef.current = true;
 				return;
@@ -293,9 +315,8 @@ export default function MapComponent({
 		mapRef.current.setCenter(SW_FL_CENTER);
 		mapRef.current.setZoom(10);
 		hasCenteredRef.current = true;
+		setTimeout(() => { isCenteringRef.current = false; }, 300);
 	}, [filterParams?.city, filterParams?.community, filterParams?.developmentName, filterParams?.postalCode, properties, isLoaded, SW_FL_CENTER]);
-
-
 
 	const handlemarkerClick = (property: any) => {
 		if (
@@ -321,10 +342,8 @@ export default function MapComponent({
 	const refreshData = useCallback(
 		debounce(() => {
 			if (!mapRef.current) return;
-			if (isInitialLoadRef.current) {
-				isInitialLoadRef.current = false;
-				return;
-			}
+			if (isCenteringRef.current) return;
+
 			const b = mapRef.current.getBounds();
 			if (!b) return;
 			const bounds = {
@@ -344,29 +363,33 @@ export default function MapComponent({
 				return;
 			}
 
+			// Don't re-fetch if bounds haven't moved noticeably (< 0.003 deg ~ 300m)
+			const prevB = lastFetchedBoundsRef.current;
+			if (
+				prevB &&
+				Math.abs(prevB.north - bounds.north) < 0.003 &&
+				Math.abs(prevB.south - bounds.south) < 0.003 &&
+				Math.abs(prevB.east - bounds.east) < 0.003 &&
+				Math.abs(prevB.west - bounds.west) < 0.003
+			) {
+				return;
+			}
+			lastFetchedBoundsRef.current = bounds;
+
 			const currentFilters = filtersRef.current;
 			const currentParams = filterParamsRef.current;
 
-			if (currentParams && ui.listView === false) {
-				const fetchdata = async () => {
-					dispatch(
-						setFilters({
-							...currentFilters,
-							...currentParams,
-							...bounds,
-						})
-					);
-					dispatch(setLimit(100));
-
-					dispatch(fetchProperties());
-				};
-				fetchdata();
-			} else {
-				dispatch(setCoordinates(bounds));
-				dispatch(setLimit(100));
-				dispatch(fetchProperties());
-			}
-		}, 650),
+			dispatch(
+				setFilters({
+					...EMPTY_FILTERS,
+					...currentFilters,
+					...currentParams,
+					...bounds,
+				})
+			);
+			dispatch(setLimit(100));
+			dispatch(fetchProperties());
+		}, 450),
 		[dispatch]
 	);
 

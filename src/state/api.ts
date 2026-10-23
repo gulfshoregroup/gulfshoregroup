@@ -20,11 +20,16 @@ export async function fetchPropertiesApi({
 			? ""
 			: process.env.NEXT_PUBLIC_SERVER_URL || "";
 
+	const isMap =
+		typeof window !== "undefined" &&
+		(window.location.search.includes("view=map") || filters.north != null);
+
 	try {
 		const res = await axios.get(`${baseUrl}/api/v2/properties`, {
 			params: {
 				...filters,
 				limit,
+				...(isMap ? { view: "map" } : {}),
 			},
 		});
 

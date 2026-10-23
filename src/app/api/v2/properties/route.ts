@@ -410,11 +410,8 @@ export async function GET(req: NextRequest) {
 			const clampedEast = Math.min(-79.5, east);
 
 			if (clampedSouth < clampedNorth && clampedWest < clampedEast) {
-				where.AND = where.AND || [];
-				where.AND.push(
-					{ Latitude: { gte: clampedSouth, lte: clampedNorth } },
-					{ Longitude: { gte: clampedWest, lte: clampedEast } }
-				);
+				where.Latitude = { gte: clampedSouth, lte: clampedNorth };
+				where.Longitude = { gte: clampedWest, lte: clampedEast };
 			}
 		}
 
@@ -443,11 +440,14 @@ export async function GET(req: NextRequest) {
 		}
 
 		// ---- Queries ----
-		// For small widget/slider limits (limit <= 12, skip === 0, no page query), skip expensive 12s count scan
+		// Detect map view, bounding box searches, and small widgets
+		const hasBounds = Boolean(north && south && east && west);
+		const isMapSearch = hasBounds || query.get("view") === "map" || query.get("map") === "1" || limit >= 50;
 		const isWidgetQuery = skip === 0 && limit <= 12 && !query.get("page") && query.get("count") !== "true";
+		const skipCount = isWidgetQuery || isMapSearch || query.get("count") === "false";
 		
 		let totalPromise: Promise<number>;
-		if (isWidgetQuery) {
+		if (skipCount) {
 			totalPromise = Promise.resolve(0);
 		} else {
 			const countKey = JSON.stringify(where);
@@ -455,14 +455,19 @@ export async function GET(req: NextRequest) {
 			if (cachedCount && cachedCount.expiresAt > Date.now()) {
 				totalPromise = Promise.resolve(cachedCount.count);
 			} else {
-				totalPromise = prisma.property.count({ where }).then(cnt => {
+				const countQuery = prisma.property.count({ where }).then(cnt => {
 					countMemoryCache.set(countKey, { count: cnt, expiresAt: Date.now() + 300 * 1000 });
 					return cnt;
-				});
+				}).catch(() => 0);
+				// Safety timeout: if count query takes > 1.5s on remote DB, never freeze user's search
+				const timeoutPromise = new Promise<number>((resolve) => 
+					setTimeout(() => resolve(0), 1500)
+				);
+				totalPromise = Promise.race([countQuery, timeoutPromise]);
 			}
 		}
 
-		// Avoid unhandled rejection if we end up not awaiting the count (see below)
+		// Avoid unhandled rejection if we end up not awaiting the count
 		totalPromise = totalPromise.catch(() => 0);
 
 		const properties = await (
@@ -616,12 +621,12 @@ export async function GET(req: NextRequest) {
 		);
 
 		// PERF: the COUNT query is the slowest part (LIKE '%..%' => full scan, ~5-7s).
-		// If page 1 already returned fewer rows than `limit`, that IS the total —
-		// no need to wait for COUNT. It keeps running in the background and fills the cache.
+		// If map/skipCount, or page 1 already returned fewer rows than `limit`, that IS the total —
+		// no need to wait for COUNT.
 		const total =
-			skip === 0 && properties.length < limit
-				? properties.length
-				: await totalPromise;
+			skipCount
+				? (properties.length < limit ? properties.length : (skip + properties.length))
+				: (skip === 0 && properties.length < limit ? properties.length : await totalPromise);
 
 		// PERF: each stored image object has ~10 fields (~370 bytes) but the UI only reads
 		// MediaURL + MediaCategory. Trimming keeps ALL photos while cutting payload ~70%.

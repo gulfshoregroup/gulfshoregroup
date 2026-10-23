@@ -20,6 +20,9 @@ export interface SearchParamsResult {
 	community?: string | null;
 }
 
+let cachedDbCities: string[] | null = null;
+let cachedDbCitiesExpiresAt = 0;
+
 export default async function ExtractSearchParams(
 	rawSlugs: string[] = []
 ): Promise<SearchParamsResult> {
@@ -101,16 +104,25 @@ export default async function ExtractSearchParams(
 						.trim()
 						.toUpperCase()
 				);
-				
-				// Fetch dynamic cities from the database to match slugs against
-				// (Prisma is available here because this file has "use server")
-				const prisma = require('@/lib/prisma').default;
-				const uniqueCities = await prisma.property.findMany({
-					select: { City: true },
-					distinct: ['City'],
-					where: { StandardStatus: "Active" }
-				});
-				const dbCityList = uniqueCities.map((c: any) => c.City?.toUpperCase()).filter(Boolean);
+				// Fetch dynamic cities from the database to match slugs against (cached for 10 minutes)
+				let dbCityList: string[] = [];
+				if (cachedDbCities && Date.now() < cachedDbCitiesExpiresAt) {
+					dbCityList = cachedDbCities;
+				} else {
+					try {
+						const prisma = require('@/lib/prisma').default;
+						const uniqueCities = await prisma.property.findMany({
+							select: { City: true },
+							distinct: ['City'],
+							where: { StandardStatus: "Active" }
+						});
+						dbCityList = uniqueCities.map((c: any) => c.City?.toUpperCase()).filter(Boolean);
+						cachedDbCities = dbCityList;
+						cachedDbCitiesExpiresAt = Date.now() + 10 * 60 * 1000;
+					} catch (e) {
+						dbCityList = cachedDbCities || [];
+					}
+				}
 
 				if (formattedSlugs.length > 1) {
 					if (dbCityList.includes(formattedSlugs[0])) {
