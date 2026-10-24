@@ -50,8 +50,14 @@ export async function getFeaturedProperties(): Promise<Property[]> {
 
 	// 4. Query live Database
 	const fetchFromDb = async (): Promise<Property[]> => {
+		// During Docker/Next.js production build phase, private database network is not connected.
+		// Return empty array immediately so the image build succeeds instantly without hanging.
+		if (process.env.NEXT_PHASE === "phase-production-build") {
+			return [];
+		}
+
 		try {
-			const properties = await prisma.property.findMany({
+			const queryPromise = prisma.property.findMany({
 				where: {
 					StandardStatus: "Active",
 					ListPrice: { gte: 500000, not: null },
@@ -174,6 +180,12 @@ export async function getFeaturedProperties(): Promise<Property[]> {
 					communityId: true,
 				},
 			});
+
+			const timeoutPromise = new Promise<never>((_, reject) =>
+				setTimeout(() => reject(new Error("Database query timed out after 5s")), 5000)
+			);
+
+			const properties = await Promise.race([queryPromise, timeoutPromise]);
 
 			if (properties && properties.length > 0) {
 				const typedProps = properties as unknown as Property[];

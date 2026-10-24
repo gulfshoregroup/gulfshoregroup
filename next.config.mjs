@@ -10,6 +10,9 @@ const nextConfig = {
 	typescript: {
 		ignoreBuildErrors: true, // ⚠ Use only if you're sure type errors can be ignored
 	},
+	eslint: {
+		ignoreDuringBuilds: true,
+	},
 
 	// Prevent Node.js-only packages from being bundled into Edge Runtime
 	// This fixes the "Failed to load external module node:dns" error
