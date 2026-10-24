@@ -1,7 +1,6 @@
 import prisma from "@/lib/prisma";
 import { redisGet, redisSet } from "@/lib/safeRedis";
 import { Property } from "@/app/generated/prisma/client";
-import featuredSnapshot from "./featuredPropertiesSnapshot.json";
 
 // In-memory cache for ultra-fast (0ms) response across requests
 const globalForFeatured = globalThis as unknown as {
@@ -49,10 +48,7 @@ export async function getFeaturedProperties(): Promise<Property[]> {
 		return globalForFeatured.featuredFetchPromise;
 	}
 
-	// 4. Query Database with Stale-While-Revalidate pattern
-	// If snapshot is available, we can return snapshot immediately on cold start and refresh in background
-	const snapshotData = (featuredSnapshot as unknown as Property[]) || [];
-
+	// 4. Query live Database
 	const fetchFromDb = async (): Promise<Property[]> => {
 		try {
 			const properties = await prisma.property.findMany({
@@ -188,14 +184,13 @@ export async function getFeaturedProperties(): Promise<Property[]> {
 				redisSet(FEATURED_CACHE_KEY, typedProps, 600).catch(() => {});
 				return typedProps;
 			}
+			return [];
 		} catch (dbErr) {
 			console.error("Error fetching featured properties from DB:", dbErr);
+			return [];
 		} finally {
 			globalForFeatured.featuredFetchPromise = null;
 		}
-
-		// Fallback to snapshot only if DB fails or returns empty
-		return snapshotData;
 	};
 
 	// 4. Query Database (with in-flight deduplication)
