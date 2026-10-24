@@ -185,7 +185,7 @@ export async function getFeaturedProperties(): Promise<Property[]> {
 					data: typedProps,
 					expiresAt: Date.now() + CACHE_TTL_MS,
 				};
-				redisSet(FEATURED_CACHE_KEY, JSON.stringify(typedProps), 600).catch(() => {});
+				redisSet(FEATURED_CACHE_KEY, typedProps, 600).catch(() => {});
 				return typedProps;
 			}
 		} catch (dbErr) {
@@ -194,21 +194,13 @@ export async function getFeaturedProperties(): Promise<Property[]> {
 			globalForFeatured.featuredFetchPromise = null;
 		}
 
-		// Fallback to snapshot if DB fails
+		// Fallback to snapshot only if DB fails or returns empty
 		return snapshotData;
 	};
 
-	// If we have cached snapshot data and in-memory is cold, return snapshot immediately and update in background
-	if (snapshotData.length > 0) {
-		globalForFeatured.featuredPropertiesCache = {
-			data: snapshotData,
-			expiresAt: now + 30 * 1000, // short TTL so background refreshes quickly
-		};
-		// Trigger background refresh
+	// 4. Query Database (with in-flight deduplication)
+	if (!globalForFeatured.featuredFetchPromise) {
 		globalForFeatured.featuredFetchPromise = fetchFromDb();
-		return snapshotData;
 	}
-
-	globalForFeatured.featuredFetchPromise = fetchFromDb();
-	return globalForFeatured.featuredFetchPromise;
+	return await globalForFeatured.featuredFetchPromise;
 }

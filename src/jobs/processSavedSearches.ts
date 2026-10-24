@@ -17,15 +17,41 @@ export async function processSavedSearches() {
 			include: { user: true },
 		});
 
-		// Group searches by user
-		const searchesByUser = new Map<string, { lead: any; searches: any[] }>();
+		function normalizePhone(phone?: string | null): string {
+			if (!phone) return "";
+			const digits = phone.replace(/\D/g, "");
+			return digits.length >= 10 ? digits.slice(-10) : digits;
+		}
+
+		// Track phone numbers sent in this job run to strictly enforce max 1 SMS per phone number
+		const sentPhoneNumbers = new Set<string>();
+
+		// Group searches by recipient (normalized phone number, or email/lead.id)
+		// This guarantees that if a user has multiple lead records with the same phone number
+		// (e.g. personal email + admin mailbox), all their searches are combined into ONE alert.
+		const searchesByRecipient = new Map<string, { lead: any; searches: any[]; emails: Set<string> }>();
 		for (const search of activeSearches) {
 			const lead = search.user;
 			if (!lead) continue;
-			if (!searchesByUser.has(lead.id)) {
-				searchesByUser.set(lead.id, { lead, searches: [] });
+
+			const phoneKey = normalizePhone(lead.phone);
+			const recipientKey = phoneKey ? `phone:${phoneKey}` : `lead:${(lead.email || lead.id).toLowerCase().trim()}`;
+
+			if (!searchesByRecipient.has(recipientKey)) {
+				searchesByRecipient.set(recipientKey, { lead, searches: [], emails: new Set() });
+			} else {
+				// Prefer the lead record that has a populated name or personal email
+				const existing = searchesByRecipient.get(recipientKey)!;
+				const hasBetterName = !existing.lead.firstName?.trim() && Boolean(lead.firstName?.trim());
+				const isPersonalEmail = existing.lead.email?.includes("mailbox@") && !lead.email?.includes("mailbox@");
+				if (hasBetterName || isPersonalEmail) {
+					existing.lead = lead;
+				}
 			}
-			searchesByUser.get(lead.id)!.searches.push(search);
+
+			const group = searchesByRecipient.get(recipientKey)!;
+			group.searches.push(search);
+			if (lead.email) group.emails.add(lead.email.trim());
 		}
 
 		const parseNum = (val: any): number | null => {
@@ -34,7 +60,7 @@ export async function processSavedSearches() {
 			return isNaN(n) ? null : n;
 		};
 
-		for (const [userId, { lead, searches }] of searchesByUser.entries()) {
+		for (const [recipientKey, { lead, searches, emails }] of searchesByRecipient.entries()) {
 			// Wrap each user processing in an inner try-catch so one broken search never halts the entire job
 			try {
 				const allMatchingProperties = new Map<string, any>();
@@ -223,7 +249,7 @@ export async function processSavedSearches() {
 					}
 
 					// Using the EXACT same link format as the email (with magic-login and utm tags)
-					const nameStr = lead.firstName ? lead.firstName : "there";
+					const nameStr = (lead.firstName || "").trim() || "there";
 					const trackingPrefix = targetPath.includes("?") ? "&" : "?";
 					const longSearchLink = `${baseUrl}/api/v2/magic-login?leadId=${encodeURIComponent(lead.id)}&redirect_url=${encodeURIComponent(`${baseUrl}${targetPath}${trackingPrefix}utm_source=sms_alert&n=${encodeURIComponent(nameStr)}`)}`;
 
@@ -249,18 +275,25 @@ export async function processSavedSearches() {
 					const matchCountText = count === 1 ? "a new property" : `${count} new properties`;
 					const smsMessage = `🏠 NEW PROPERTY MATCH 🏠\n\nHi ${nameStr}, ${matchCountText} matching your search just became available.\n\n👉 CLICK HERE TO VIEW YOUR NEW MATCHES:\n\n${shortSearchLink}\n\n— Dimitri Schwarz, Your SW Realtor | GulfShore Group By London Foster Realty`;
 
-					// SEND SMS
-					if (lead.phone) {
-						console.log(`[SavedSearch] Matches found for Lead ${lead.email}. Sending SMS to ${lead.phone}.`);
-						await sendSMS(lead.phone, smsMessage).catch((err) => console.error("SMS Error:", err));
+					// SEND SMS (strictly at most once per phone number across the entire run)
+					const cleanPhone = normalizePhone(lead.phone);
+					if (cleanPhone) {
+						if (sentPhoneNumbers.has(cleanPhone)) {
+							console.log(`[SavedSearch] Phone ${lead.phone} (${cleanPhone}) already received an SMS in this run. Skipping duplicate.`);
+						} else {
+							sentPhoneNumbers.add(cleanPhone);
+							console.log(`[SavedSearch] Matches found for Lead ${lead.email}. Sending SMS to ${lead.phone}.`);
+							await sendSMS(lead.phone, smsMessage).catch((err) => console.error("SMS Error:", err));
+						}
 					}
 
-					// SEND EMAIL
-					if (lead.email) {
-						console.log(`[SavedSearch] Sending Email to ${lead.email} with ${count} properties.`);
+					// SEND EMAIL (to all unique emails for this recipient)
+					const targetEmails = emails.size > 0 ? Array.from(emails) : (lead.email ? [lead.email] : []);
+					for (const email of targetEmails) {
+						console.log(`[SavedSearch] Sending Email to ${email} with ${count} properties.`);
 						await sendPropertyAlert({
-							to: lead.email,
-							recipientName: lead.firstName || "Valued Client",
+							to: email,
+							recipientName: nameStr === "there" ? "Valued Client" : nameStr,
 							leadId: lead.id,
 							subject: `🏠 NEW PROPERTY MATCH 🏠 - New Properties Available`,
 							alertTitle: "🏠 NEW PROPERTY MATCH 🏠",
@@ -278,7 +311,7 @@ export async function processSavedSearches() {
 					});
 				}
 			} catch (userErr: any) {
-				console.error(`[SavedSearch] Error processing lead ${lead.email || userId}:`, userErr?.message || userErr);
+				console.error(`[SavedSearch] Error processing lead ${lead?.email || recipientKey}:`, userErr?.message || userErr);
 			}
 		}
 
