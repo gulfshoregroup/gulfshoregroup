@@ -4,7 +4,6 @@ import * as React from "react";
 import {
 	IconDashboard,
 	IconHelp,
-	IconSearch,
 	IconSettings,
 	IconUserCheck,
 	IconArticle,
@@ -19,7 +18,6 @@ import {
 	Users,
 	BarChart3,
 	MapPin,
-	Edit,
 	Building,
 	Share2,
 	Bell,
@@ -28,9 +26,7 @@ import {
 	Heart,
 	Calendar,
 	TrendingUp,
-	MousePointer,
 	Facebook,
-	UserPlus,
 	Home,
 } from "lucide-react";
 import { NavMain } from "@/components/nav-main";
@@ -48,6 +44,7 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	useSidebar,
 } from "@/components/ui/sidebar";
 import {
 	Collapsible,
@@ -90,7 +87,7 @@ const navigationItems = [
 				label: "Market Reports",
 				icon: BarChart3,
 				href: "/admin/market-reports",
-			}
+			},
 		],
 	},
 	{
@@ -138,7 +135,6 @@ const navigationItems = [
 			},
 		],
 	},
-
 ];
 
 const data = {
@@ -197,15 +193,29 @@ const data = {
 			icon: IconHelp,
 		},
 	],
-
 };
 
-const NavItems = () => {
+function SidebarNavigationContent() {
 	const path = usePathname();
 	const searchParams = useSearchParams();
 	const tab = searchParams.get("tab");
+	const { isMobile, setOpenMobile } = useSidebar();
+	const [pendingHref, setPendingHref] = React.useState<string | null>(null);
+
+	const currentFullUrl = searchParams.toString()
+		? `${path}?${searchParams.toString()}`
+		: path;
+
+	// Clear optimistic pendingHref once the actual URL updates
+	React.useEffect(() => {
+		setPendingHref(null);
+	}, [path, searchParams]);
 
 	const isActive = (item: { label: string; href: string }) => {
+		if (pendingHref) {
+			return pendingHref === item.href;
+		}
+
 		const cleanPath = path.split("?")[0];
 		const cleanHref = item.href.split("?")[0];
 
@@ -221,8 +231,12 @@ const NavItems = () => {
 		}
 
 		if (item.href.startsWith("/admin/performance")) {
-			if (item.label === "Social Media") return path === "/admin/performance" && tab === "social";
-			if (item.label === "Property Performance") return path === "/admin/performance" && (tab === "properties" || !tab);
+			if (item.label === "Social Analytics" || item.label === "Social Media") {
+				return path === "/admin/performance" && tab === "social";
+			}
+			if (item.label === "Property Performance") {
+				return path === "/admin/performance" && (tab === "properties" || !tab);
+			}
 			return false;
 		}
 
@@ -233,40 +247,65 @@ const NavItems = () => {
 		return false;
 	};
 
-	return navigationItems.map((navitem, index) => (
-		<Collapsible
-			key={index}
-			defaultOpen
-			className="group/collapsible">
-			<SidebarGroup>
-				<SidebarGroupLabel asChild>
-					<CollapsibleTrigger>
-						{navitem.label}
-						<ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
-					</CollapsibleTrigger>
-				</SidebarGroupLabel>
-				<CollapsibleContent>
-					<SidebarGroupContent>
-						<SidebarMenu>
-							{navitem.children?.map((item) => (
-								<SidebarMenuItem key={item.label}>
-									<SidebarMenuButton
-										isActive={isActive(item)}
-										asChild>
-										<Link href={item.href}>
-											<item.icon className="size-5 shrink-0" />
-											<span className="truncate">{item.label}</span>
-										</Link>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							))}
-						</SidebarMenu>
-					</SidebarGroupContent>
-				</CollapsibleContent>
-			</SidebarGroup>
-		</Collapsible>
-	));
-};
+	return (
+		<>
+			<NavMain
+				items={data.navMain}
+				pendingHref={pendingHref}
+				onNavigate={setPendingHref}
+			/>
+			{navigationItems.map((navitem, index) => (
+				<Collapsible
+					key={index}
+					defaultOpen
+					className="group/collapsible">
+					<SidebarGroup>
+						<SidebarGroupLabel asChild>
+							<CollapsibleTrigger>
+								{navitem.label}
+								<ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+							</CollapsibleTrigger>
+						</SidebarGroupLabel>
+						<CollapsibleContent>
+							<SidebarGroupContent>
+								<SidebarMenu>
+									{navitem.children?.map((item) => (
+										<SidebarMenuItem key={item.label}>
+											<SidebarMenuButton
+												isActive={isActive(item)}
+												asChild>
+												<Link
+													href={item.href}
+													prefetch={true}
+													onClick={() => {
+														if (currentFullUrl !== item.href) {
+															setPendingHref(item.href);
+														}
+														if (isMobile) {
+															setOpenMobile(false);
+														}
+													}}>
+													<item.icon className="size-5 shrink-0" />
+													<span className="truncate">{item.label}</span>
+												</Link>
+											</SidebarMenuButton>
+										</SidebarMenuItem>
+									))}
+								</SidebarMenu>
+							</SidebarGroupContent>
+						</CollapsibleContent>
+					</SidebarGroup>
+				</Collapsible>
+			))}
+			<NavSecondary
+				items={data.navSecondary}
+				pendingHref={pendingHref}
+				onNavigate={setPendingHref}
+				className="mt-auto"
+			/>
+		</>
+	);
+}
 
 export function AppSidebar({
 	...props
@@ -295,20 +334,20 @@ export function AppSidebar({
 						<SidebarMenuButton
 							asChild
 							className="data-[slot=sidebar-menu-button]:!p-1.5">
-							<a href="#">
+							<Link href="/admin/dashboard" prefetch={true}>
 								<Home className="!size-5" />
 								<span className="text-base font-semibold">
 									{siteName}
 								</span>
-							</a>
+							</Link>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>
 			</SidebarHeader>
 			<SidebarContent>
-				<NavMain items={data.navMain} />
-				<NavItems />
-				<NavSecondary items={data.navSecondary} className="mt-auto" />
+				<React.Suspense fallback={null}>
+					<SidebarNavigationContent />
+				</React.Suspense>
 			</SidebarContent>
 			<SidebarFooter>
 				<NavUser user={data.user} />

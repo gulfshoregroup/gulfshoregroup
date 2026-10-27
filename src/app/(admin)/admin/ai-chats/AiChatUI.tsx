@@ -1,20 +1,53 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Bot, User, Clock, Smartphone, Mail, Globe, Search, ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Bot, User, Smartphone, Mail, Globe, Search, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
-
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
 
-export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any, leadIds: string[] }) {
+export default function AiChatUI({
+	groupedChats: initialGroupedChats,
+	leadIds: initialLeadIds,
+}: {
+	groupedChats?: Record<string, any>;
+	leadIds?: string[];
+}) {
 	const searchParams = useSearchParams();
-	const initialChannel = searchParams.get("channel") as any || "all";
-	
-	const [selectedLeadId, setSelectedLeadId] = useState<string | null>(leadIds[0] || null);
-	const [filter, setFilter] = useState<'all' | 'website' | 'sms' | 'email'>(initialChannel);
+	const initialChannel = (searchParams.get("channel") as any) || "all";
+
+	const [groupedChats, setGroupedChats] = useState<Record<string, any>>(initialGroupedChats || {});
+	const [leadIds, setLeadIds] = useState<string[]>(initialLeadIds || []);
+	const [loading, setLoading] = useState(!initialLeadIds);
+
+	const [selectedLeadId, setSelectedLeadId] = useState<string | null>(initialLeadIds?.[0] || null);
+	const [filter, setFilter] = useState<"all" | "website" | "sms" | "email">(initialChannel);
+	const [searchTerm, setSearchTerm] = useState("");
+
+	useEffect(() => {
+		if (initialGroupedChats && initialLeadIds) return;
+		let cancelled = false;
+		setLoading(true);
+		fetch("/api/admin/ai-chats")
+			.then((res) => res.json())
+			.then((json) => {
+				if (cancelled) return;
+				if (json.success) {
+					setGroupedChats(json.groupedChats || {});
+					setLeadIds(json.leadIds || []);
+					if (json.leadIds?.length > 0) {
+						setSelectedLeadId((prev) => prev || json.leadIds[0]);
+					}
+				}
+			})
+			.catch((err) => console.error("Failed to fetch AI chats:", err))
+			.finally(() => {
+				if (!cancelled) setLoading(false);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [initialGroupedChats, initialLeadIds]);
 
 	// Sync sidebar clicks (URL changes) to the local filter state
 	useEffect(() => {
@@ -23,25 +56,17 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 			setFilter(channel as any);
 		}
 	}, [searchParams]);
-	const [searchTerm, setSearchTerm] = useState("");
 
 	const filteredLeadIds = leadIds.filter((leadId) => {
 		const thread = groupedChats[leadId];
+		if (!thread || !thread.lead) return false;
 		const lead = thread.lead;
-		const name = `${lead.firstName || ''} ${lead.lastName || ''}`.toLowerCase();
+		const name = `${lead.firstName || ""} ${lead.lastName || ""}`.toLowerCase();
 		const email = (lead.email || "").toLowerCase();
 		const phone = (lead.phone || "").toLowerCase();
 		const term = searchTerm.toLowerCase();
-		
-		const matchesSearch = name.includes(term) || email.includes(term) || phone.includes(term);
-		if (!matchesSearch) return false;
 
-		// Filter leads by channel
-		// Removed: We want ALL users to show up in the sidebar on every tab (Emails, SMS, Chat) 
-		// so it acts like a full WhatsApp contact list.
-		// The actual chat messages in the right pane are already filtered by channel below.
-
-		return true;
+		return name.includes(term) || email.includes(term) || phone.includes(term);
 	});
 
 	// Auto-select the first lead if the current selection is hidden by the filter
@@ -56,26 +81,23 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 	const selectedThread = selectedLeadId ? groupedChats[selectedLeadId] : null;
 	// Messages come from DB in desc order — reverse to get oldest first (chronological)
 	const messages = selectedThread ? [...selectedThread.messages].reverse() : [];
-	
-	// Right pane always shows ALL messages for the selected user regardless of tab/channel
-	// (channel filter only affects which icon/badge shows in sidebar preview)
 	const filteredMessages = messages;
 
 	const channelIcon = (channel: string) => {
-		if (channel === 'sms') return <Smartphone className="w-4 h-4 text-blue-500" />;
-		if (channel === 'email') return <Mail className="w-4 h-4 text-orange-500" />;
+		if (channel === "sms") return <Smartphone className="w-4 h-4 text-blue-500" />;
+		if (channel === "email") return <Mail className="w-4 h-4 text-orange-500" />;
 		return <Globe className="w-4 h-4 text-primary" />;
 	};
 
 	let pageTitle = "AI Conversations";
 	let pageDesc = "Manage and monitor all AI interactions.";
-	if (filter === 'website') {
+	if (filter === "website") {
 		pageTitle = "AI Chatbot";
 		pageDesc = "Manage all website AI Chatbot conversations.";
-	} else if (filter === 'sms') {
+	} else if (filter === "sms") {
 		pageTitle = "AI SMS";
 		pageDesc = "Manage all AI SMS text conversations.";
-	} else if (filter === 'email') {
+	} else if (filter === "email") {
 		pageTitle = "AI Emails";
 		pageDesc = "Manage all AI Email thread conversations.";
 	}
@@ -85,7 +107,13 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 			{/* Top Header */}
 			<div className="bg-white border-b border-border/50 px-6 py-4 flex items-center gap-3 shrink-0">
 				<div className="bg-primary/10 p-2 rounded-lg">
-					{filter === 'sms' ? <Smartphone className="w-5 h-5 text-green-600" /> : filter === 'email' ? <Mail className="w-5 h-5 text-orange-600" /> : <Bot className="w-5 h-5 text-primary" />}
+					{filter === "sms" ? (
+						<Smartphone className="w-5 h-5 text-green-600" />
+					) : filter === "email" ? (
+						<Mail className="w-5 h-5 text-orange-600" />
+					) : (
+						<Bot className="w-5 h-5 text-primary" />
+					)}
 				</div>
 				<div>
 					<h1 className="text-xl font-bold text-gray-900">{pageTitle}</h1>
@@ -95,23 +123,37 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 
 			{/* Main WhatsApp-like Layout */}
 			<div className="flex flex-1 overflow-hidden">
-				
 				{/* Left Pane: Contacts List */}
-				<div className={`w-full md:w-[350px] lg:w-[400px] border-r border-border/50 bg-white flex flex-col shrink-0 ${selectedLeadId ? 'hidden md:flex' : 'flex'}`}>
+				<div
+					className={`w-full md:w-[350px] lg:w-[400px] border-r border-border/50 bg-white flex flex-col shrink-0 ${
+						selectedLeadId ? "hidden md:flex" : "flex"
+					}`}>
 					<div className="p-4 border-b border-border/50">
 						<div className="relative">
 							<Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-							<Input 
-								placeholder="Search users..." 
+							<Input
+								placeholder="Search users..."
 								className="pl-9 bg-gray-50/80 border-transparent focus-visible:ring-primary/20"
 								value={searchTerm}
 								onChange={(e) => setSearchTerm(e.target.value)}
 							/>
 						</div>
 					</div>
-					
+
 					<div className="flex-1 overflow-y-auto">
-						{filteredLeadIds.length === 0 ? (
+						{loading ? (
+							<div className="p-4 space-y-3">
+								{[1, 2, 3, 4, 5, 6].map((i) => (
+									<div key={i} className="flex items-center gap-3 p-2 animate-pulse">
+										<div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+										<div className="flex-1 space-y-2">
+											<div className="h-4 bg-gray-200 rounded w-2/3" />
+											<div className="h-3 bg-gray-100 rounded w-1/2" />
+										</div>
+									</div>
+								))}
+							</div>
+						) : filteredLeadIds.length === 0 ? (
 							<div className="p-8 text-center text-muted-foreground text-sm">
 								No conversations found.
 							</div>
@@ -119,15 +161,16 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 							filteredLeadIds.map((leadId) => {
 								const thread = groupedChats[leadId];
 								const lead = thread.lead;
-								const latestMessage = thread.messages[0]; // because order is desc
+								const latestMessage = thread.messages[0];
 								const isSelected = selectedLeadId === leadId;
 
 								return (
-									<div 
+									<div
 										key={leadId}
 										onClick={() => setSelectedLeadId(leadId)}
-										className={`p-4 border-b border-border/30 cursor-pointer transition-colors hover:bg-gray-50 ${isSelected ? 'bg-primary/5' : ''}`}
-									>
+										className={`p-4 border-b border-border/30 cursor-pointer transition-colors hover:bg-gray-50 ${
+											isSelected ? "bg-primary/5" : ""
+										}`}>
 										<div className="flex items-center gap-3">
 											<div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
 												<User className="w-5 h-5 text-gray-500" />
@@ -135,16 +178,26 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 											<div className="flex-1 min-w-0">
 												<div className="flex justify-between items-baseline mb-0.5">
 													<h3 className="font-semibold text-gray-900 truncate">
-														{lead.firstName ? `${lead.firstName} ${lead.lastName || ""}` : (lead.email || lead.phone || "Unknown User")}
+														{lead.firstName
+															? `${lead.firstName} ${lead.lastName || ""}`
+															: lead.email || lead.phone || "Unknown User"}
 													</h3>
-													<span suppressHydrationWarning className="text-[10px] text-gray-400 shrink-0 ml-2">
-														{latestMessage ? new Date(latestMessage.createdAt).toLocaleDateString() : "No messages"}
+													<span
+														suppressHydrationWarning
+														className="text-[10px] text-gray-400 shrink-0 ml-2">
+														{latestMessage
+															? new Date(latestMessage.createdAt).toLocaleDateString()
+															: "No messages"}
 													</span>
 												</div>
 												<p className="text-xs text-gray-500 truncate flex items-center gap-1">
 													{latestMessage ? (
 														<>
-															{latestMessage.role === 'ai' ? <Bot className="w-3 h-3 text-primary" /> : channelIcon(latestMessage.channel)}
+															{latestMessage.role === "ai" ? (
+																<Bot className="w-3 h-3 text-primary" />
+															) : (
+																channelIcon(latestMessage.channel)
+															)}
 															<span className="truncate">{latestMessage.message}</span>
 														</>
 													) : (
@@ -161,18 +214,19 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 				</div>
 
 				{/* Right Pane: Chat Window */}
-				<div className={`flex-1 flex flex-col bg-[#F9FAFB] relative ${!selectedLeadId ? 'hidden md:flex' : 'flex'}`}>
+				<div
+					className={`flex-1 flex flex-col bg-[#F9FAFB] relative ${
+						!selectedLeadId ? "hidden md:flex" : "flex"
+					}`}>
 					{selectedThread ? (
 						<>
 							{/* Chat Header with Tabs */}
 							<div className="bg-white border-b border-border/50 shrink-0 flex flex-col">
-								{/* Header Top Row */}
 								<div className="px-6 py-4 flex justify-between items-center">
 									<div className="flex items-center gap-3">
-										<button 
+										<button
 											className="md:hidden p-2 -ml-2 text-gray-500 hover:text-gray-900"
-											onClick={() => setSelectedLeadId(null)}
-										>
+											onClick={() => setSelectedLeadId(null)}>
 											<ArrowLeft className="w-5 h-5" />
 										</button>
 										<div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 hidden md:flex">
@@ -180,54 +234,100 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 										</div>
 										<div>
 											<h2 className="font-bold text-gray-900 text-lg">
-												{selectedThread.lead.firstName ? `${selectedThread.lead.firstName} ${selectedThread.lead.lastName || ""}` : (selectedThread.lead.email || selectedThread.lead.phone)}
+												{selectedThread.lead.firstName
+													? `${selectedThread.lead.firstName} ${
+															selectedThread.lead.lastName || ""
+													  }`
+													: selectedThread.lead.email || selectedThread.lead.phone}
 											</h2>
 											<div className="flex gap-2 text-xs text-gray-500 mt-0.5">
-												{selectedThread.lead.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3"/> {selectedThread.lead.email}</span>}
-												{selectedThread.lead.phone && <span className="flex items-center gap-1 ml-2"><Smartphone className="w-3 h-3"/> {selectedThread.lead.phone}</span>}
+												{selectedThread.lead.email && (
+													<span className="flex items-center gap-1">
+														<Mail className="w-3 h-3" /> {selectedThread.lead.email}
+													</span>
+												)}
+												{selectedThread.lead.phone && (
+													<span className="flex items-center gap-1 ml-2">
+														<Smartphone className="w-3 h-3" /> {selectedThread.lead.phone}
+													</span>
+												)}
 											</div>
 										</div>
 									</div>
-									<Link 
+									<Link
 										href={`/admin/leads/${selectedLeadId}`}
-										className="text-xs bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-full transition-colors font-semibold shadow-sm"
-									>
+										className="text-xs bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-full transition-colors font-semibold shadow-sm">
 										View Profile
 									</Link>
 								</div>
-								
 							</div>
 
 							{/* Conditional Rendering based on Filter */}
-							{filter === 'email' ? (
+							{filter === "email" ? (
 								<div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
 									{filteredMessages.map((chat: any) => {
-										const isAi = chat.role === 'ai';
+										const isAi = chat.role === "ai";
 										return (
-											<div key={chat.id} className="bg-white border border-border/60 shadow-sm rounded-lg overflow-hidden">
+											<div
+												key={chat.id}
+												className="bg-white border border-border/60 shadow-sm rounded-lg overflow-hidden">
 												<div className="bg-gray-50/80 px-4 py-3 border-b border-border/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
 													<div className="flex items-start gap-3">
-														<div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isAi ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
-															{isAi ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+														<div
+															className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+																isAi
+																	? "bg-orange-100 text-orange-600"
+																	: "bg-blue-100 text-blue-600"
+															}`}>
+															{isAi ? (
+																<Bot className="w-4 h-4" />
+															) : (
+																<User className="w-4 h-4" />
+															)}
 														</div>
 														<div className="text-sm">
 															<div className="font-semibold text-gray-900">
-																{isAi ? 'Gulfshore Group AI' : (selectedThread.lead.firstName ? `${selectedThread.lead.firstName} ${selectedThread.lead.lastName || ""}` : 'User')}
+																{isAi
+																	? "Gulfshore Group AI"
+																	: selectedThread.lead.firstName
+																	? `${selectedThread.lead.firstName} ${
+																			selectedThread.lead.lastName || ""
+																	  }`
+																	: "User"}
 															</div>
 															<div className="text-gray-500 text-xs">
-																<span className="font-medium">From:</span> {isAi ? 'noreply@updates.gulfshoregroup.com' : (selectedThread.lead.email || 'unknown@user.com')}
+																<span className="font-medium">From:</span>{" "}
+																{isAi
+																	? "noreply@updates.gulfshoregroup.com"
+																	: selectedThread.lead.email || "unknown@user.com"}
 															</div>
 															<div className="text-gray-500 text-xs mt-0.5">
-																<span className="font-medium">To:</span> {!isAi ? 'Gulfshore Group' : (selectedThread.lead.email || 'unknown@user.com')}
+																<span className="font-medium">To:</span>{" "}
+																{!isAi
+																	? "Gulfshore Group"
+																	: selectedThread.lead.email || "unknown@user.com"}
 															</div>
 														</div>
 													</div>
 													<div className="text-xs text-gray-400 font-medium whitespace-nowrap self-start sm:self-auto">
-														{new Date(chat.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(chat.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+														{new Date(chat.createdAt).toLocaleDateString([], {
+															month: "short",
+															day: "numeric",
+															year: "numeric",
+														})}{" "}
+														at{" "}
+														{new Date(chat.createdAt).toLocaleTimeString([], {
+															hour: "2-digit",
+															minute: "2-digit",
+														})}
 													</div>
 												</div>
 												<div className="p-5 text-gray-800 text-sm whitespace-pre-wrap leading-relaxed">
-													{chat.message && chat.message.trim().length > 0 ? chat.message : <span className="text-gray-400 italic">No text provided</span>}
+													{chat.message && chat.message.trim().length > 0 ? (
+														chat.message
+													) : (
+														<span className="text-gray-400 italic">No text provided</span>
+													)}
 												</div>
 											</div>
 										);
@@ -240,7 +340,6 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 								</div>
 							) : (
 								<div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[url('https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg')] bg-cover bg-center bg-fixed bg-no-repeat bg-opacity-20 relative">
-									{/* Subtle overlay to make text readable over the background pattern */}
 									<div className="absolute inset-0 bg-white/80 backdrop-blur-sm pointer-events-none"></div>
 
 									<div className="relative z-10 space-y-6">
@@ -249,38 +348,60 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 												Conversation Started
 											</span>
 										</div>
-										
+
 										{filteredMessages.map((chat: any) => (
-											<div key={chat.id} className={`flex flex-col ${chat.role === 'ai' || chat.role === 'admin' ? 'items-end' : 'items-start'}`}>
+											<div
+												key={chat.id}
+												className={`flex flex-col ${
+													chat.role === "ai" || chat.role === "admin"
+														? "items-end"
+														: "items-start"
+												}`}>
 												<div className="flex items-center gap-1.5 mb-1 px-1">
-													{chat.role === 'user' ? (
+													{chat.role === "user" ? (
 														<>
-															<span className="text-[10px] font-bold text-gray-500 uppercase">User</span>
+															<span className="text-[10px] font-bold text-gray-500 uppercase">
+																User
+															</span>
 															{channelIcon(chat.channel)}
 														</>
-													) : chat.role === 'admin' ? (
+													) : chat.role === "admin" ? (
 														<>
 															<User className="w-3.5 h-3.5 text-blue-600" />
-															<span className="text-[10px] font-bold text-blue-600 uppercase">You (Admin)</span>
+															<span className="text-[10px] font-bold text-blue-600 uppercase">
+																You (Admin)
+															</span>
 														</>
 													) : (
 														<>
 															<Bot className="w-3.5 h-3.5 text-primary" />
-															<span className="text-[10px] font-bold text-primary uppercase">AI Concierge</span>
+															<span className="text-[10px] font-bold text-primary uppercase">
+																AI Concierge
+															</span>
 														</>
 													)}
 												</div>
-												<div 
+												<div
 													className={`max-w-[75%] text-sm p-4 rounded-2xl shadow-sm whitespace-pre-wrap leading-relaxed relative ${
-														chat.role === 'ai' || chat.role === 'admin' 
-														? (chat.role === 'admin' ? 'bg-blue-600 text-white rounded-tr-sm border border-blue-600/10' : 'bg-primary text-white rounded-tr-sm border border-primary/10') 
-														: 'bg-white border border-gray-200 text-gray-800 rounded-tl-sm'
-													}`}
-												>
-													{chat.message && chat.message.trim().length > 0 ? chat.message : <span className="text-gray-400 italic">No text provided</span>}
+														chat.role === "ai" || chat.role === "admin"
+															? chat.role === "admin"
+																? "bg-blue-600 text-white rounded-tr-sm border border-blue-600/10"
+																: "bg-primary text-white rounded-tr-sm border border-primary/10"
+															: "bg-white border border-gray-200 text-gray-800 rounded-tl-sm"
+													}`}>
+													{chat.message && chat.message.trim().length > 0 ? (
+														chat.message
+													) : (
+														<span className="text-gray-400 italic">No text provided</span>
+													)}
 												</div>
-												<span suppressHydrationWarning className="text-[10px] text-gray-400 mt-1.5 px-2 font-medium">
-													{new Date(chat.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+												<span
+													suppressHydrationWarning
+													className="text-[10px] text-gray-400 mt-1.5 px-2 font-medium">
+													{new Date(chat.createdAt).toLocaleTimeString([], {
+														hour: "2-digit",
+														minute: "2-digit",
+													})}
 												</span>
 											</div>
 										))}
@@ -289,33 +410,39 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 							)}
 
 							{/* Chat Input Box (Only show for SMS) */}
-							{filter === 'sms' && selectedThread.lead.phone && (
+							{filter === "sms" && selectedThread.lead.phone && (
 								<div className="bg-white border-t border-border/50 p-4 shrink-0">
-									<form 
+									<form
 										onSubmit={async (e) => {
 											e.preventDefault();
-											const input = e.currentTarget.elements.namedItem('message') as HTMLInputElement;
+											const input = e.currentTarget.elements.namedItem(
+												"message"
+											) as HTMLInputElement;
 											const message = input.value;
 											if (!message.trim()) return;
-											
+
 											try {
-												// Optimistically clear input (can't easily optimistically update messages array since it's props-based, 
-												// but we can refresh the page or rely on polling if it exists)
 												input.value = "";
-												const btn = e.currentTarget.elements.namedItem('submitBtn') as HTMLButtonElement;
+												const btn = e.currentTarget.elements.namedItem(
+													"submitBtn"
+												) as HTMLButtonElement;
 												btn.disabled = true;
 
 												const res = await fetch("/api/admin/send-manual-sms", {
 													method: "POST",
 													headers: { "Content-Type": "application/json" },
-													body: JSON.stringify({ leadId: selectedLeadId, message })
+													body: JSON.stringify({ leadId: selectedLeadId, message }),
 												});
 
 												btn.disabled = false;
-												
+
 												if (res.ok) {
-													// Refresh page to see the new message
-													window.location.reload();
+													const refreshRes = await fetch("/api/admin/ai-chats?refresh=1");
+													const refreshJson = await refreshRes.json();
+													if (refreshJson.success) {
+														setGroupedChats(refreshJson.groupedChats || {});
+														setLeadIds(refreshJson.leadIds || []);
+													}
 												} else {
 													alert("Failed to send message.");
 												}
@@ -324,19 +451,17 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 												alert("Failed to send message.");
 											}
 										}}
-										className="flex items-center gap-3"
-									>
-										<Input 
+										className="flex items-center gap-3">
+										<Input
 											name="message"
-											placeholder="Type your SMS message to send..." 
+											placeholder="Type your SMS message to send..."
 											className="flex-1 bg-gray-50 border-gray-200"
 											autoComplete="off"
 										/>
-										<button 
+										<button
 											name="submitBtn"
 											type="submit"
-											className="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-										>
+											className="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
 											Send SMS
 										</button>
 									</form>
@@ -348,8 +473,12 @@ export default function AiChatUI({ groupedChats, leadIds }: { groupedChats: any,
 							<div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
 								<Bot className="w-10 h-10 text-gray-300" />
 							</div>
-							<p className="text-lg font-medium text-gray-500">Select a conversation</p>
-							<p className="text-sm">Choose a user from the left panel to view their AI chat history.</p>
+							<p className="text-lg font-medium text-gray-500">
+								{loading ? "Loading conversations..." : "Select a conversation"}
+							</p>
+							<p className="text-sm">
+								Choose a user from the left panel to view their AI chat history.
+							</p>
 						</div>
 					)}
 				</div>

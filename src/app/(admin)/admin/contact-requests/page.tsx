@@ -28,16 +28,11 @@ import {
 } from "@/components/ui/dialog";
 import {
 	Search,
-	Plus,
 	Phone,
 	Mail,
-	MessageCircle,
-	Code,
-	Code2,
 	ChevronLeft,
-	ChevronRight
+	ChevronRight,
 } from "lucide-react";
-import Link from "next/link";
 import { IContactRequest } from "@/models/contact";
 
 const statusOptions = [
@@ -67,7 +62,6 @@ const getRefLink = (ref: string) => {
 	if (!ref || ref === "null" || ref === "N/A") return "#";
 	if (ref.startsWith("http://") || ref.startsWith("https://")) return ref;
 	const cleanRef = ref.startsWith("/") ? ref : `/${ref}`;
-	// In local dev, use relative paths so they resolve on localhost, in prod they resolve on main domain
 	return cleanRef;
 };
 
@@ -76,7 +70,7 @@ export default function ContactRequestsPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [contactReq, setContactReq] = useState<IContactRequest[]>([]);
 	const [searchTerm, setSearchTerm] = useState("");
-	const [statusFilter, setStatusFilter] = useState("all"); // default to show all
+	const [statusFilter, setStatusFilter] = useState("all");
 	const [selectedRequest, setSelectedRequest] = useState<IContactRequest | null>(null);
 	const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -87,32 +81,33 @@ export default function ContactRequestsPage() {
 
 	// Fetch contact requests
 	useEffect(() => {
+		let cancelled = false;
 		const fetchContactRequests = async () => {
 			try {
 				setLoading(true);
-				const res = await fetch(`/api/contact?page=${page}&limit=${limit}`); // use your real API route
-				if (!res.ok)
-					throw new Error("Failed to fetch contact requests");
+				const res = await fetch(`/api/contact?page=${page}&limit=${limit}`);
+				if (!res.ok) throw new Error("Failed to fetch contact requests");
 				const json = await res.json();
-
+				if (cancelled) return;
 				setContactReq(json.data.requests || []);
 				setTotalCount(json.data.totalRequests || 0);
 				setTotalPages(json.data.totalPages || 1);
 			} catch (err: any) {
-				setError(err.message);
+				if (!cancelled) setError(err.message);
 			} finally {
-				setLoading(false);
+				if (!cancelled) setLoading(false);
 			}
 		};
 		fetchContactRequests();
+		return () => {
+			cancelled = true;
+		};
 	}, [page]);
 
 	const filteredRequest = contactReq.filter((request) => {
 		const matchesSearch =
 			request.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			request.email
-				.toLowerCase()
-				.includes(searchTerm.toLowerCase()) ||
+			request.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
 			request.phone?.includes(searchTerm);
 
 		const matchesStatus =
@@ -128,22 +123,10 @@ export default function ContactRequestsPage() {
 		);
 	};
 
-	if (loading)
-		return (
-			<div className="p-6 text-center font-bold text-muted-foreground">
-				Loading requests...
-			</div>
-		);
 	if (error)
 		return (
 			<div className="p-6 text-center text-red-500">
 				Error: {error}
-			</div>
-		);
-	if (!contactReq.length)
-		return (
-			<div className="p-6 text-center font-bold text-muted-foreground">
-				No requests available.
 			</div>
 		);
 
@@ -166,7 +149,7 @@ export default function ContactRequestsPage() {
 				<Card>
 					<CardContent className="pt-6 text-center">
 						<div className="text-3xl font-bold text-foreground">
-							{totalCount}
+							{loading && contactReq.length === 0 ? "—" : totalCount}
 						</div>
 						<p className="text-sm text-muted-foreground mt-1">
 							Total Requests
@@ -180,10 +163,9 @@ export default function ContactRequestsPage() {
 								className={`text-3xl font-bold ${
 									status.color.split(" ")[1]
 								}`}>
-								{
-									contactReq.filter((r) => r.status === status.value)
-										.length
-								}
+								{loading && contactReq.length === 0
+									? "—"
+									: contactReq.filter((r) => r.status === status.value).length}
 							</div>
 							<p className="text-sm text-muted-foreground mt-1">
 								{status.label}
@@ -198,8 +180,7 @@ export default function ContactRequestsPage() {
 				<CardHeader>
 					<CardTitle>All Requests</CardTitle>
 					<CardDescription>
-						Search and filter requests by status and contact
-						information
+						Search and filter requests by status and contact information
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -262,96 +243,115 @@ export default function ContactRequestsPage() {
 										</th>
 									</tr>
 								</thead>
-								<tbody>
-									{filteredRequest.map((request, i) => (
-										<tr
-											key={i}
-											className="border-b border-border hover:bg-muted/50 transition-colors">
-											<td className="py-3 px-4 font-medium text-foreground">
-												{request.name}
-											</td>
-											<td className="py-3 px-4 space-y-1">
-												<div className="flex items-center gap-2 text-muted-foreground">
-													<Mail className="h-3 w-3" />
-													<span className="text-xs">
-														{request.email}
-													</span>
-												</div>
-												<div className="flex items-center gap-2 text-muted-foreground">
-													<Phone className="h-3 w-3" />
-													<span className="text-xs">
-														{request.phone}
-													</span>
-												</div>
-											</td>
-											<td className="py-3 px-4">
-												<Badge
-													className={getStatusColor(
-														request.status || ""
-													)}>
-													{
-														statusOptions.find(
-															(s) => s.value === request.status
-														)?.label
-													}
-												</Badge>
-											</td>
-											<td className="py-3 px-4 ">
-												{request.message || "N/A"}
-											</td>
-											<td className="py-3 px-4">
-												{request.refType?.toLowerCase().includes("valuation") || request.refType?.toLowerCase().includes("seller") || request.message?.includes("Home Valuation") ? (
-													<Badge className="bg-amber-100 text-amber-900 border border-amber-300 font-semibold px-2 py-0.5 text-xs inline-flex items-center gap-1">
-														🏠 Seller (Valuation)
+								<tbody className={loading && contactReq.length > 0 ? "opacity-60 transition-opacity" : ""}>
+									{loading && contactReq.length === 0 ? (
+										Array.from({ length: 6 }).map((_, idx) => (
+											<tr key={idx} className="border-b border-border animate-pulse">
+												<td className="py-4 px-4"><div className="h-4 w-32 bg-muted rounded" /></td>
+												<td className="py-4 px-4 space-y-2">
+													<div className="h-3 w-36 bg-muted rounded" />
+													<div className="h-3 w-24 bg-muted/70 rounded" />
+												</td>
+												<td className="py-4 px-4"><div className="h-5 w-14 bg-muted rounded-full" /></td>
+												<td className="py-4 px-4"><div className="h-4 w-48 bg-muted rounded" /></td>
+												<td className="py-4 px-4"><div className="h-5 w-24 bg-muted rounded-full" /></td>
+												<td className="py-4 px-4"><div className="h-4 w-16 bg-muted rounded" /></td>
+												<td className="py-4 px-4"><div className="h-6 w-12 bg-muted rounded" /></td>
+											</tr>
+										))
+									) : (
+										filteredRequest.map((request, i) => (
+											<tr
+												key={String(request._id || i)}
+												className="border-b border-border hover:bg-muted/50 transition-colors">
+												<td className="py-3 px-4 font-medium text-foreground">
+													{request.name}
+												</td>
+												<td className="py-3 px-4 space-y-1">
+													<div className="flex items-center gap-2 text-muted-foreground">
+														<Mail className="h-3 w-3" />
+														<span className="text-xs">
+															{request.email}
+														</span>
+													</div>
+													<div className="flex items-center gap-2 text-muted-foreground">
+														<Phone className="h-3 w-3" />
+														<span className="text-xs">
+															{request.phone}
+														</span>
+													</div>
+												</td>
+												<td className="py-3 px-4">
+													<Badge
+														className={getStatusColor(
+															request.status || ""
+														)}>
+														{
+															statusOptions.find(
+																(s) => s.value === request.status
+															)?.label
+														}
 													</Badge>
-												) : request.refType?.toLowerCase().includes("tour") || request.message?.includes("Tour") ? (
-													<Badge className="bg-blue-100 text-blue-900 border border-blue-300 font-semibold px-2 py-0.5 text-xs inline-flex items-center gap-1">
-														🛒 Buyer (Tour)
-													</Badge>
-												) : (
-													<Badge className="bg-purple-100 text-purple-900 border border-purple-300 font-semibold px-2 py-0.5 text-xs inline-flex items-center gap-1">
-														💬 Buyer (Inquiry)
-													</Badge>
-												)}
-											</td>
+												</td>
+												<td className="py-3 px-4 ">
+													{request.message || "N/A"}
+												</td>
+												<td className="py-3 px-4">
+													{request.refType?.toLowerCase().includes("valuation") ||
+													request.refType?.toLowerCase().includes("seller") ||
+													request.message?.includes("Home Valuation") ? (
+														<Badge className="bg-amber-100 text-amber-900 border border-amber-300 font-semibold px-2 py-0.5 text-xs inline-flex items-center gap-1">
+															🏠 Seller (Valuation)
+														</Badge>
+													) : request.refType?.toLowerCase().includes("tour") ||
+													  request.message?.includes("Tour") ? (
+														<Badge className="bg-blue-100 text-blue-900 border border-blue-300 font-semibold px-2 py-0.5 text-xs inline-flex items-center gap-1">
+															🛒 Buyer (Tour)
+														</Badge>
+													) : (
+														<Badge className="bg-purple-100 text-purple-900 border border-purple-300 font-semibold px-2 py-0.5 text-xs inline-flex items-center gap-1">
+															💬 Buyer (Inquiry)
+														</Badge>
+													)}
+												</td>
 
-											<td className="py-3 px-4 ">
-												{!request.ref || request.ref === "null" || request.ref === "N/A" ? (
-													""
-												) : (
-													<a 
-														href={getRefLink(request.ref)} 
-														target="_blank" 
-														rel="noreferrer"
-														className="text-blue-600 hover:underline"
-													>
-														{request.ref === "/" ? "Home" : "Property"}
-													</a>
-												)}
-											</td>
-											<td className="py-3 px-4 ">
-												{!request.ref || request.ref === "null" || request.ref === "N/A"
-													? ""
-													: request.refType || "Link"}
-											</td>
-											<td className="py-3 px-4">
-												<Button
-													variant="ghost"
-													size="sm"
-													onClick={() => {
-														setSelectedRequest(request);
-														setDialogOpen(true);
-													}}>
-													View
-												</Button>
-											</td>
-										</tr>
-									))}
+												<td className="py-3 px-4 ">
+													{!request.ref || request.ref === "null" || request.ref === "N/A" ? (
+														""
+													) : (
+														<a
+															href={getRefLink(request.ref)}
+															target="_blank"
+															rel="noreferrer"
+															className="text-blue-600 hover:underline">
+															{request.ref === "/" ? "Home" : "Property"}
+														</a>
+													)}
+												</td>
+												<td className="py-3 px-4 ">
+													{!request.ref || request.ref === "null" || request.ref === "N/A"
+														? ""
+														: request.refType || "Link"}
+												</td>
+												<td className="py-3 px-4">
+													<Button
+														variant="ghost"
+														size="sm"
+														onClick={() => {
+															setSelectedRequest(request);
+															setDialogOpen(true);
+														}}>
+														View
+													</Button>
+												</td>
+											</tr>
+										))
+									)}
 								</tbody>
 							</table>
 						</div>
 
-						{filteredRequest.length === 0 && (
+						{!loading && filteredRequest.length === 0 && (
 							<div className="text-center py-8">
 								<p className="text-muted-foreground">
 									No requests found matching your criteria
@@ -369,8 +369,7 @@ export default function ContactRequestsPage() {
 									variant="outline"
 									size="sm"
 									onClick={() => setPage((p) => Math.max(p - 1, 1))}
-									disabled={page === 1}
-								>
+									disabled={page === 1}>
 									<ChevronLeft className="h-4 w-4 mr-1" />
 									Previous
 								</Button>
@@ -378,8 +377,7 @@ export default function ContactRequestsPage() {
 									variant="outline"
 									size="sm"
 									onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-									disabled={page === totalPages || totalPages === 0}
-								>
+									disabled={page === totalPages || totalPages === 0}>
 									Next
 									<ChevronRight className="h-4 w-4 ml-1" />
 								</Button>
@@ -394,54 +392,73 @@ export default function ContactRequestsPage() {
 					<DialogHeader>
 						<DialogTitle className="text-xl font-bold">Contact Request Details</DialogTitle>
 						<DialogDescription>
-							Submitted on {selectedRequest ? new Date(selectedRequest.createdAt).toLocaleString() : ""}
+							Submitted on{" "}
+							{selectedRequest ? new Date(selectedRequest.createdAt).toLocaleString() : ""}
 						</DialogDescription>
 					</DialogHeader>
 					{selectedRequest && (
 						<div className="space-y-4 py-2">
-							{/* Target Property To Sell (For Sellers) */}
 							{selectedRequest.refType === "Home_Valuation" && (
 								<div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200 space-y-1.5">
 									<span className="text-xs font-bold text-amber-900 uppercase tracking-wider block">
 										🏠 Target Property To Sell (Home Valuation)
 									</span>
 									<p className="text-base font-bold text-gray-900">
-										{selectedRequest.ref && selectedRequest.ref !== "null" ? selectedRequest.ref : "Address Provided In Message"}
+										{selectedRequest.ref && selectedRequest.ref !== "null"
+											? selectedRequest.ref
+											: "Address Provided In Message"}
 									</p>
 								</div>
 							)}
 
 							<div>
 								<span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-									{selectedRequest.refType === "Home_Valuation" ? "Seller Name" : "Customer Name"}
+									{selectedRequest.refType === "Home_Valuation"
+										? "Seller Name"
+										: "Customer Name"}
 								</span>
-								<p className="text-sm font-semibold text-gray-900 mt-0.5">{selectedRequest.name}</p>
+								<p className="text-sm font-semibold text-gray-900 mt-0.5">
+									{selectedRequest.name}
+								</p>
 							</div>
 							<div className="grid grid-cols-2 gap-4">
 								<div>
-									<span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</span>
-									<a href={`mailto:${selectedRequest.email}`} className="text-sm font-semibold text-blue-600 hover:underline mt-0.5 block break-all">
+									<span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+										Email
+									</span>
+									<a
+										href={`mailto:${selectedRequest.email}`}
+										className="text-sm font-semibold text-blue-600 hover:underline mt-0.5 block break-all">
 										{selectedRequest.email}
 									</a>
 								</div>
 								<div>
-									<span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</span>
-									<a href={`tel:${selectedRequest.phone}`} className="text-sm font-semibold text-gray-900 mt-0.5 block">
+									<span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+										Phone
+									</span>
+									<a
+										href={`tel:${selectedRequest.phone}`}
+										className="text-sm font-semibold text-gray-900 mt-0.5 block">
 										{selectedRequest.phone || "N/A"}
 									</a>
 								</div>
 							</div>
 							<div className="grid grid-cols-2 gap-4">
 								<div>
-									<span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</span>
+									<span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+										Status
+									</span>
 									<div className="mt-1">
 										<Badge className={getStatusColor(selectedRequest.status || "")}>
-											{statusOptions.find((s) => s.value === selectedRequest.status)?.label || selectedRequest.status}
+											{statusOptions.find((s) => s.value === selectedRequest.status)?.label ||
+												selectedRequest.status}
 										</Badge>
 									</div>
 								</div>
 								<div>
-									<span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Request Type</span>
+									<span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+										Request Type
+									</span>
 									<div className="mt-1">
 										{selectedRequest.refType === "Home_Valuation" ? (
 											<Badge className="bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs">
@@ -457,7 +474,9 @@ export default function ContactRequestsPage() {
 							</div>
 							<div>
 								<span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-									{selectedRequest.refType === "Home_Valuation" ? "Valuation Details & Property Specs" : "Message / Inquiry"}
+									{selectedRequest.refType === "Home_Valuation"
+										? "Valuation Details & Property Specs"
+										: "Message / Inquiry"}
 								</span>
 								<p className="text-sm text-gray-800 bg-gray-50 p-3 rounded-lg border border-gray-200 mt-1 whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto font-mono text-xs">
 									{selectedRequest.message || "No additional message provided."}

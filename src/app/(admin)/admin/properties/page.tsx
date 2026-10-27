@@ -95,8 +95,10 @@ export default function PropertiesPage() {
 		ImageUrl: "",
 	});
 
-	// Fetch cities & communities dropdown options
+	// Lazy-fetch cities & communities dropdown options only when create modal opens
 	useEffect(() => {
+		if (!isCreateOpen || citiesList.length > 0) return;
+
 		const fetchOptions = async () => {
 			try {
 				const [citiesRes, commsRes] = await Promise.all([
@@ -126,7 +128,7 @@ export default function PropertiesPage() {
 		};
 
 		fetchOptions();
-	}, []);
+	}, [isCreateOpen, citiesList.length]);
 
 
 	const [imageFile, setImageFile] = useState<File | null>(null);
@@ -259,7 +261,7 @@ export default function PropertiesPage() {
 					<h1 className="text-3xl font-bold text-foreground">
 						Properties Listings
 						<span className="text-muted-foreground text-sm font-normal ml-2">
-							({totalCount.toLocaleString()} {statusFilter === "All" ? "total" : statusFilter.toLowerCase()})
+							({loading && totalCount === 0 ? "…" : totalCount.toLocaleString()} {statusFilter === "All" ? "total" : statusFilter.toLowerCase()})
 						</span>
 					</h1>
 					<p className="text-muted-foreground">
@@ -363,93 +365,122 @@ export default function PropertiesPage() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					{loading ? (
-						<p className="text-center text-muted-foreground py-8">Loading properties...</p>
-					) : properties.length === 0 ? (
-						<p className="text-center text-muted-foreground py-8">No properties found matching criteria.</p>
-					) : (
-						<>
-							<div className="rounded-md border overflow-x-auto">
-								<Table>
-									<TableHeader>
-										<TableRow>
-											<TableHead>Property Details</TableHead>
-											<TableHead>Price</TableHead>
-											<TableHead>Type</TableHead>
-											<TableHead>Status</TableHead>
-											<TableHead>City</TableHead>
-											<TableHead>MLS Number</TableHead>
-											<TableHead>Photos</TableHead>
+					<div className="rounded-md border overflow-x-auto">
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>Property Details</TableHead>
+									<TableHead>Price</TableHead>
+									<TableHead>Type</TableHead>
+									<TableHead>Status</TableHead>
+									<TableHead>City</TableHead>
+									<TableHead>MLS Number</TableHead>
+									<TableHead>Photos</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{loading ? (
+									Array.from({ length: 8 }).map((_, idx) => (
+										<TableRow key={`skeleton-${idx}`}>
+											<TableCell>
+												<div className="space-y-2 py-1">
+													<div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
+													<div className="h-3 w-32 bg-gray-100 rounded animate-pulse" />
+												</div>
+											</TableCell>
+											<TableCell>
+												<div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+											</TableCell>
+											<TableCell>
+												<div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
+											</TableCell>
+											<TableCell>
+												<div className="h-5 w-14 bg-gray-100 rounded-full animate-pulse" />
+											</TableCell>
+											<TableCell>
+												<div className="h-3 w-16 bg-gray-100 rounded animate-pulse" />
+											</TableCell>
+											<TableCell>
+												<div className="h-3 w-20 bg-gray-100 rounded animate-pulse" />
+											</TableCell>
+											<TableCell>
+												<div className="h-3 w-14 bg-gray-100 rounded animate-pulse" />
+											</TableCell>
 										</TableRow>
-									</TableHeader>
-									<TableBody>
-										{properties.map((property) => (
-											<TableRow key={property._id}>
-												<TableCell>
-													<div>
-														<div className="font-medium">
-															{property.PropertyAddress}
-														</div>
-														<div className="text-xs text-muted-foreground mt-0.5">
-															{property.BedsTotal} bd • {property.BathsTotal} ba
-															{property.ApproxLivingArea && ` • ${Number(property.ApproxLivingArea).toLocaleString()} sqft`}
-														</div>
+									))
+								) : properties.length === 0 ? (
+									<TableRow>
+										<TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+											No properties found matching criteria.
+										</TableCell>
+									</TableRow>
+								) : (
+									properties.map((property) => (
+										<TableRow key={property._id}>
+											<TableCell>
+												<div>
+													<div className="font-medium">
+														{property.PropertyAddress}
 													</div>
-												</TableCell>
-												<TableCell className="font-medium">
-													${property.CurrentPrice?.toLocaleString()}
-												</TableCell>
-												<TableCell className="text-xs text-muted-foreground max-w-[120px] truncate">
-													{property.PropertyClass}
-												</TableCell>
-												<TableCell>
-													<Badge className={getStatusColor(property.Status)}>
-														{property.Status}
-													</Badge>
-												</TableCell>
-												<TableCell className="text-xs font-semibold text-muted-foreground">
-													{property.City}
-												</TableCell>
-												<TableCell className="font-mono text-xs">
-													{property.MLSNumber}
-												</TableCell>
-												<TableCell className="text-xs text-muted-foreground">
-													{property.AllPixList?.length || 0} photos
-												</TableCell>
-											</TableRow>
-										))}
-									</TableBody>
-								</Table>
-							</div>
+													<div className="text-xs text-muted-foreground mt-0.5">
+														{property.BedsTotal} bd • {property.BathsTotal} ba
+														{property.ApproxLivingArea && ` • ${Number(property.ApproxLivingArea).toLocaleString()} sqft`}
+													</div>
+												</div>
+											</TableCell>
+											<TableCell className="font-medium">
+												${property.CurrentPrice?.toLocaleString()}
+											</TableCell>
+											<TableCell className="text-xs text-muted-foreground max-w-[120px] truncate">
+												{property.PropertyClass}
+											</TableCell>
+											<TableCell>
+												<Badge className={getStatusColor(property.Status)}>
+													{property.Status}
+												</Badge>
+											</TableCell>
+											<TableCell className="text-xs font-semibold text-muted-foreground">
+												{property.City}
+											</TableCell>
+											<TableCell className="font-mono text-xs">
+												{property.MLSNumber}
+											</TableCell>
+											<TableCell className="text-xs text-muted-foreground">
+												{property.AllPixList?.length || 0} photos
+											</TableCell>
+										</TableRow>
+									))
+								)}
+							</TableBody>
+						</Table>
+					</div>
 
-							{/* Pagination Controls */}
-							<div className="flex items-center justify-between mt-4">
-								<span className="text-xs text-muted-foreground">
-									Page {page} of {totalPages} (Showing {(properties.length).toLocaleString()} rows)
-								</span>
-								<div className="flex gap-2">
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => setPage((p) => Math.max(p - 1, 1))}
-										disabled={page === 1}
-									>
-										<ChevronLeft className="h-4 w-4 mr-1" />
-										Previous
-									</Button>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-										disabled={page === totalPages}
-									>
-										Next
-										<ChevronRight className="h-4 w-4 ml-1" />
-									</Button>
-								</div>
-							</div>
-						</>
-					)}
+					{/* Pagination Controls */}
+					<div className="flex items-center justify-between mt-4">
+						<span className="text-xs text-muted-foreground">
+							Page {page} of {totalPages} (Showing {(properties.length).toLocaleString()} rows)
+						</span>
+						<div className="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setPage((p) => Math.max(p - 1, 1))}
+								disabled={page === 1 || loading}
+							>
+								<ChevronLeft className="h-4 w-4 mr-1" />
+								Previous
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+								disabled={page === totalPages || loading}
+							>
+								Next
+								<ChevronRight className="h-4 w-4 ml-1" />
+							</Button>
+						</div>
+					</div>
 				</CardContent>
 			</Card>
 			<Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

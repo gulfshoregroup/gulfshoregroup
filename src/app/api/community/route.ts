@@ -1,6 +1,42 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+let communityPropertyCountCache: { map: Record<string, number>; ts: number } | null = null;
+const COUNT_CACHE_TTL_MS = 60_000;
+
+async function getCommunityPropertyCounts(): Promise<Record<string, number>> {
+	if (communityPropertyCountCache && Date.now() - communityPropertyCountCache.ts < COUNT_CACHE_TTL_MS) {
+		return communityPropertyCountCache.map;
+	}
+	const [communityCounts, developmentCounts] = await Promise.all([
+		prisma.property.groupBy({
+			by: ["Community"],
+			_count: { id: true },
+		}),
+		prisma.property.groupBy({
+			by: ["Development"],
+			_count: { id: true },
+		}),
+	]);
+
+	const countMap: Record<string, number> = {};
+
+	for (const row of communityCounts) {
+		const key = (row.Community || "").toLowerCase().trim();
+		if (key) countMap[key] = (countMap[key] || 0) + row._count.id;
+	}
+
+	for (const row of developmentCounts) {
+		const key = (row.Development || "").toLowerCase().trim();
+		if (key) {
+			countMap[key] = Math.max(countMap[key] || 0, row._count.id);
+		}
+	}
+
+	communityPropertyCountCache = { map: countMap, ts: Date.now() };
+	return countMap;
+}
+
 export async function GET(req: NextRequest) {
 	try {
 		const queryParams = req.nextUrl.searchParams;
@@ -10,13 +46,15 @@ export async function GET(req: NextRequest) {
 
 		const skip = (page - 1) * limit;
 
-		const whereClause = search ? {
-			name: {
-				contains: search,
-			}
-		} : {};
+		const whereClause = search
+			? {
+					name: {
+						contains: search,
+					},
+			  }
+			: {};
 
-		const [data, totalCount] = await Promise.all([
+		const [data, totalCount, countMap] = await Promise.all([
 			prisma.community.findMany({
 				where: whereClause,
 				include: {
@@ -29,38 +67,8 @@ export async function GET(req: NextRequest) {
 				take: limit,
 			}),
 			prisma.community.count({ where: whereClause }),
+			getCommunityPropertyCounts(),
 		]);
-
-		// Count properties per community by matching Community (live count)
-		const [communityCounts, developmentCounts] = await Promise.all([
-			prisma.property.groupBy({
-				by: ["Community"],
-				_count: { id: true },
-			}),
-			prisma.property.groupBy({
-				by: ["Development"],
-				_count: { id: true },
-			}),
-		]);
-
-		// Build lookup map: lowercase community name → count
-		const countMap: Record<string, number> = {};
-		
-		for (const row of communityCounts) {
-			const key = (row.Community || "").toLowerCase().trim();
-			if (key) countMap[key] = (countMap[key] || 0) + row._count.id;
-		}
-		
-		for (const row of developmentCounts) {
-			const key = (row.Development || "").toLowerCase().trim();
-			// Only add if not already counted by Community (to avoid double counting if both match, though normally one takes precedence)
-			// Wait, if a property has both Community="A" and Development="A", it's grouped in both!
-			// Grouping by fields doesn't let us deduplicate easily if they have both. But usually they don't have both or they are the same.
-			// Actually, if we just use max it's safer, or we can just stick to this.
-			if (key) {
-				countMap[key] = Math.max(countMap[key] || 0, row._count.id);
-			}
-		}
 
 		// Map to Mongoose shape for compatibility
 		const mappedData = data.map((c) => ({
@@ -103,12 +111,12 @@ export async function POST(req: NextRequest) {
 		// Normalize names
 		const communityName = body.Development.trim();
 		const rawCity = body.City.trim();
-		
+
 		// Find city by name (case-insensitive) or auto-create
 		let city = await prisma.city.findFirst({
 			where: {
-				name: rawCity
-			}
+				name: rawCity,
+			},
 		});
 
 		if (!city) {
@@ -117,13 +125,13 @@ export async function POST(req: NextRequest) {
 				data: {
 					name: rawCity,
 					slug: citySlug,
-				}
+				},
 			});
 		}
-		
+
 		// Create a slug
 		let slug = communityName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-		
+
 		// Check if community slug exists and make unique if needed
 		const existingComm = await prisma.community.findFirst({ where: { slug } });
 		if (existingComm) {
@@ -135,7 +143,7 @@ export async function POST(req: NextRequest) {
 			infoText: body.infoText || "",
 			title: body.title || "",
 			metaDescription: body.metaDescription || "",
-			keywords: body.keywords || ""
+			keywords: body.keywords || "",
 		});
 
 		// Prepare images array if defaultImage exists
@@ -148,10 +156,9 @@ export async function POST(req: NextRequest) {
 				description: descriptionPayload,
 				defaultImage: body.defaultImage || null,
 				images: images,
-				cityId: city.id
-			}
+				cityId: city.id,
+			},
 		});
-
 
 		const mappedData = {
 			...newCommunity,
@@ -159,20 +166,22 @@ export async function POST(req: NextRequest) {
 			Development: newCommunity.name,
 			City: city.name,
 			PropertyCount: 0,
-			Images: newCommunity.images || []
+			Images: newCommunity.images || [],
 		};
 
-		return NextResponse.json({
-			success: true,
-			message: "Community created successfully",
-			data: mappedData
-		}, { status: 201 });
-
+		return NextResponse.json(
+			{
+				success: true,
+				message: "Community created successfully",
+				data: mappedData,
+			},
+			{ status: 201 }
+		);
 	} catch (error: any) {
 		console.error("Error creating community:", error);
-		
+
 		// Handle unique constraint error
-		if (error.code === 'P2002') {
+		if (error.code === "P2002") {
 			return NextResponse.json(
 				{ error: "A community with this name or slug already exists." },
 				{ status: 409 }

@@ -17,7 +17,7 @@ import {
 	XAxis,
 	YAxis,
 	Tooltip,
-	Legend
+	Legend,
 } from "recharts";
 
 interface DashBoardStats {
@@ -54,15 +54,7 @@ export default function DashboardPage() {
 		fetchData();
 	}, []);
 
-	if (loading) {
-		return (
-			<div className="flex items-center justify-center h-screen">
-				<p className="text-lg text-muted-foreground animate-pulse">Loading dashboard...</p>
-			</div>
-		);
-	}
-
-	if (!data) {
+	if (!loading && !data) {
 		return (
 			<div className="flex items-center justify-center h-screen">
 				<p className="text-lg text-red-500">Failed to load dashboard data.</p>
@@ -73,56 +65,56 @@ export default function DashboardPage() {
 	const statCards = [
 		{
 			label: "Total Users",
-			value: data.TotalUsers,
+			value: data?.TotalUsers,
 			icon: <Users className="h-5 w-5 text-emerald-600" />,
 			color: "text-emerald-600",
 			onClick: () => router.push("/admin/users"),
 		},
 		{
 			label: "Properties",
-			value: data.TotalProperties,
+			value: data?.TotalProperties,
 			icon: <Home className="h-5 w-5 text-pink-700" />,
 			color: "text-pink-700",
 			onClick: () => router.push("/admin/properties"),
 		},
 		{
 			label: "Contact Requests",
-			value: data.TotalContacts,
+			value: data?.TotalContacts,
 			icon: <Phone className="h-5 w-5 text-blue-600" />,
 			color: "text-blue-600",
 			onClick: () => router.push("/admin/contact-requests"),
 		},
 		{
 			label: "Cities",
-			value: data.TotalCities,
+			value: data?.TotalCities,
 			icon: <MapPin className="h-5 w-5 text-green-700" />,
 			color: "text-green-700",
 			onClick: undefined,
 		},
 		{
 			label: "Communities",
-			value: data.TotalCommunities,
+			value: data?.TotalCommunities,
 			icon: <Building className="h-5 w-5 text-blue-900" />,
 			color: "text-blue-900",
 			onClick: undefined,
 		},
 		{
 			label: "Tour Requests",
-			value: data.TotalTours,
+			value: data?.TotalTours,
 			icon: <Calendar className="h-5 w-5 text-rose-700" />,
 			color: "text-rose-700",
 			onClick: undefined,
 		},
 		{
 			label: "Saved Properties",
-			value: data.TotalWishlistedProperties,
+			value: data?.TotalWishlistedProperties,
 			icon: <Heart className="h-5 w-5 text-red-500" />,
 			color: "text-red-500",
 			onClick: () => router.push("/admin/wishlist"),
 		},
 		{
 			label: "Property Views",
-			value: data.TotalPropertyViews,
+			value: data?.TotalPropertyViews,
 			icon: <Building className="h-5 w-5 text-indigo-600" />,
 			color: "text-indigo-600",
 			onClick: undefined,
@@ -141,7 +133,11 @@ export default function DashboardPage() {
 					<Card
 						key={card.label}
 						onClick={card.onClick}
-						className={card.onClick ? "cursor-pointer hover:shadow-md transition-shadow hover:border-primary/40" : ""}>
+						className={
+							card.onClick
+								? "cursor-pointer hover:shadow-md transition-shadow hover:border-primary/40"
+								: ""
+						}>
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 							<CardTitle className="text-sm font-medium text-muted-foreground">
 								{card.label}
@@ -149,9 +145,13 @@ export default function DashboardPage() {
 							{card.icon}
 						</CardHeader>
 						<CardContent>
-							<div className={`text-3xl font-bold ${card.color}`}>
-								{card.value?.toLocaleString() ?? "—"}
-							</div>
+							{loading ? (
+								<div className="h-9 w-20 bg-muted rounded animate-pulse" />
+							) : (
+								<div className={`text-3xl font-bold ${card.color}`}>
+									{card.value?.toLocaleString() ?? "—"}
+								</div>
+							)}
 						</CardContent>
 					</Card>
 				))}
@@ -159,13 +159,17 @@ export default function DashboardPage() {
 
 			{/* Trends Chart & Hot Leads */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-				{data.chartData && data.chartData.length > 0 && (
-					<Card className="shadow-sm border border-border/80 lg:col-span-2">
-						<CardHeader className="pb-2">
-							<CardTitle className="text-lg font-bold">7-Day Platform Activity Trends</CardTitle>
-							<p className="text-xs text-muted-foreground">Compare new user registrations (Leads) against property inquiries & valuations (Inquiries)</p>
-						</CardHeader>
-						<CardContent className="h-[320px] w-full pt-4">
+				<Card className="shadow-sm border border-border/80 lg:col-span-2">
+					<CardHeader className="pb-2">
+						<CardTitle className="text-lg font-bold">7-Day Platform Activity Trends</CardTitle>
+						<p className="text-xs text-muted-foreground">
+							Compare new user registrations (Leads) against property inquiries & valuations (Inquiries)
+						</p>
+					</CardHeader>
+					<CardContent className="h-[320px] w-full pt-4">
+						{loading ? (
+							<div className="h-full w-full bg-muted/40 rounded-lg animate-pulse" />
+						) : data?.chartData && data.chartData.length > 0 ? (
 							<ResponsiveContainer width="100%" height="100%">
 								<LineChart data={data.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
 									<CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -177,23 +181,40 @@ export default function DashboardPage() {
 									<Line type="monotone" dataKey="Inquiries" stroke="#d90429" strokeWidth={3} activeDot={{ r: 6 }} name="Valuations & Requests" />
 								</LineChart>
 							</ResponsiveContainer>
-						</CardContent>
-					</Card>
-				)}
+						) : null}
+					</CardContent>
+				</Card>
 
 				<Card className="shadow-sm border border-border/80 lg:col-span-1">
 					<CardHeader className="pb-2">
-						<CardTitle className="text-lg font-bold flex items-center gap-2"><Zap className="w-5 h-5 text-orange-500" fill="currentColor" /> Hot Lead Alerts</CardTitle>
-						<p className="text-xs text-muted-foreground">Leads that are highly engaged or ready to buy.</p>
+						<CardTitle className="text-lg font-bold flex items-center gap-2">
+							<Zap className="w-5 h-5 text-orange-500" fill="currentColor" /> Hot Lead Alerts
+						</CardTitle>
+						<p className="text-xs text-muted-foreground">
+							Leads that are highly engaged or ready to buy.
+						</p>
 					</CardHeader>
 					<CardContent className="pt-4 space-y-4">
-						{data.hotLeads && data.hotLeads.length > 0 ? (
+						{loading ? (
+							<div className="space-y-3">
+								{[1, 2, 3].map((i) => (
+									<div key={i} className="h-16 bg-muted/50 rounded-lg animate-pulse" />
+								))}
+							</div>
+						) : data?.hotLeads && data.hotLeads.length > 0 ? (
 							data.hotLeads.map((lead: any) => (
-								<div key={lead.id} className="p-3 border border-orange-200 bg-orange-50/50 rounded-lg cursor-pointer hover:bg-orange-50 transition-colors" onClick={() => router.push(`/admin/leads/${lead.id}`)}>
+								<div
+									key={lead.id}
+									className="p-3 border border-orange-200 bg-orange-50/50 rounded-lg cursor-pointer hover:bg-orange-50 transition-colors"
+									onClick={() => router.push(`/admin/leads/${lead.id}`)}>
 									<div className="flex justify-between items-start">
 										<div>
-											<h4 className="font-semibold text-sm text-gray-900">{lead.fullName || lead.email.split('@')[0]}</h4>
-											<p className="text-xs text-muted-foreground">{lead.phone || lead.email}</p>
+											<h4 className="font-semibold text-sm text-gray-900">
+												{lead.fullName || lead.email.split("@")[0]}
+											</h4>
+											<p className="text-xs text-muted-foreground">
+												{lead.phone || lead.email}
+											</p>
 										</div>
 										<span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide">
 											{lead.scoreLabel}

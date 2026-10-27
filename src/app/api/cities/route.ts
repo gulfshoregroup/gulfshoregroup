@@ -1,6 +1,26 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+let cityPropertyCountCache: { map: Record<string, number>; ts: number } | null = null;
+const COUNT_CACHE_TTL_MS = 60_000;
+
+async function getCityPropertyCounts(): Promise<Record<string, number>> {
+	if (cityPropertyCountCache && Date.now() - cityPropertyCountCache.ts < COUNT_CACHE_TTL_MS) {
+		return cityPropertyCountCache.map;
+	}
+	const propertyCounts = await prisma.property.groupBy({
+		by: ["City"],
+		_count: { id: true },
+	});
+	const countMap: Record<string, number> = {};
+	for (const row of propertyCounts) {
+		const key = (row.City || "").toLowerCase().trim();
+		countMap[key] = (countMap[key] || 0) + row._count.id;
+	}
+	cityPropertyCountCache = { map: countMap, ts: Date.now() };
+	return countMap;
+}
+
 export async function GET(req: NextRequest) {
 	try {
 		const queryParams = req.nextUrl.searchParams;
@@ -16,31 +36,24 @@ export async function GET(req: NextRequest) {
 				OR: [
 					{ name: { contains: search } },
 					{ slug: { contains: search } },
-				]
+				],
 			};
 		}
 
-		// Fetch cities
-		const res = await prisma.city.findMany({
-			where: whereClause,
-			orderBy: fetchAll ? [{ isFeatured: "desc" }, { name: "asc" }] : [{ isFeatured: "desc" }, { id: "desc" }],
-			...(fetchAll ? {} : { skip, take: limit }),
-		});
-		const totalCount = await prisma.city.count({ where: whereClause });
+		// Fetch cities, count, and cached property counts in parallel
+		const [res, totalCount, countMap] = await Promise.all([
+			prisma.city.findMany({
+				where: whereClause,
+				orderBy: fetchAll
+					? [{ isFeatured: "desc" }, { name: "asc" }]
+					: [{ isFeatured: "desc" }, { id: "desc" }],
+				...(fetchAll ? {} : { skip, take: limit }),
+			}),
+			prisma.city.count({ where: whereClause }),
+			getCityPropertyCounts(),
+		]);
+
 		const totalPages = Math.ceil(totalCount / limit);
-
-		// Count properties per city from the Property table (City is a plain string)
-		const propertyCounts = await prisma.property.groupBy({
-			by: ["City"],
-			_count: { id: true },
-		});
-
-		// Build a lookup map: lowercase city name → count
-		const countMap: Record<string, number> = {};
-		for (const row of propertyCounts) {
-			const key = (row.City || "").toLowerCase().trim();
-			countMap[key] = (countMap[key] || 0) + row._count.id;
-		}
 
 		const mappedCities = res.map((c) => {
 			const PropertyCount = countMap[c.name.toLowerCase().trim()] || 0;
@@ -82,7 +95,7 @@ export async function POST(req: NextRequest) {
 
 		// Normalize city name
 		const cityName = body.City.trim().toUpperCase();
-		
+
 		// Create a slug
 		const slug = body.City.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
 
@@ -91,7 +104,7 @@ export async function POST(req: NextRequest) {
 			infoText: body.infoText || "",
 			title: body.title || "",
 			metaDescription: body.metaDescription || "",
-			keywords: body.keywords || ""
+			keywords: body.keywords || "",
 		});
 
 		// Prepare images array if defaultImage exists
@@ -104,8 +117,8 @@ export async function POST(req: NextRequest) {
 				description: descriptionPayload,
 				isFeatured: body.isFeatured === true,
 				defaultImage: body.defaultImage || null,
-				images: images
-			}
+				images: images,
+			},
 		});
 
 		const mappedData = {
@@ -113,20 +126,22 @@ export async function POST(req: NextRequest) {
 			_id: newCity.id,
 			City: newCity.name,
 			PropertyCount: 0,
-			Images: newCity.images || []
+			Images: newCity.images || [],
 		};
 
-		return NextResponse.json({
-			success: true,
-			message: "City created successfully",
-			data: mappedData
-		}, { status: 201 });
-
+		return NextResponse.json(
+			{
+				success: true,
+				message: "City created successfully",
+				data: mappedData,
+			},
+			{ status: 201 }
+		);
 	} catch (error: any) {
 		console.error("Error creating city:", error);
-		
+
 		// Handle unique constraint error
-		if (error.code === 'P2002') {
+		if (error.code === "P2002") {
 			return NextResponse.json(
 				{ error: "A city with this name or slug already exists." },
 				{ status: 409 }

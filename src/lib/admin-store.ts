@@ -3,6 +3,10 @@ import path from "path";
 
 const filePath = path.join(process.cwd(), "src/data/admin-credentials.json");
 
+let cachedCredentials: { email: string; password: string } | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 60_000;
+
 export function getAdminCredentials() {
 	// 1. Check environment variables first (production-safe)
 	const envEmail = process.env.ADMIN_EMAIL;
@@ -11,19 +15,30 @@ export function getAdminCredentials() {
 		return { email: envEmail, password: envPassword };
 	}
 
+	if (cachedCredentials && Date.now() - cacheTimestamp < CACHE_TTL_MS) {
+		return cachedCredentials;
+	}
+
 	// 2. Fallback to JSON file (local dev)
 	try {
 		if (fs.existsSync(filePath)) {
 			const data = fs.readFileSync(filePath, "utf8");
 			const parsed = JSON.parse(data);
-			if (parsed.email && parsed.password) return parsed;
+			if (parsed.email && parsed.password) {
+				cachedCredentials = parsed;
+				cacheTimestamp = Date.now();
+				return parsed;
+			}
 		}
 	} catch (e) {
 		console.error("Error reading admin credentials:", e);
 	}
 
 	// 3. Ultimate fallback defaults
-	return { email: "admin@gulfshore.com", password: "admin" };
+	const fallback = { email: "admin@gulfshore.com", password: "admin" };
+	cachedCredentials = fallback;
+	cacheTimestamp = Date.now();
+	return fallback;
 }
 
 export function saveAdminCredentials(creds: { email: string; password?: string }) {
@@ -38,6 +53,8 @@ export function saveAdminCredentials(creds: { email: string; password?: string }
 			fs.mkdirSync(dir, { recursive: true });
 		}
 		fs.writeFileSync(filePath, JSON.stringify(updated, null, 2), "utf8");
+		cachedCredentials = updated;
+		cacheTimestamp = Date.now();
 		return true;
 	} catch (e) {
 		console.error("Error saving admin credentials:", e);

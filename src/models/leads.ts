@@ -105,6 +105,14 @@ export interface IPrismaLead {
 	status: string;
 	source: string;
 	tags: string[];
+	score?: number | null;
+	scoreLabel?: string | null;
+	_count?: {
+		viewHistory?: number;
+	};
+	viewHistory?: Array<{
+		lastViewedAt: Date | string;
+	}>;
 	notes?: INote[];
 	inquiryHistory?: IInquiry[];
 	lastContactedAt?: Date | string | null;

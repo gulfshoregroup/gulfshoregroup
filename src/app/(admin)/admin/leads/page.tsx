@@ -156,6 +156,7 @@ export default function LeadsPage() {
 			toast.error("Failed to update tag");
 		}
 	};
+
 	const [formData, setFormData] = useState<{
 		firstName: string;
 		lastName: string;
@@ -216,22 +217,28 @@ export default function LeadsPage() {
 
 	// -------------------- FETCH --------------------
 	useEffect(() => {
+		let cancelled = false;
 		const fetchLeads = async () => {
 			try {
 				setLoading(true);
+				setError(null);
 				const res = await fetch(`/api/leads?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`);
 				if (!res.ok) throw new Error("Failed to fetch leads");
 				const json = await res.json();
+				if (cancelled) return;
 				setLeads(json.data || []);
 				setTotalCount(json.total || 0);
 				setTotalPages(json.totalPages || 1);
 			} catch (err: any) {
-				setError(err.message);
+				if (!cancelled) setError(err.message);
 			} finally {
-				setLoading(false);
+				if (!cancelled) setLoading(false);
 			}
 		};
 		fetchLeads();
+		return () => {
+			cancelled = true;
+		};
 	}, [page, sortBy, sortOrder]);
 
 	// -------------------- FILTERS --------------------
@@ -276,13 +283,6 @@ export default function LeadsPage() {
 		}
 	};
 
-	// -------------------- UI STATES --------------------
-	if (loading)
-		return (
-			<div className="p-6 text-center font-bold text-muted-foreground">
-				Loading leads...
-			</div>
-		);
 	if (error)
 		return (
 			<div className="p-6 text-center text-red-500">
@@ -303,7 +303,7 @@ export default function LeadsPage() {
 						View, manage, and track all potential buyers and sellers
 					</p>
 				</div>
-				<Button 
+				<Button
 					onClick={() => setIsCreateOpen(true)}
 					className="flex items-center gap-2"
 				>
@@ -317,28 +317,30 @@ export default function LeadsPage() {
 				{[
 					{
 						label: "Total Leads",
-						value: leads.length,
+						value: loading && leads.length === 0 ? "—" : leads.length,
 						color: "text-foreground",
 					},
 					{
 						label: "New",
-						value: leads.filter((l) => l.status === "New").length,
+						value: loading && leads.length === 0 ? "—" : leads.filter((l) => l.status === "New").length,
 						color: "text-blue-600",
 					},
 					{
 						label: "Interested",
-						value: leads.filter((l) => l.status === "Interested")
-							.length,
+						value: loading && leads.length === 0 ? "—" : leads.filter((l) => l.status === "Interested").length,
 						color: "text-purple-600",
 					},
 					{
 						label: "Closed",
-						value: leads.filter((l) => l.status === "Closed").length,
+						value: loading && leads.length === 0 ? "—" : leads.filter((l) => l.status === "Closed").length,
 						color: "text-green-600",
 					},
 					{
 						label: "Hot Leads 🔥",
-						value: leads.filter((l) => l.scoreLabel === "Hot" || l.scoreLabel === "Ready to Buy").length,
+						value:
+							loading && leads.length === 0
+								? "—"
+								: leads.filter((l) => l.scoreLabel === "Hot" || l.scoreLabel === "Ready to Buy").length,
 						color: "text-orange-600",
 					},
 				].map((card, i) => (
@@ -437,142 +439,162 @@ export default function LeadsPage() {
 									<th className="text-left py-3 px-4 font-semibold text-foreground whitespace-nowrap sticky right-0 bg-card z-10 shadow-[-4px_0_10px_-5px_rgba(0,0,0,0.05)]">Action</th>
 								</tr>
 							</thead>
-							<tbody>
-								{filteredLeads.map((lead, i) => (
-									<tr
-										key={i}
-										className="group border-b border-border hover:bg-muted/50 transition-colors">
-										<td className="py-3 px-4 font-medium text-muted-foreground text-xs">
-											{(page - 1) * limit + i + 1}
-										</td>
-										<td className="py-3 px-4">
-											<div className="font-medium text-foreground mb-1">
-												{lead.firstName || lead.lastName ? `${lead.firstName || ""} ${lead.lastName || ""}` : lead.email}
-											</div>
-											<div className="space-y-1 text-xs text-muted-foreground">
-												<div className="flex items-center gap-1">
-													<Mail className="h-3 w-3" /> {lead.email}
+							<tbody className={loading && leads.length > 0 ? "opacity-60 transition-opacity" : ""}>
+								{loading && leads.length === 0 ? (
+									Array.from({ length: 8 }).map((_, idx) => (
+										<tr key={idx} className="border-b border-border animate-pulse">
+											<td className="py-4 px-4"><div className="h-4 w-5 bg-muted rounded" /></td>
+											<td className="py-4 px-4 space-y-2">
+												<div className="h-4 w-40 bg-muted rounded" />
+												<div className="h-3 w-32 bg-muted/70 rounded" />
+											</td>
+											<td className="py-4 px-4"><div className="h-5 w-14 bg-muted rounded-full" /></td>
+											<td className="py-4 px-4"><div className="h-5 w-16 bg-muted rounded-full" /></td>
+											<td className="py-4 px-4"><div className="h-4 w-8 bg-muted rounded mx-auto" /></td>
+											<td className="py-4 px-4"><div className="h-4 w-20 bg-muted rounded" /></td>
+											<td className="py-4 px-4"><div className="h-4 w-12 bg-muted rounded" /></td>
+											<td className="py-4 px-4"><div className="h-4 w-20 bg-muted rounded" /></td>
+											<td className="py-4 px-4"><div className="h-4 w-20 bg-muted rounded" /></td>
+											<td className="py-4 px-4"><div className="h-6 w-20 bg-muted rounded" /></td>
+										</tr>
+									))
+								) : (
+									filteredLeads.map((lead, i) => (
+										<tr
+											key={lead.id || i}
+											className="group border-b border-border hover:bg-muted/50 transition-colors">
+											<td className="py-3 px-4 font-medium text-muted-foreground text-xs">
+												{(page - 1) * limit + i + 1}
+											</td>
+											<td className="py-3 px-4">
+												<div className="font-medium text-foreground mb-1">
+													{lead.firstName || lead.lastName ? `${lead.firstName || ""} ${lead.lastName || ""}` : lead.email}
 												</div>
-												<div className="flex items-center gap-1">
-													<Phone className="h-3 w-3" /> {lead.phone || "—"}
+												<div className="space-y-1 text-xs text-muted-foreground">
+													<div className="flex items-center gap-1">
+														<Mail className="h-3 w-3" /> {lead.email}
+													</div>
+													<div className="flex items-center gap-1">
+														<Phone className="h-3 w-3" /> {lead.phone || "—"}
+													</div>
 												</div>
-											</div>
-										</td>
-										<td className="py-3 px-4">
-											<Badge className={getStatusColor(lead.status)}>
-												{lead.status || "Unknown"}
-											</Badge>
-										</td>
-										<td className="py-3 px-4">
-											<Badge className={getScoreColor(lead.scoreLabel)}>
-												{lead.scoreLabel || "Cold"} ({lead.score || 0})
-											</Badge>
-										</td>
-										<td className="py-3 px-4 text-center">
-											<div className="font-bold text-blue-600">{lead._count?.viewHistory || 0}</div>
-											{lead.viewHistory?.[0]?.lastViewedAt && (
-												<div className="text-[10px] text-muted-foreground mt-0.5">
-													{new Date(lead.viewHistory[0].lastViewedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+											</td>
+											<td className="py-3 px-4">
+												<Badge className={getStatusColor(lead.status)}>
+													{lead.status || "Unknown"}
+												</Badge>
+											</td>
+											<td className="py-3 px-4">
+												<Badge className={getScoreColor(lead.scoreLabel)}>
+													{lead.scoreLabel || "Cold"} ({lead.score || 0})
+												</Badge>
+											</td>
+											<td className="py-3 px-4 text-center">
+												<div className="font-bold text-blue-600">{lead._count?.viewHistory || 0}</div>
+												{lead.viewHistory?.[0]?.lastViewedAt && (
+													<div className="text-[10px] text-muted-foreground mt-0.5">
+														{new Date(lead.viewHistory[0].lastViewedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+													</div>
+												)}
+											</td>
+											<td className="py-3 px-4 text-xs text-muted-foreground">
+												{lead.updatedAt ? new Date(lead.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+											</td>
+											<td className="py-3 px-4">
+												<div className="flex gap-1 flex-wrap items-center">
+													{lead.tags?.length ? (
+														lead.tags.map((tag, j) => (
+															<Badge
+																key={j}
+																variant="secondary"
+																className="text-xs cursor-pointer"
+																onClick={() => handleQuickTag(lead.id, String(tag), (lead.tags || []).map(String))}>
+																{String(tag).replace(/_/g, " ")} ✕
+															</Badge>
+														))
+													) : null}
+													{/* Quick tag dropdown — show label only when no tags */}
+													<div className="relative">
+														<button
+															onClick={() => setQuickTagLeadId(quickTagLeadId === lead.id ? null : lead.id)}
+															className="text-xs text-muted-foreground hover:text-primary transition-colors px-1"
+															title="Add / remove tags">
+															{lead.tags?.length ? "+" : "+ Tag"}
+														</button>
+														{quickTagLeadId === lead.id && (
+															<div className="absolute z-50 top-6 left-0 bg-background border rounded-lg shadow-lg p-2 min-w-[130px]">
+																{TAG_OPTIONS.map((tag) => (
+																	<button
+																		key={tag}
+																		onClick={() => { handleQuickTag(lead.id, tag, (lead.tags || []).map(String)); setQuickTagLeadId(null); }}
+																		className={`w-full text-left text-xs px-2 py-1.5 rounded hover:bg-muted transition-colors flex items-center gap-2 ${ (lead.tags || []).map(String).includes(tag) ? "font-semibold text-primary" : ""}`}>
+																		{(lead.tags || []).map(String).includes(tag) ? "✓ " : ""}{tag}
+																	</button>
+																))}
+															</div>
+														)}
+													</div>
 												</div>
-											)}
-										</td>
-										<td className="py-3 px-4 text-xs text-muted-foreground">
-											{lead.updatedAt ? new Date(lead.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
-										</td>
-										<td className="py-3 px-4">
-											<div className="flex gap-1 flex-wrap items-center">
-												{lead.tags?.length ? (
-													lead.tags.map((tag, j) => (
-														<Badge
-															key={j}
-															variant="secondary"
-															className="text-xs cursor-pointer"
-															onClick={() => handleQuickTag(lead.id, String(tag), (lead.tags || []).map(String))}>
-															{String(tag).replace(/_/g, " ")} ✕
-														</Badge>
-													))
-												) : null}
-												{/* Quick tag dropdown — show label only when no tags */}
-												<div className="relative">
-													<button
-														onClick={() => setQuickTagLeadId(quickTagLeadId === lead.id ? null : lead.id)}
-														className="text-xs text-muted-foreground hover:text-primary transition-colors px-1"
-														title="Add / remove tags">
-														{lead.tags?.length ? "+" : "+ Tag"}
-													</button>
-													{quickTagLeadId === lead.id && (
-														<div className="absolute z-50 top-6 left-0 bg-background border rounded-lg shadow-lg p-2 min-w-[130px]">
-															{TAG_OPTIONS.map((tag) => (
-																<button
-																	key={tag}
-																	onClick={() => { handleQuickTag(lead.id, tag, (lead.tags || []).map(String)); setQuickTagLeadId(null); }}
-																	className={`w-full text-left text-xs px-2 py-1.5 rounded hover:bg-muted transition-colors flex items-center gap-2 ${ (lead.tags || []).map(String).includes(tag) ? "font-semibold text-primary" : ""}`}>
-																	{(lead.tags || []).map(String).includes(tag) ? "✓ " : ""}{tag}
-																</button>
-															))}
-														</div>
-													)}
-												</div>
-											</div>
-										</td>
-										<td className="py-3 px-4 text-xs text-muted-foreground">
-											{new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-										</td>
+											</td>
+											<td className="py-3 px-4 text-xs text-muted-foreground">
+												{new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+											</td>
 
-										<td className="py-3 px-4 text-xs text-muted-foreground">
-											<div className="flex items-center gap-1">
-												<Calendar className="h-3 w-3" />
-												{lead.lastContactedAt
-													? new Date(lead.lastContactedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-													: new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-											</div>
-										</td>
-										<td className="py-3 px-4 sticky right-0 bg-card group-hover:bg-muted transition-colors z-10 shadow-[-4px_0_10px_-5px_rgba(0,0,0,0.05)]">
-											<div className="flex items-center gap-1">
-												<Button
-													title="Quick View"
-													variant="ghost"
-													size="icon"
-													className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-													onClick={() => handleOpenView(lead)}
-												>
-													<Eye className="h-4 w-4" />
-												</Button>
-												<Link href={`/admin/leads/${lead.id || lead._id}`} title="Edit">
-													<Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-														<Edit className="h-4 w-4" />
+											<td className="py-3 px-4 text-xs text-muted-foreground">
+												<div className="flex items-center gap-1">
+													<Calendar className="h-3 w-3" />
+													{lead.lastContactedAt
+														? new Date(lead.lastContactedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+														: new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+												</div>
+											</td>
+											<td className="py-3 px-4 sticky right-0 bg-card group-hover:bg-muted transition-colors z-10 shadow-[-4px_0_10px_-5px_rgba(0,0,0,0.05)]">
+												<div className="flex items-center gap-1">
+													<Button
+														title="Quick View"
+														variant="ghost"
+														size="icon"
+														className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+														onClick={() => handleOpenView(lead)}
+													>
+														<Eye className="h-4 w-4" />
 													</Button>
-												</Link>
-												<Button 
-													title="Delete"
-													variant="ghost" 
-													size="icon" 
-													className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-													onClick={() => {
-														if (confirm("Are you sure you want to delete this lead?")) {
-															fetch(`/api/leads/${lead.id || lead._id}`, { method: "DELETE" })
-																.then(res => {
-																	if (res.ok) {
-																		setLeads(prev => prev.filter(l => (l.id || l._id) !== (lead.id || lead._id)));
-																		toast.success("Lead deleted");
-																	} else {
-																		toast.error("Failed to delete lead");
-																	}
-																});
-														}
-													}}
-												>
-													<Trash2 className="h-4 w-4" />
-												</Button>
-											</div>
-										</td>
-									</tr>
-								))}
+													<Link href={`/admin/leads/${lead.id || lead._id}`} title="Edit">
+														<Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+															<Edit className="h-4 w-4" />
+														</Button>
+													</Link>
+													<Button
+														title="Delete"
+														variant="ghost"
+														size="icon"
+														className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+														onClick={() => {
+															if (confirm("Are you sure you want to delete this lead?")) {
+																fetch(`/api/leads/${lead.id || lead._id}`, { method: "DELETE" })
+																	.then(res => {
+																		if (res.ok) {
+																			setLeads(prev => prev.filter(l => (l.id || l._id) !== (lead.id || lead._id)));
+																			toast.success("Lead deleted");
+																		} else {
+																			toast.error("Failed to delete lead");
+																		}
+																	});
+															}
+														}}
+													>
+														<Trash2 className="h-4 w-4" />
+													</Button>
+												</div>
+											</td>
+										</tr>
+									))
+								)}
 							</tbody>
 						</table>
 					</div>
 
-					{filteredLeads.length === 0 && (
+					{!loading && filteredLeads.length === 0 && (
 						<div className="text-center py-8">
 							<p className="text-muted-foreground">
 								No leads found matching your criteria.
@@ -737,8 +759,8 @@ export default function LeadsPage() {
 									<DropdownMenu>
 										<DropdownMenuTrigger asChild>
 											<Button variant="outline" className="w-full justify-start text-left font-normal h-auto py-2 whitespace-normal min-h-10">
-												{formData.tags.length > 0 
-													? formData.tags.join(", ") 
+												{formData.tags.length > 0
+													? formData.tags.join(", ")
 													: "Select tags..."}
 											</Button>
 										</DropdownMenuTrigger>
@@ -906,7 +928,7 @@ export default function LeadsPage() {
 									))}
 								</div>
 							)}
-							
+
 							{/* Tasks */}
 							{fullViewLead.tasks?.length > 0 && (
 								<div className="space-y-2">

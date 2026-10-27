@@ -25,7 +25,6 @@ export async function GET(req: NextRequest) {
 			}
 		}
 
-
 		// Price Range Filter
 		const minPrice = query.get("minPrice") ? Number(query.get("minPrice")) : null;
 		const maxPrice = query.get("maxPrice") ? Number(query.get("maxPrice")) : null;
@@ -34,7 +33,6 @@ export async function GET(req: NextRequest) {
 			if (minPrice !== null) where.ListPrice.gte = minPrice;
 			if (maxPrice !== null) where.ListPrice.lte = maxPrice;
 		}
-
 
 		// Location Filters
 		if (query.get("city")) {
@@ -61,19 +59,29 @@ export async function GET(req: NextRequest) {
 
 		// Features
 		const featuresRaw = query.get("features") || "";
-		const features = featuresRaw ? featuresRaw.split(",").map((f: string) => f.trim().toLowerCase()) : query.getAll("features[]").map((f: string) => f.toLowerCase());
+		const features = featuresRaw
+			? featuresRaw.split(",").map((f: string) => f.trim().toLowerCase())
+			: query.getAll("features[]").map((f: string) => f.toLowerCase());
 		if (features.length > 0) {
 			if (features.some((f: string) => f.includes("spa"))) where.SpaYN = true;
 			if (features.some((f: string) => f.includes("waterfront"))) where.WaterfrontYN = true;
 			if (features.some((f: string) => f.includes("pool"))) where.PoolPrivateYN = true;
-			if (features.some((f: string) => f.includes("gulf access") || f === "gulfaccess" || (f.includes("gulf") && !f.includes("view")))) where.GulfAccessYN = true;
+			if (
+				features.some(
+					(f: string) =>
+						f.includes("gulf access") ||
+						f === "gulfaccess" ||
+						(f.includes("gulf") && !f.includes("view"))
+				)
+			)
+				where.GulfAccessYN = true;
 			if (features.some((f: string) => f.includes("garage"))) where.GarageYN = true;
 			if (features.some((f: string) => f.includes("view"))) where.ViewYN = true;
 		}
 
 		// HOA Filter
 		const hoa = query.get("hoa");
-		if (hoa === "yes") where.WaterfrontYN = { not: null }; // placeholder — HOA field
+		if (hoa === "yes") where.WaterfrontYN = { not: null };
 		// Acres filter
 		const minAcres = query.get("minAcres") ? parseFloat(query.get("minAcres")!) : null;
 		const maxAcres = query.get("maxAcres") ? parseFloat(query.get("maxAcres")!) : null;
@@ -107,7 +115,6 @@ export async function GET(req: NextRequest) {
 			if (builtYearMax !== null) where.YearBuilt.lte = builtYearMax;
 		}
 
-
 		// Bounding Box Location Filter
 		if (
 			query.get("north") &&
@@ -124,11 +131,6 @@ export async function GET(req: NextRequest) {
 				{ Longitude: { gte: west, lte: east } },
 			];
 		}
-
-		// Beds & Baths Filter - Already handled above
-
-		// Year Built Filter - Already handled above
-
 
 		// Property Types Filter
 		const types = query.getAll("propertyTypes[]");
@@ -168,15 +170,35 @@ export async function GET(req: NextRequest) {
 				},
 				skip: (page - 1) * limit,
 				take: limit,
-					select: {
-					id: true, FullAddress: true, PropertyType: true, ListPrice: true,
-					Latitude: true, Longitude: true, createdAt: true, images: true,
-					PropertySubType: true, LotSizeAcres: true, LivingArea: true,
-					BathroomsFull: true, BedroomsTotal: true, StandardStatus: true,
-					YearBuilt: true, City: true, PostalCode: true, MLSNumber: true,
-					Development: true, Community: true,
-					WaterfrontYN: true, GarageYN: true, PoolPrivateYN: true,
-					ListingKey: true, ListingId: true, raw: true,
+				select: {
+					id: true,
+					FullAddress: true,
+					PropertyType: true,
+					ListPrice: true,
+					Latitude: true,
+					Longitude: true,
+					createdAt: true,
+					images: true,
+					PropertySubType: true,
+					LotSizeAcres: true,
+					LivingArea: true,
+					BathroomsFull: true,
+					BedroomsTotal: true,
+					StandardStatus: true,
+					YearBuilt: true,
+					City: true,
+					PostalCode: true,
+					MLSNumber: true,
+					Development: true,
+					Community: true,
+					ListOfficeName: true,
+					WaterfrontYN: true,
+					GulfAccessYN: true,
+					GarageYN: true,
+					PoolPrivateYN: true,
+					SpaYN: true,
+					ListingKey: true,
+					ListingId: true,
 				},
 			}),
 		]);
@@ -199,13 +221,9 @@ export async function GET(req: NextRequest) {
 
 		// Map properties back to Mongoose representation for Frontend compatibility
 		const mappedData = properties.map((p: any) => {
-			// Extract images from raw.Media if images field is null
-			let sourceImages = p.images;
-			if (!sourceImages && p.raw && (p.raw as any).Media) {
-				sourceImages = (p.raw as any).Media;
-			}
+			const sourceImages = p.images;
 			const imagesArray = Array.isArray(sourceImages) ? (sourceImages as any[]) : [];
-			const imagePaths = imagesArray.map((img: any) => img.MediaURL || img);
+			const imagePaths = imagesArray.map((img: any) => img?.MediaURL || img);
 			const defaultPic = imagePaths.length > 0 ? imagePaths[0] : "";
 			return {
 				_id: p.id,
@@ -263,7 +281,10 @@ export async function POST(req: NextRequest) {
 
 		if (!data.MLSNumber || !data.FullAddress || !data.City || !data.StandardStatus) {
 			return NextResponse.json(
-				{ success: false, error: "Missing required fields (MLSNumber, FullAddress, City, StandardStatus)" },
+				{
+					success: false,
+					error: "Missing required fields (MLSNumber, FullAddress, City, StandardStatus)",
+				},
 				{ status: 400 }
 			);
 		}
@@ -290,7 +311,6 @@ export async function POST(req: NextRequest) {
 				raw: {},
 			},
 		});
-
 
 		return NextResponse.json({ success: true, data: property }, { status: 201 });
 	} catch (error: any) {
