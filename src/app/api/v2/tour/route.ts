@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendTourEmail } from "@/lib/email/tour-email";
 import { sendAdminLeadAlertEmail } from "@/lib/email/admin-lead-alert";
+import { isSpamSubmission } from "@/lib/anti-spam";
 
 export async function POST(req: Request) {
 	try {
@@ -17,17 +18,35 @@ export async function POST(req: Request) {
 			date,
 			propertyId,
 			signedPdfUrl,
+			honeypot,
 		} = body;
+
+		const resolvedName = `${firstName || ""} ${lastName || ""}`.trim() || "Unknown User";
+		const resolvedFirstName = firstName || "";
+		const resolvedLastName = lastName || "";
+
+		// Anti-Spam Bot Filter
+		const spamCheck = isSpamSubmission({
+			name: resolvedName,
+			firstName: resolvedFirstName,
+			lastName: resolvedLastName,
+			email,
+			phone,
+			message,
+			honeypot,
+		});
+		if (spamCheck.isSpam) {
+			return NextResponse.json(
+				{ success: false, error: spamCheck.reason || "Invalid tour submission" },
+				{ status: 400 }
+			);
+		}
 
 		if (!email || !phone)
 			return NextResponse.json(
 				{ success: false, error: "Missing required fields" },
 				{ status: 400 }
 			);
-
-		const resolvedName = `${firstName || ""} ${lastName || ""}`.trim() || "Unknown User";
-		const resolvedFirstName = firstName || "";
-		const resolvedLastName = lastName || "";
 
 		// 1. Create or update Lead in SQL
 		const sqlLead = await prisma.lead.upsert({

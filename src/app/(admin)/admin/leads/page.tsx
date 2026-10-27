@@ -19,7 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Search, Plus, Phone, Mail, Calendar, Eye, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus, Phone, Mail, Calendar, Eye, Trash2, Edit, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { IPrismaLead } from "@/models/leads";
 import { toast } from "sonner";
 import {
@@ -117,6 +117,7 @@ export default function LeadsPage() {
 	const [isViewOpen, setIsViewOpen] = useState(false);
 	const [fullViewLead, setFullViewLead] = useState<any>(null);
 	const [loadingFullViewLead, setLoadingFullViewLead] = useState(false);
+	const [isCleaningSpam, setIsCleaningSpam] = useState(false);
 
 	const handleOpenView = async (lead: IPrismaLead) => {
 		setViewLead(lead);
@@ -162,8 +163,15 @@ export default function LeadsPage() {
 		lastName: string;
 		email: string;
 		phone: string;
-		status: string;
-		source: string;
+		status: "New" | "Contacted" | "Interested" | "Closed";
+		source:
+			| "Signup"
+			| "Contact_Form"
+			| "Tour_Request"
+			| "Admin"
+			| "General"
+			| "Home_Valuation"
+			| "Other";
 		tags: string[];
 		lastContactedAt: string;
 	}>({
@@ -177,25 +185,27 @@ export default function LeadsPage() {
 		lastContactedAt: "",
 	});
 
+	// Handle Create Lead
 	const handleCreateLead = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!formData.firstName || !formData.lastName || !formData.email) {
-			toast.error("First Name, Last Name, and Email are required");
-			return;
-		}
 		try {
+			const payload = {
+				...formData,
+				lastContactedAt: formData.lastContactedAt
+					? new Date(formData.lastContactedAt)
+					: null,
+			};
 			const res = await fetch("/api/leads", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					...formData,
-					lastContactedAt: formData.lastContactedAt ? new Date(formData.lastContactedAt).toISOString() : null,
-				}),
+				body: JSON.stringify(payload),
 			});
+
 			if (!res.ok) {
-				const errorData = await res.json().catch(() => ({}));
+				const errorData = await res.json();
 				throw new Error(errorData.error || "Failed to create lead");
 			}
+
 			const newLead = await res.json();
 			setLeads((prev) => [newLead, ...prev]);
 			setIsCreateOpen(false);
@@ -216,30 +226,46 @@ export default function LeadsPage() {
 	};
 
 	// -------------------- FETCH --------------------
+	const fetchLeads = async () => {
+		try {
+			setLoading(true);
+			setError(null);
+			const res = await fetch(`/api/leads?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`);
+			if (!res.ok) throw new Error("Failed to fetch leads");
+			const json = await res.json();
+			setLeads(json.data || []);
+			setTotalCount(json.total || 0);
+			setTotalPages(json.totalPages || 1);
+		} catch (err: any) {
+			setError(err.message);
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	useEffect(() => {
-		let cancelled = false;
-		const fetchLeads = async () => {
-			try {
-				setLoading(true);
-				setError(null);
-				const res = await fetch(`/api/leads?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`);
-				if (!res.ok) throw new Error("Failed to fetch leads");
-				const json = await res.json();
-				if (cancelled) return;
-				setLeads(json.data || []);
-				setTotalCount(json.total || 0);
-				setTotalPages(json.totalPages || 1);
-			} catch (err: any) {
-				if (!cancelled) setError(err.message);
-			} finally {
-				if (!cancelled) setLoading(false);
-			}
-		};
 		fetchLeads();
-		return () => {
-			cancelled = true;
-		};
 	}, [page, sortBy, sortOrder]);
+
+	// Handle Cleanup All Bot Spam
+	const handleCleanupSpam = async () => {
+		if (!confirm("Are you sure you want to permanently delete all automated spam bot leads and users?")) return;
+		try {
+			setIsCleaningSpam(true);
+			const res = await fetch("/api/admin/cleanup-spam", { method: "POST" });
+			const json = await res.json();
+			if (json.success) {
+				toast.success(json.message || `Deleted ${json.totalCleaned} spam accounts!`);
+				fetchLeads();
+			} else {
+				toast.error(json.error || "Failed to cleanup spam");
+			}
+		} catch (err: any) {
+			toast.error(err.message || "Failed to cleanup spam");
+		} finally {
+			setIsCleaningSpam(false);
+		}
+	};
 
 	// -------------------- FILTERS --------------------
 	const filteredLeads = leads.filter((lead) => {
@@ -273,7 +299,7 @@ export default function LeadsPage() {
 		sourceOptions.find((s) => s.value === source)?.color ||
 		"bg-gray-100 text-gray-800";
 
-	const getScoreColor = (label: string) => {
+	const getScoreColor = (label?: string | null) => {
 		switch (label) {
 			case "Ready to Buy": return "bg-red-100 text-red-800 font-bold border-red-200";
 			case "Hot": return "bg-orange-100 text-orange-800";
@@ -294,7 +320,7 @@ export default function LeadsPage() {
 	return (
 		<div className="space-y-6">
 			{/* HEADER */}
-			<div className="flex items-center justify-between">
+			<div className="flex items-center justify-between flex-wrap gap-3">
 				<div>
 					<h1 className="text-3xl font-bold text-foreground">
 						Leads
@@ -303,13 +329,29 @@ export default function LeadsPage() {
 						View, manage, and track all potential buyers and sellers
 					</p>
 				</div>
-				<Button
-					onClick={() => setIsCreateOpen(true)}
-					className="flex items-center gap-2"
-				>
-					<Plus className="h-4 w-4" />
-					Add Lead
-				</Button>
+				<div className="flex items-center gap-2">
+					<Button
+						variant="outline"
+						onClick={handleCleanupSpam}
+						disabled={isCleaningSpam}
+						className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"
+						title="Permanently remove all automated Turkish casino / bot spam leads"
+					>
+						{isCleaningSpam ? (
+							<RefreshCw className="h-4 w-4 animate-spin" />
+						) : (
+							<Trash2 className="h-4 w-4" />
+						)}
+						{isCleaningSpam ? "Cleaning Spam..." : "Clean Spam Leads"}
+					</Button>
+					<Button
+						onClick={() => setIsCreateOpen(true)}
+						className="flex items-center gap-2"
+					>
+						<Plus className="h-4 w-4" />
+						Add Lead
+					</Button>
+				</div>
 			</div>
 
 			{/* SUMMARY CARDS */}
@@ -459,136 +501,147 @@ export default function LeadsPage() {
 										</tr>
 									))
 								) : (
-									filteredLeads.map((lead, i) => (
-										<tr
-											key={lead.id || i}
-											className="group border-b border-border hover:bg-muted/50 transition-colors">
-											<td className="py-3 px-4 font-medium text-muted-foreground text-xs">
-												{(page - 1) * limit + i + 1}
-											</td>
-											<td className="py-3 px-4">
-												<div className="font-medium text-foreground mb-1">
-													{lead.firstName || lead.lastName ? `${lead.firstName || ""} ${lead.lastName || ""}` : lead.email}
-												</div>
-												<div className="space-y-1 text-xs text-muted-foreground">
-													<div className="flex items-center gap-1">
-														<Mail className="h-3 w-3" /> {lead.email}
-													</div>
-													<div className="flex items-center gap-1">
-														<Phone className="h-3 w-3" /> {lead.phone || "—"}
-													</div>
-												</div>
-											</td>
-											<td className="py-3 px-4">
-												<Badge className={getStatusColor(lead.status)}>
-													{lead.status || "Unknown"}
-												</Badge>
-											</td>
-											<td className="py-3 px-4">
-												<Badge className={getScoreColor(lead.scoreLabel)}>
-													{lead.scoreLabel || "Cold"} ({lead.score || 0})
-												</Badge>
-											</td>
-											<td className="py-3 px-4 text-center">
-												<div className="font-bold text-blue-600">{lead._count?.viewHistory || 0}</div>
-												{lead.viewHistory?.[0]?.lastViewedAt && (
-													<div className="text-[10px] text-muted-foreground mt-0.5">
-														{new Date(lead.viewHistory[0].lastViewedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-													</div>
-												)}
-											</td>
-											<td className="py-3 px-4 text-xs text-muted-foreground">
-												{lead.updatedAt ? new Date(lead.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
-											</td>
-											<td className="py-3 px-4">
-												<div className="flex gap-1 flex-wrap items-center">
-													{lead.tags?.length ? (
-														lead.tags.map((tag, j) => (
-															<Badge
-																key={j}
-																variant="secondary"
-																className="text-xs cursor-pointer"
-																onClick={() => handleQuickTag(lead.id, String(tag), (lead.tags || []).map(String))}>
-																{String(tag).replace(/_/g, " ")} ✕
+									filteredLeads.map((lead, i) => {
+										const leadName = lead.firstName || lead.lastName ? `${lead.firstName || ""} ${lead.lastName || ""}`.trim() : lead.email;
+										const isSpam = /(bit\.ly|https?:\/\/|bonusu|tıkla|kapip)/i.test(leadName);
+										return (
+											<tr
+												key={lead.id || i}
+												className="group border-b border-border hover:bg-muted/50 transition-colors">
+												<td className="py-3 px-4 font-medium text-muted-foreground text-xs">
+													{(page - 1) * limit + i + 1}
+												</td>
+												<td className="py-3 px-4">
+													<div className="font-medium text-foreground mb-1 flex items-center gap-2 flex-wrap">
+														<span className={isSpam ? "text-red-600 font-mono text-xs max-w-[280px] truncate" : ""}>
+															{leadName}
+														</span>
+														{isSpam && (
+															<Badge variant="destructive" className="text-[10px] py-0 px-1.5 bg-red-100 text-red-700 border-red-300">
+																Spam Bot
 															</Badge>
-														))
-													) : null}
-													{/* Quick tag dropdown — show label only when no tags */}
-													<div className="relative">
-														<button
-															onClick={() => setQuickTagLeadId(quickTagLeadId === lead.id ? null : lead.id)}
-															className="text-xs text-muted-foreground hover:text-primary transition-colors px-1"
-															title="Add / remove tags">
-															{lead.tags?.length ? "+" : "+ Tag"}
-														</button>
-														{quickTagLeadId === lead.id && (
-															<div className="absolute z-50 top-6 left-0 bg-background border rounded-lg shadow-lg p-2 min-w-[130px]">
-																{TAG_OPTIONS.map((tag) => (
-																	<button
-																		key={tag}
-																		onClick={() => { handleQuickTag(lead.id, tag, (lead.tags || []).map(String)); setQuickTagLeadId(null); }}
-																		className={`w-full text-left text-xs px-2 py-1.5 rounded hover:bg-muted transition-colors flex items-center gap-2 ${ (lead.tags || []).map(String).includes(tag) ? "font-semibold text-primary" : ""}`}>
-																		{(lead.tags || []).map(String).includes(tag) ? "✓ " : ""}{tag}
-																	</button>
-																))}
-															</div>
 														)}
 													</div>
-												</div>
-											</td>
-											<td className="py-3 px-4 text-xs text-muted-foreground">
-												{new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-											</td>
+													<div className="space-y-1 text-xs text-muted-foreground">
+														<div className="flex items-center gap-1">
+															<Mail className="h-3 w-3" /> {lead.email}
+														</div>
+														<div className="flex items-center gap-1">
+															<Phone className="h-3 w-3" /> {lead.phone || "—"}
+														</div>
+													</div>
+												</td>
+												<td className="py-3 px-4">
+													<Badge className={getStatusColor(lead.status)}>
+														{lead.status || "Unknown"}
+													</Badge>
+												</td>
+												<td className="py-3 px-4">
+													<Badge className={getScoreColor(lead.scoreLabel)}>
+														{lead.scoreLabel || "Cold"} ({lead.score || 0})
+													</Badge>
+												</td>
+												<td className="py-3 px-4 text-center">
+													<div className="font-bold text-blue-600">{lead._count?.viewHistory || 0}</div>
+													{lead.viewHistory?.[0]?.lastViewedAt && (
+														<div className="text-[10px] text-muted-foreground mt-0.5">
+															{new Date(lead.viewHistory[0].lastViewedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+														</div>
+													)}
+												</td>
+												<td className="py-3 px-4 text-xs text-muted-foreground">
+													{lead.updatedAt ? new Date(lead.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+												</td>
+												<td className="py-3 px-4">
+													<div className="flex gap-1 flex-wrap items-center">
+														{lead.tags?.length ? (
+															lead.tags.map((tag, j) => (
+																<Badge
+																	key={j}
+																	variant="secondary"
+																	className="text-xs cursor-pointer"
+																	onClick={() => handleQuickTag(lead.id, String(tag), (lead.tags || []).map(String))}>
+																	{String(tag).replace(/_/g, " ")} ✕
+																</Badge>
+															))
+														) : null}
+														{/* Quick tag dropdown — show label only when no tags */}
+														<div className="relative">
+															<button
+																onClick={() => setQuickTagLeadId(quickTagLeadId === lead.id ? null : lead.id)}
+																className="text-xs text-muted-foreground hover:text-primary transition-colors px-1"
+																title="Add / remove tags">
+																{lead.tags?.length ? "+" : "+ Tag"}
+															</button>
+															{quickTagLeadId === lead.id && (
+																<div className="absolute z-50 top-6 left-0 bg-background border rounded-lg shadow-lg p-2 min-w-[130px]">
+																	{TAG_OPTIONS.map((tag) => (
+																		<button
+																			key={tag}
+																			onClick={() => { handleQuickTag(lead.id, tag, (lead.tags || []).map(String)); setQuickTagLeadId(null); }}
+																			className={`w-full text-left text-xs px-2 py-1.5 rounded hover:bg-muted transition-colors flex items-center gap-2 ${ (lead.tags || []).map(String).includes(tag) ? "font-semibold text-primary" : ""}`}>
+																			{(lead.tags || []).map(String).includes(tag) ? "✓ " : ""}{tag}
+																		</button>
+																	))}
+																</div>
+															)}
+														</div>
+													</div>
+												</td>
+												<td className="py-3 px-4 text-xs text-muted-foreground">
+													{new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+												</td>
 
-											<td className="py-3 px-4 text-xs text-muted-foreground">
-												<div className="flex items-center gap-1">
-													<Calendar className="h-3 w-3" />
-													{lead.lastContactedAt
-														? new Date(lead.lastContactedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-														: new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-												</div>
-											</td>
-											<td className="py-3 px-4 sticky right-0 bg-card group-hover:bg-muted transition-colors z-10 shadow-[-4px_0_10px_-5px_rgba(0,0,0,0.05)]">
-												<div className="flex items-center gap-1">
-													<Button
-														title="Quick View"
-														variant="ghost"
-														size="icon"
-														className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-														onClick={() => handleOpenView(lead)}
-													>
-														<Eye className="h-4 w-4" />
-													</Button>
-													<Link href={`/admin/leads/${lead.id || lead._id}`} title="Edit">
-														<Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-															<Edit className="h-4 w-4" />
+												<td className="py-3 px-4 text-xs text-muted-foreground">
+													<div className="flex items-center gap-1">
+														<Calendar className="h-3 w-3" />
+														{lead.lastContactedAt
+															? new Date(lead.lastContactedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+															: new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+													</div>
+												</td>
+												<td className="py-3 px-4 sticky right-0 bg-card group-hover:bg-muted transition-colors z-10 shadow-[-4px_0_10px_-5px_rgba(0,0,0,0.05)]">
+													<div className="flex items-center gap-1">
+														<Button
+															title="Quick View"
+															variant="ghost"
+															size="icon"
+															className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+															onClick={() => handleOpenView(lead)}
+														>
+															<Eye className="h-4 w-4" />
 														</Button>
-													</Link>
-													<Button
-														title="Delete"
-														variant="ghost"
-														size="icon"
-														className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-														onClick={() => {
-															if (confirm("Are you sure you want to delete this lead?")) {
-																fetch(`/api/leads/${lead.id || lead._id}`, { method: "DELETE" })
-																	.then(res => {
-																		if (res.ok) {
-																			setLeads(prev => prev.filter(l => (l.id || l._id) !== (lead.id || lead._id)));
-																			toast.success("Lead deleted");
-																		} else {
-																			toast.error("Failed to delete lead");
-																		}
-																	});
-															}
-														}}
-													>
-														<Trash2 className="h-4 w-4" />
-													</Button>
-												</div>
-											</td>
-										</tr>
-									))
+														<Link href={`/admin/leads/${lead.id || lead._id}`} title="Edit">
+															<Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+																<Edit className="h-4 w-4" />
+															</Button>
+														</Link>
+														<Button
+															title="Delete"
+															variant="ghost"
+															size="icon"
+															className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+															onClick={() => {
+																if (confirm("Are you sure you want to delete this lead?")) {
+																	fetch(`/api/leads/${lead.id || lead._id}`, { method: "DELETE" })
+																		.then(res => {
+																			if (res.ok) {
+																				setLeads(prev => prev.filter(l => (l.id || l._id) !== (lead.id || lead._id)));
+																				toast.success("Lead deleted");
+																			} else {
+																				toast.error("Failed to delete lead");
+																			}
+																		});
+																}
+															}}
+														>
+															<Trash2 className="h-4 w-4" />
+														</Button>
+													</div>
+												</td>
+											</tr>
+										);
+									})
 								)}
 							</tbody>
 						</table>
@@ -715,7 +768,7 @@ export default function LeadsPage() {
 								</Label>
 								<Select
 									value={formData.status}
-									onValueChange={(v) =>
+									onValueChange={(v: any) =>
 										setFormData((prev) => ({ ...prev, status: v }))
 									}
 								>
@@ -736,7 +789,7 @@ export default function LeadsPage() {
 								</Label>
 								<Select
 									value={formData.source}
-									onValueChange={(v) =>
+									onValueChange={(v: any) =>
 										setFormData((prev) => ({ ...prev, source: v }))
 									}
 								>
@@ -802,7 +855,7 @@ export default function LeadsPage() {
 											lastContactedAt: e.target.value,
 										}))
 									}
-									className="col-span-3"
+									className="sm:col-span-3"
 								/>
 							</div>
 						</div>

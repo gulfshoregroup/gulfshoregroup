@@ -273,8 +273,8 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
 				const client = await clerkClient();
 				await client.users.deleteUser(lead.userId);
 			} catch (err: any) {
-				console.error("Error deleting user from Clerk:", err);
-				throw new Error("Failed to delete user from authentication server: " + err.message);
+				// Don't fail local DB deletion if user doesn't exist in Clerk or is a synthetic ID
+				console.warn("Notice: user was not deleted from Clerk (may not exist in Clerk):", err.message);
 			}
 
 			try {

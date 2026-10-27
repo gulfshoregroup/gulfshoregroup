@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { isSpamSubmission } from "@/lib/anti-spam";
 
 export async function POST(req: Request) {
 	try {
@@ -35,7 +36,30 @@ export async function POST(req: Request) {
 			timeline,
 			images = [],
 			comments = "",
+			honeypot,
 		} = body;
+
+		const cleanEmail = email ? email.toLowerCase().trim() : "";
+		const cleanFirstName = firstName?.trim() || "";
+		const cleanLastName = lastName?.trim() || "";
+		const cleanPhone = phone || null;
+
+		// Anti-Spam Bot Filter
+		const spamCheck = isSpamSubmission({
+			name: `${cleanFirstName} ${cleanLastName}`.trim(),
+			firstName: cleanFirstName,
+			lastName: cleanLastName,
+			email: cleanEmail,
+			phone: cleanPhone,
+			message: comments,
+			honeypot,
+		});
+		if (spamCheck.isSpam) {
+			return NextResponse.json(
+				{ success: false, error: spamCheck.reason || "Invalid valuation submission" },
+				{ status: 400 }
+			);
+		}
 
 		if (!email || typeof email !== "string" || !email.includes("@")) {
 			return NextResponse.json(
@@ -43,11 +67,6 @@ export async function POST(req: Request) {
 				{ status: 400 }
 			);
 		}
-
-		const cleanEmail = email.toLowerCase().trim();
-		const cleanFirstName = firstName?.trim() || "";
-		const cleanLastName = lastName?.trim() || "";
-		const cleanPhone = phone || null;
 
 		// 1. Fetch existing lead to preserve any existing tags
 		const existingLead = await prisma.lead.findUnique({

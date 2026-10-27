@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { isSpamSubmission } from "@/lib/anti-spam";
 
 export async function POST(req: Request) {
 	try {
@@ -12,7 +13,24 @@ export async function POST(req: Request) {
 			message,
 			propertyAddress,
 			MLSNumber,
+			honeypot,
 		} = body;
+
+		// Anti-Spam Bot Filter
+		const spamCheck = isSpamSubmission({
+			firstName,
+			lastName,
+			email,
+			phone,
+			message,
+			honeypot,
+		});
+		if (spamCheck.isSpam) {
+			return NextResponse.json(
+				{ success: false, error: spamCheck.reason || "Invalid submission" },
+				{ status: 400 }
+			);
+		}
  
 		if (!email || typeof email !== "string" || !email.includes("@")) {
 			return NextResponse.json(

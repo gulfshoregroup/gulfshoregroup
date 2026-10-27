@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { isSpamSubmission } from "@/lib/anti-spam";
 
 export async function POST(request: Request) {
 	try {
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
 			userRole = "Buyer",
 			propertyAddress,
 			MLSNumber,
+			honeypot,
 		} = body;
 
 		const resolvedName =
@@ -26,6 +28,24 @@ export async function POST(request: Request) {
 		const resolvedFirstName = firstName || name?.split(" ")[0] || "";
 		const resolvedLastName =
 			lastName || name?.split(" ").slice(1).join(" ") || "";
+
+		// Anti-Spam Bot Filter
+		const spamCheck = isSpamSubmission({
+			name: resolvedName,
+			firstName: resolvedFirstName,
+			lastName: resolvedLastName,
+			email,
+			phone,
+			message,
+			honeypot,
+		});
+		if (spamCheck.isSpam) {
+			return NextResponse.json(
+				{ success: false, error: spamCheck.reason || "Invalid submission" },
+				{ status: 400 }
+			);
+		}
+
 		const resolvedRefType =
 			userRole === "Seller"
 				? "Seller-Inquiry"

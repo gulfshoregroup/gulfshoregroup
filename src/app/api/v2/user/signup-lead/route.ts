@@ -5,11 +5,27 @@ import { cookies } from "next/headers";
 import { sendSMS } from "@/lib/twilio";
 import { sendAdminLeadAlertEmail } from "@/lib/email/admin-lead-alert";
 import { sendWelcomeEmail } from "@/lib/email/welcome-email";
+import { isSpamSubmission } from "@/lib/anti-spam";
 
 export async function POST(req: Request) {
 	try {
 		const body = await req.json();
-		const { firstName, lastName, email, phone, password } = body;
+		const { firstName, lastName, email, phone, password, honeypot } = body;
+
+		// Anti-Spam Bot Filter
+		const spamCheck = isSpamSubmission({
+			firstName,
+			lastName,
+			email,
+			phone,
+			honeypot,
+		});
+		if (spamCheck.isSpam) {
+			return NextResponse.json(
+				{ success: false, error: spamCheck.reason || "Invalid registration submission" },
+				{ status: 400 }
+			);
+		}
 
 		if (!email) {
 			return NextResponse.json(

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { isSpamSubmission } from "@/lib/anti-spam";
 
 const leadsCache = new Map<string, { payload: any; ts: number }>();
 const CACHE_TTL_MS = 8_000;
@@ -112,6 +113,22 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
 	try {
 		const data = await req.json();
+
+		// Anti-Spam Bot Filter
+		const spamCheck = isSpamSubmission({
+			name: data.fullName,
+			firstName: data.firstName,
+			lastName: data.lastName,
+			email: data.email,
+			phone: data.phone,
+			honeypot: data.honeypot,
+		});
+		if (spamCheck.isSpam) {
+			return NextResponse.json(
+				{ error: spamCheck.reason || "Invalid lead submission" },
+				{ status: 400 }
+			);
+		}
 
 		// Check duplicate email first to avoid Prisma crash
 		const existing = await prisma.lead.findUnique({

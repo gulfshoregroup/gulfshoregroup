@@ -17,7 +17,7 @@ import {
 	AvatarImage,
 } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, Eye, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Eye, Edit, Trash2, ChevronLeft, ChevronRight, ShieldAlert, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -68,6 +68,7 @@ export default function UsersPage() {
 	const [deletingUser, setDeletingUser] = useState<User | null>(null);
 	const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const [isCleaningSpam, setIsCleaningSpam] = useState(false);
 
 	const fetchUsers = async () => {
 		try {
@@ -176,6 +177,25 @@ export default function UsersPage() {
 		}
 	};
 
+	// Handle Cleanup All Bot Spam
+	const handleCleanupSpam = async () => {
+		if (!confirm("Are you sure you want to permanently delete all automated spam bot users and leads from the database?")) return;
+		try {
+			setIsCleaningSpam(true);
+			const res = await axios.post("/api/admin/cleanup-spam");
+			if (res.data.success) {
+				toast.success(res.data.message || `Deleted ${res.data.totalCleaned} spam accounts!`);
+				fetchUsers();
+			} else {
+				toast.error(res.data.error || "Failed to cleanup spam");
+			}
+		} catch (err: any) {
+			toast.error(err.response?.data?.error || err.message || "Failed to cleanup spam");
+		} finally {
+			setIsCleaningSpam(false);
+		}
+	};
+
 	// Search Filter
 	const filteredUsers = users.filter((user) => {
 		const term = searchTerm.toLowerCase();
@@ -188,8 +208,29 @@ export default function UsersPage() {
 
 	return (
 		<div className="space-y-6 px-4 my-5">
-			<div className="flex items-center justify-between">
-				<h1 className="text-3xl font-bold">Users</h1>
+			<div className="flex items-center justify-between flex-wrap gap-3">
+				<div>
+					<h1 className="text-3xl font-bold">Users</h1>
+					<p className="text-sm text-muted-foreground mt-1">
+						Manage registered client accounts and authenticated users
+					</p>
+				</div>
+				<div className="flex items-center gap-2">
+					<Button
+						variant="outline"
+						onClick={handleCleanupSpam}
+						disabled={isCleaningSpam}
+						className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"
+						title="Permanently remove all automated Turkish casino / bot spam accounts"
+					>
+						{isCleaningSpam ? (
+							<RefreshCw className="h-4 w-4 animate-spin" />
+						) : (
+							<Trash2 className="h-4 w-4" />
+						)}
+						{isCleaningSpam ? "Cleaning Spam..." : "Clean Spam Bot Users"}
+					</Button>
+				</div>
 			</div>
 
 			{/* Search */}
@@ -220,11 +261,23 @@ export default function UsersPage() {
 					</TableHeader>
 					<TableBody>
 						{loading ? (
-							<TableRow>
-								<TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-									Loading users...
-								</TableCell>
-							</TableRow>
+							Array.from({ length: 8 }).map((_, i) => (
+								<TableRow key={`skeleton-user-${i}`}>
+									<TableCell>
+										<div className="flex items-center gap-3">
+											<div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+											<div className="space-y-1.5">
+												<div className="h-4 w-36 bg-muted rounded animate-pulse" />
+												<div className="h-3 w-24 bg-muted/60 rounded animate-pulse" />
+											</div>
+										</div>
+									</TableCell>
+									<TableCell><div className="h-5 w-14 bg-muted rounded-full animate-pulse" /></TableCell>
+									<TableCell><div className="h-4 w-32 bg-muted rounded animate-pulse" /></TableCell>
+									<TableCell><div className="h-4 w-24 bg-muted rounded animate-pulse" /></TableCell>
+									<TableCell className="text-right"><div className="h-8 w-20 bg-muted rounded ml-auto animate-pulse" /></TableCell>
+								</TableRow>
+							))
 						) : filteredUsers.length === 0 ? (
 							<TableRow>
 								<TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
@@ -232,68 +285,80 @@ export default function UsersPage() {
 								</TableCell>
 							</TableRow>
 						) : (
-							filteredUsers.map((user) => (
-								<TableRow key={user._id}>
-									<TableCell>
-										<div className="flex items-center gap-3">
-											<Avatar className="h-8 w-8">
-												<AvatarImage
-													src={user.profileImage}
-													alt={user.name}
-												/>
-												<AvatarFallback>
-													{user.name.charAt(0)}
-													{user.name.split(" ")[1]?.charAt(0)}
-												</AvatarFallback>
-											</Avatar>
-											<div>
-												<div className="font-medium">{user.name}</div>
-												<div className="text-xs text-muted-foreground">
-													{user.email}
+							filteredUsers.map((user) => {
+								const isSpam = /(bit\.ly|https?:\/\/|bonusu|tıkla|kapip)/i.test(user.name || "");
+								return (
+									<TableRow key={user._id}>
+										<TableCell>
+											<div className="flex items-center gap-3">
+												<Avatar className="h-8 w-8">
+													<AvatarImage
+														src={user.profileImage}
+														alt={user.name}
+													/>
+													<AvatarFallback>
+														{user.name.charAt(0)}
+														{user.name.split(" ")[1]?.charAt(0)}
+													</AvatarFallback>
+												</Avatar>
+												<div>
+													<div className="font-medium flex items-center gap-2 flex-wrap">
+														<span className={isSpam ? "text-red-600 font-mono text-xs max-w-[280px] truncate" : ""}>
+															{user.name}
+														</span>
+														{isSpam && (
+															<Badge variant="destructive" className="text-[10px] py-0 px-1.5 bg-red-100 text-red-700 border-red-300">
+																Spam Bot
+															</Badge>
+														)}
+													</div>
+													<div className="text-xs text-muted-foreground">
+														{user.email}
+													</div>
 												</div>
 											</div>
-										</div>
-									</TableCell>
-									<TableCell>
-										<Badge variant={user.isActive ? "default" : "secondary"}>
-											{user.isActive ? "Active" : "Inactive"}
-										</Badge>
-									</TableCell>
-									<TableCell>{user.email}</TableCell>
-									<TableCell>{user.phone || "N/A"}</TableCell>
+										</TableCell>
+										<TableCell>
+											<Badge variant={user.isActive ? "default" : "secondary"}>
+												{user.isActive ? "Active" : "Inactive"}
+											</Badge>
+										</TableCell>
+										<TableCell>{user.email}</TableCell>
+										<TableCell>{user.phone || "N/A"}</TableCell>
 
-									<TableCell className="text-right">
-										<div className="flex items-center justify-end gap-2">
-											{/* View */}
-											<Button variant="ghost" size="icon" asChild title="View Details">
-												<Link href={`/admin/users/${user._id}`}>
-													<Eye className="h-4 w-4 text-blue-600" />
-												</Link>
-											</Button>
+										<TableCell className="text-right">
+											<div className="flex items-center justify-end gap-2">
+												{/* View */}
+												<Button variant="ghost" size="icon" asChild title="View Details">
+													<Link href={`/admin/users/${user._id}`}>
+														<Eye className="h-4 w-4 text-blue-600" />
+													</Link>
+												</Button>
 
-											{/* Edit */}
-											<Button
-												variant="ghost"
-												size="icon"
-												title="Edit User"
-												onClick={() => handleOpenEdit(user)}
-											>
-												<Edit className="h-4 w-4 text-amber-600" />
-											</Button>
+												{/* Edit */}
+												<Button
+													variant="ghost"
+													size="icon"
+													title="Edit User"
+													onClick={() => handleOpenEdit(user)}
+												>
+													<Edit className="h-4 w-4 text-amber-600" />
+												</Button>
 
-											{/* Delete */}
-											<Button
-												variant="ghost"
-												size="icon"
-												title="Delete User"
-												onClick={() => handleOpenDelete(user)}
-											>
-												<Trash2 className="h-4 w-4 text-red-600" />
-											</Button>
-										</div>
-									</TableCell>
-								</TableRow>
-							))
+												{/* Delete */}
+												<Button
+													variant="ghost"
+													size="icon"
+													title="Delete User"
+													onClick={() => handleOpenDelete(user)}
+												>
+													<Trash2 className="h-4 w-4 text-red-600" />
+												</Button>
+											</div>
+										</TableCell>
+									</TableRow>
+								);
+							})
 						)}
 					</TableBody>
 				</Table>
@@ -461,4 +526,3 @@ export default function UsersPage() {
 		</div>
 	);
 }
-
