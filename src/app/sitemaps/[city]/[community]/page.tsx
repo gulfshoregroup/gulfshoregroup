@@ -30,6 +30,12 @@ async function FetchAllProperties(community: string) {
 				Development: {
 					equals: communityName,
 				},
+				NOT: [
+					{ PropertyType: { contains: "Lease" } },
+					{ PropertySubType: { contains: "Lease" } },
+					{ PropertyType: { contains: "Rental" } },
+					{ PropertySubType: { contains: "Rental" } },
+				],
 			},
 			select: {
 				Development: true,

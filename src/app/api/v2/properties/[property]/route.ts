@@ -34,23 +34,37 @@ export async function GET(
 		// 1️⃣ FAST IN-MEMORY CACHE (< 1ms response)
 		const memCached = getFromMemory(cacheKey);
 		if (memCached) {
-			return NextResponse.json({
-				success: true,
-				data: memCached,
-				cached: true,
-			});
+			// Verify cached property is not a lease
+			const isLease =
+				memCached.PropertyType === "Residential Lease" ||
+				memCached.PropertyType?.toLowerCase().includes("lease") ||
+				memCached.PropertySubType?.toLowerCase().includes("lease");
+			if (!isLease) {
+				return NextResponse.json({
+					success: true,
+					data: memCached,
+					cached: true,
+				});
+			}
+			propertyMemoryCache.delete(cacheKey);
 		}
 
 		// 2️⃣ CHECK REDIS CACHE
 		const cached = await redisGet(cacheKey);
 		if (cached) {
 			const parsedData = typeof cached === "string" ? JSON.parse(cached) : cached;
-			setInMemory(cacheKey, parsedData, 600);
-			return NextResponse.json({
-				success: true,
-				data: parsedData,
-				cached: true,
-			});
+			const isLease =
+				parsedData.PropertyType === "Residential Lease" ||
+				parsedData.PropertyType?.toLowerCase().includes("lease") ||
+				parsedData.PropertySubType?.toLowerCase().includes("lease");
+			if (!isLease) {
+				setInMemory(cacheKey, parsedData, 600);
+				return NextResponse.json({
+					success: true,
+					data: parsedData,
+					cached: true,
+				});
+			}
 		}
 
 		const res = await prisma.property.findUnique({
@@ -59,7 +73,20 @@ export async function GET(
 			},
 		});
 
-		if (!res) {
+		// 🚫 If property does not exist or is a Lease property, reject with 404
+		const isLease =
+			res &&
+			(res.PropertyType === "Residential Lease" ||
+				res.PropertyType?.toLowerCase().includes("lease") ||
+				res.PropertySubType?.toLowerCase().includes("lease") ||
+				(res as any).PropertyClass?.toLowerCase().includes("lease") ||
+				(res as any).PropertyClass?.toLowerCase().includes("rental"));
+
+		if (!res || isLease) {
+			if (isLease) {
+				// Purge the lease property from the database
+				prisma.property.delete({ where: { id: res.id } }).catch(() => {});
+			}
 			return NextResponse.json(
 				{ error: "Property Not Found" },
 				{ status: 404 }
@@ -150,4 +177,3 @@ export async function GET(
 		);
 	}
 }
-

@@ -14,6 +14,27 @@ function sleep(ms: number) {
  * Upsert a single property with fallback on ListingId conflict.
  */
 async function upsertOne(item: any): Promise<"ok" | "skip" | "fail"> {
+	// 🚫 Completely exclude all Lease / Rental properties
+	const isLease =
+		item.PropertyType === "Residential Lease" ||
+		item.PropertyType?.toLowerCase().includes("lease") ||
+		item.PropertySubType?.toLowerCase().includes("lease") ||
+		item.PropertyClass?.toLowerCase().includes("lease") ||
+		item.PropertyClass?.toLowerCase().includes("rental");
+
+	if (isLease) {
+		// If a lease property exists in DB, purge it immediately
+		await prisma.property.deleteMany({
+			where: {
+				OR: [
+					{ ListingKey: item.ListingKey },
+					{ ListingId: item.ListingId },
+				],
+			},
+		}).catch(() => {});
+		return "skip";
+	}
+
 	const mapped = mapProperty(item);
 	try {
 		await prisma.property.upsert({

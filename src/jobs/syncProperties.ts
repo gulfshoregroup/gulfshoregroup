@@ -21,6 +21,27 @@ function sleep(ms: number) {
  * conflict caused by the secondary unique key (ListingId).
  */
 async function upsertPropertyWithRetry(item: any): Promise<void> {
+	// 🚫 Completely exclude all Lease / Rental properties
+	const isLease =
+		item.PropertyType === "Residential Lease" ||
+		item.PropertyType?.toLowerCase().includes("lease") ||
+		item.PropertySubType?.toLowerCase().includes("lease") ||
+		item.PropertyClass?.toLowerCase().includes("lease") ||
+		item.PropertyClass?.toLowerCase().includes("rental");
+
+	if (isLease) {
+		// If a lease property exists in DB, purge it immediately
+		await prisma.property.deleteMany({
+			where: {
+				OR: [
+					{ ListingKey: item.ListingKey },
+					{ ListingId: item.ListingId },
+				],
+			},
+		}).catch(() => {});
+		return;
+	}
+
 	const mapped = mapProperty(item);
 
 	for (let attempt = 1; attempt <= RETRY_LIMIT; attempt++) {
@@ -207,6 +228,24 @@ export async function syncTodaysActiveProperties({
 	console.log(`[Sync] Modification pass date: ${modificationDate}`);
 	console.log(`[Sync] New listings (OnMarketDate) pass date: ${newListingsDate}`);
 	console.log(`[Sync] Sold listings pass date: ${soldDate}`);
+
+	try {
+		const purged = await prisma.property.deleteMany({
+			where: {
+				OR: [
+					{ PropertyType: { contains: "Lease" } },
+					{ PropertySubType: { contains: "Lease" } },
+					{ PropertyType: { contains: "Rental" } },
+					{ PropertySubType: { contains: "Rental" } },
+				],
+			},
+		});
+		if (purged.count > 0) {
+			console.log(`[Sync] Automatically purged ${purged.count} lease/rental properties from database.`);
+		}
+	} catch (purgeErr: any) {
+		console.warn(`[Sync] Auto-purge leases warning: ${purgeErr?.message}`);
+	}
 
 	// --- Pass 1: Modification timestamp (ALL statuses: Active, Pending, Closed, Withdrawn, etc.) ---
 	const pass1 = await runSyncPass(

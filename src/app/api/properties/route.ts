@@ -155,6 +155,15 @@ export async function GET(req: NextRequest) {
 			}
 		}
 
+		// Always exclude Lease / Rental properties from search results
+		where.NOT = where.NOT || [];
+		where.NOT.push(
+			{ PropertyType: { contains: "Lease" } },
+			{ PropertySubType: { contains: "Lease" } },
+			{ PropertyType: { contains: "Rental" } },
+			{ PropertySubType: { contains: "Rental" } }
+		);
+
 		// Map sort field to Prisma compatible column name
 		let prismaSortField = sortField;
 		if (sortField === "CurrentPrice") prismaSortField = "ListPrice";

@@ -58,19 +58,31 @@ export default async function Listing({
 	const id = (await params).mls?.[0];
 	const property: Property = await FetchProperty(id);
 
-	// Handle case when property is not found
-	if (!property) {
+	// 🚫 Completely block Lease / Rental properties from displaying
+	const isLease =
+		property &&
+		(property.PropertyType === "Residential Lease" ||
+			property.PropertyType?.toLowerCase().includes("lease") ||
+			property.PropertySubType?.toLowerCase().includes("lease") ||
+			(property as any).PropertyClass?.toLowerCase().includes("lease") ||
+			(property as any).PropertyClass?.toLowerCase().includes("rental"));
+
+	// Handle case when property is not found or is a lease property
+	if (!property || isLease) {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
-				<div className="text-center">
-					<h1 className="text-2xl font-bold mb-4">
+				<div className="text-center px-4">
+					<h1 className="text-2xl font-bold mb-4 text-gray-900">
 						Property Not Found
 					</h1>
-					<p className="text-gray-600 mb-4">
-						The requested property could not be found.
+					<p className="text-gray-600 mb-6 max-w-md mx-auto">
+						This property is either no longer available or is not offered for sale.
 					</p>
-					<Link href="/" className="text-blue-600 hover:underline">
-						Return to Home
+					<Link
+						href="/Florida-Real-Estate-Search"
+						className="inline-flex items-center justify-center px-6 py-2.5 bg-[#B89A6A] hover:bg-[#a6895b] text-white font-medium rounded-lg transition-colors shadow-sm"
+					>
+						Explore Properties For Sale
 					</Link>
 				</div>
 			</div>
@@ -236,11 +248,7 @@ export default async function Listing({
 									<span className="text-3xl inline-flex gap-2 lg:text-4xl font-bold text-gray-900 tracking-tight">
 										$
 										{Number(property.ListPrice).toLocaleString("en-US")}{" "}
-										{property.PropertyType === "Residential Lease" && (
-											<span className="text-gray-800 my-auto h-full text-sm font-medium">
-												- For Lease
-											</span>
-										)}
+										
 									</span>
 									{property.OriginalListPrice && property.ListPrice && property.OriginalListPrice > property.ListPrice && (
 										<div className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 px-2.5 py-1 rounded-md">

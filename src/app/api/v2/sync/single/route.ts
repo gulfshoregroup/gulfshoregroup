@@ -48,6 +48,24 @@ export async function GET(req: NextRequest) {
 	const mediaData = await mediaRes.json();
 	const item = mediaData.bundle?.[0] || listings[0];
 
+	// 🚫 Completely exclude all Lease / Rental properties
+	const isLease =
+		item.PropertyType === "Residential Lease" ||
+		item.PropertyType?.toLowerCase().includes("lease") ||
+		item.PropertySubType?.toLowerCase().includes("lease") ||
+		item.PropertyClass?.toLowerCase().includes("lease") ||
+		item.PropertyClass?.toLowerCase().includes("rental");
+
+	if (isLease) {
+		await prisma.property.deleteMany({
+			where: { ListingId: item.ListingId },
+		}).catch(() => {});
+		return NextResponse.json({
+			success: false,
+			error: `Property ${mlsId} is a Lease/Rental property and is excluded from this platform.`,
+		}, { status: 400 });
+	}
+
 	await prisma.property.upsert({
 		where: { ListingId: item.ListingId },
 		update: mapProperty(item),
@@ -58,7 +76,5 @@ export async function GET(req: NextRequest) {
 		success: true,
 		message: `Property ${mlsId} synced successfully`,
 		address: item.UnparsedAddress || item.FullAddress,
-		status: item.StandardStatus,
-		imagesCount: Array.isArray(item.Media) ? item.Media.length : 0,
 	});
 }

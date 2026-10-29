@@ -24,6 +24,12 @@ async function FetchAllCommunities(city: string) {
 				Development: {
 					not: null,
 				},
+				NOT: [
+					{ PropertyType: { contains: "Lease" } },
+					{ PropertySubType: { contains: "Lease" } },
+					{ PropertyType: { contains: "Rental" } },
+					{ PropertySubType: { contains: "Rental" } },
+				],
 			},
 			distinct: ["Development"],
 			select: {
