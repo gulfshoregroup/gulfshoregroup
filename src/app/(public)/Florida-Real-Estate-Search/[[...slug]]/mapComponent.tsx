@@ -20,6 +20,7 @@ import { SearchParamsResult } from "@/hooks/extractSearchParams";
 import { EMPTY_FILTERS } from "@/lib/search-filters";
 import { PropertyCard2 } from "@/components/cards/property/property-card";
 import { useUser } from "@clerk/nextjs";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 const mapContainerStyle = {

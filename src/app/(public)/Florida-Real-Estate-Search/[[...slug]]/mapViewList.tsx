@@ -177,6 +177,23 @@ export default function MapViewList({
 	}
 
 	if ((success && total === 0) || error) {
+		const hasPriceFilter = Boolean(filters.minPrice || filters.maxPrice);
+		const formattedMin = filters.minPrice ? `${Number(filters.minPrice).toLocaleString()}` : "$0";
+		const formattedMax = filters.maxPrice ? `${Number(filters.maxPrice).toLocaleString()}` : "Any";
+		const isHomesOnly = filters.propertyTypes && filters.propertyTypes.length === 1 && filters.propertyTypes[0] === "Homes";
+
+		const handleClearPriceFilter = () => {
+			const nextFilters = { ...filters, minPrice: "", maxPrice: "" };
+			dispatch(setFilters(nextFilters));
+			dispatch(fetchProperties());
+			if (typeof window !== "undefined") {
+				const sp = new URLSearchParams(window.location.search);
+				sp.delete("minPrice");
+				sp.delete("maxPrice");
+				window.history.replaceState(null, "", `${path}?${sp.toString()}`);
+			}
+		};
+
 		return (
 			<div className="w-full">
 				{StickyHeader}
@@ -188,25 +205,47 @@ export default function MapViewList({
 						<SearchX className="w-12 h-12 text-muted-foreground" />
 					</div>
 					<h2 className="text-xl font-semibold text-foreground mb-2">
-						No Listing Found
+						{hasPriceFilter
+							? `No ${isHomesOnly ? "Homes" : "Listings"} Found in this Price Range`
+							: "No Listing Found"}
 					</h2>
 					<p className="text-sm text-muted-foreground mb-6 max-w-md">
-						Try adjusting your filters or explore other locations.
+						{hasPriceFilter ? (
+							<>
+								No {isHomesOnly ? "single-family homes" : "properties"} match{" "}
+								<span className="font-semibold text-gray-800">
+									{formattedMin} – {formattedMax}
+								</span>{" "}
+								in this area. Try clearing the price filter to view available listings.
+							</>
+						) : (
+							"Try adjusting your filters or explore other locations."
+						)}
 					</p>
 
-					<Button
-						onClick={() => {
-							dispatch(clearFilters());
-							history.pushState(
-								null,
-								"",
-								"/Florida-Real-Estate-Search"
-							);
-						}}
-						variant="default"
-						className="text-sm">
-						Reset Filters
-					</Button>
+					<div className="flex flex-wrap gap-3 justify-center">
+						{hasPriceFilter && (
+							<Button
+								onClick={handleClearPriceFilter}
+								variant="default"
+								className="text-sm bg-[#B89A6A] hover:bg-[#a6895b] text-white">
+								Show All Prices in this Area
+							</Button>
+						)}
+						<Button
+							onClick={() => {
+								dispatch(clearFilters());
+								history.pushState(
+									null,
+									"",
+									"/Florida-Real-Estate-Search"
+								);
+							}}
+							variant={hasPriceFilter ? "outline" : "default"}
+							className="text-sm">
+							Reset All Filters
+						</Button>
+					</div>
 
 					<hr />
 					<div className={`bg-white w-full rounded-t-xl mt-20`}>
