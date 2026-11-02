@@ -26,6 +26,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import UploadImg from "@/components/cloudinary/uploadImg";
 import { toast } from "sonner";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { useParams } from "next/navigation";
 
 export default function EditCityPage() {
@@ -302,17 +303,16 @@ export default function EditCityPage() {
 						<CardContent className="space-y-4">
 							<div>
 								<Label htmlFor="infoText">City Description</Label>
-								<Textarea
-									id="infoText"
-									rows={4}
-									value={formData.infoText}
-									onChange={(e) =>
+								<RichTextEditor
+									value={formData.infoText || formData.description || ""}
+									onChange={(val) =>
 										setFormData({
 											...formData,
-											infoText: e.target.value,
+											infoText: val,
 										})
 									}
 									placeholder="Describe the city's key features, attractions, and lifestyle..."
+									minHeight="350px"
 								/>
 							</div>
 						</CardContent>

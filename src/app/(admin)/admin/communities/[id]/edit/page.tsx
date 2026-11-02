@@ -18,6 +18,7 @@ import axios from "axios";
 import UploadImg from "@/components/cloudinary/uploadImg";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
 
 export default function EditCommunityPage() {
 	const params = useParams<{ id: string }>();
@@ -357,19 +358,18 @@ export default function EditCommunityPage() {
 								Marketing content and community description
 							</CardDescription>
 						</CardHeader>
-						<CardContent>
-							<Label htmlFor="infoText">Community Description (HTML)</Label>
-							<Textarea
-								id="infoText"
-								rows={12}
+						<CardContent className="space-y-2">
+							<Label htmlFor="infoText">Community Description</Label>
+							<RichTextEditor
 								value={formData.infoText || formData.description || ""}
-								onChange={(e) =>
+								onChange={(val) =>
 									setFormData({
 										...formData,
-										infoText: e.target.value
+										infoText: val,
 									})
 								}
-								placeholder="Describe the community's key features, attractions, and lifestyle... Use HTML tags."
+								placeholder="Describe the community's key features, attractions, and lifestyle..."
+								minHeight="380px"
 							/>
 						</CardContent>
 					</Card>
