@@ -155,7 +155,18 @@ export default function MapComponent({
 	filterParams: SearchParamsResult;
 }) {
 	const { user, isSignedIn, isLoaded: isUserLoaded } = useUser();
+	const searchParams = useSearchParams();
+	const urlLat = searchParams?.get("lat") ? parseFloat(searchParams.get("lat")!) : null;
+	const urlLng = searchParams?.get("lng") ? parseFloat(searchParams.get("lng")!) : null;
+	const urlZoom = searchParams?.get("zoom") ? parseInt(searchParams.get("zoom")!, 10) : null;
+	const hasUrlCoords = Boolean(
+		urlLat && !isNaN(urlLat) && urlLat >= 24.0 && urlLat <= 31.5 &&
+		urlLng && !isNaN(urlLng) && urlLng >= -88.0 && urlLng <= -79.5
+	);
 	const initialCenter = React.useMemo(() => {
+		if (hasUrlCoords && urlLat && urlLng) {
+			return { lat: urlLat, lng: urlLng };
+		}
 		const searchCity = filterParams?.city?.toUpperCase() || "";
 		const searchDev = filterParams?.developmentName?.toUpperCase() || "";
 		const searchComm = filterParams?.community?.toUpperCase() || "";
@@ -166,7 +177,7 @@ export default function MapComponent({
 			(searchDev && COMMUNITY_CITY_MAP[searchDev] ? COMMUNITY_CITY_MAP[searchDev] : null) ??
 			null;
 		return (lookupKey && CITY_CENTERS[lookupKey]) ? CITY_CENTERS[lookupKey] : { lat: 26.142, lng: -81.7948 };
-	}, [filterParams?.city, filterParams?.developmentName, filterParams?.community]);
+	}, [hasUrlCoords, urlLat, urlLng, filterParams?.city, filterParams?.developmentName, filterParams?.community]);
 
 	const [center, setCenter] = useState(initialCenter);
 	const [mapTypeId, setMapTypeId] = useState<"roadmap" | "satellite" | "hybrid" | "terrain">("hybrid");
@@ -267,6 +278,17 @@ export default function MapComponent({
 	React.useEffect(() => {
 		if (hasCenteredRef.current || !mapRef.current) return;
 
+		// If URL coords exist (e.g. user refreshed the page or followed a link), NEVER reset back to downtown!
+		if (hasUrlCoords && urlLat && urlLng) {
+			mapRef.current.setCenter({ lat: urlLat, lng: urlLng });
+			if (urlZoom && !isNaN(urlZoom)) {
+				mapRef.current.setZoom(urlZoom);
+			}
+			hasCenteredRef.current = true;
+			setTimeout(() => { isCenteringRef.current = false; }, 300);
+			return;
+		}
+
 		const searchCity = filterParams?.city?.toUpperCase() || "";
 		const searchDev = filterParams?.developmentName?.toUpperCase() || "";
 		const searchComm = filterParams?.community?.toUpperCase() || "";
@@ -362,6 +384,19 @@ export default function MapComponent({
 				bounds.west > -79.5
 			) {
 				return;
+			}
+
+			// Sync current center and zoom to URL so refresh preserves exact position
+			if (typeof window !== "undefined" && window.history && window.history.replaceState) {
+				const curCenter = mapRef.current.getCenter();
+				const curZoom = mapRef.current.getZoom();
+				if (curCenter) {
+					const url = new URL(window.location.href);
+					url.searchParams.set("lat", curCenter.lat().toFixed(4));
+					url.searchParams.set("lng", curCenter.lng().toFixed(4));
+					if (curZoom) url.searchParams.set("zoom", curZoom.toString());
+					window.history.replaceState(null, "", url.toString());
+				}
 			}
 
 			// Don't re-fetch if bounds haven't moved noticeably (< 0.003 deg ~ 300m)
@@ -710,6 +745,14 @@ export default function MapComponent({
 				</div>
 			)}
 
+			{/* Floating "Searching listings..." indicator when map is fetching */}
+			{ui.loading && (
+				<div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-[#B89A6A]/30 text-xs font-semibold text-[#B89A6A] pointer-events-none transition-all duration-200">
+					<div className="w-3.5 h-3.5 border-2 border-[#B89A6A] border-t-transparent rounded-full animate-spin" />
+					<span>Searching listings in this area...</span>
+				</div>
+			)}
+
 			{showDrone && ui.details ? (
 				<iframe 
 					src={ui.details.VirtualTourURLBranded || ui.details.VirtualTourURLUnbranded} 
@@ -733,7 +776,7 @@ export default function MapComponent({
 					onLoad={onLoad}
 					onUnmount={onUnmount}
 					center={center}
-					zoom={10}
+					zoom={hasUrlCoords && urlZoom ? urlZoom : 10}
 					mapTypeId={mapTypeId}
 					mapContainerStyle={mapContainerStyle}
 					onRightClick={handleRightClick}

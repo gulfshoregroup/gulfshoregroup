@@ -232,6 +232,23 @@ export default function MapViewList({
 								Show All Prices in this Area
 							</Button>
 						)}
+						{isHomesOnly && hasPriceFilter && (
+							<Button
+								onClick={() => {
+									const nextFilters = { ...filters, propertyTypes: ["Condos"] };
+									dispatch(setFilters(nextFilters));
+									dispatch(fetchProperties());
+									if (typeof window !== "undefined") {
+										const sp = new URLSearchParams(window.location.search);
+										sp.set("propertyTypes", "Condos");
+										window.history.replaceState(null, "", `${path}?${sp.toString()}`);
+									}
+								}}
+								variant="outline"
+								className="text-sm border-[#B89A6A] text-[#B89A6A] hover:bg-[#B89A6A]/10">
+								View Condos in this Area
+							</Button>
+						)}
 						<Button
 							onClick={() => {
 								dispatch(clearFilters());
