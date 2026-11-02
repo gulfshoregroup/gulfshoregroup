@@ -59,7 +59,7 @@ export default async function AreaInfoComponent({
 						<div className="prose prose-lg max-w-none text-gray-700">
 							<h1 className="text-4xl font-serif text-primary mb-8 border-b border-gray-200 pb-4">
 								About {seoData?.community || community || city}
-							</h2>
+							</h1>
 							{(() => {
 								let rawText = seoData?.content?.infoText || "";
 								try {
