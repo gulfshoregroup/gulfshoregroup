@@ -173,9 +173,9 @@ export default async function RootLayout({
 														<div className="space-y-4">
 															<div className="flex items-center space-x-2">
 																<div className="w-1 h-8 bg-accent rounded-full"></div>
-																<h2 className="text-2xl lg:text-4xl font-bold text-primary leading-tight">
+																<h1 className="text-2xl lg:text-4xl font-bold text-primary leading-tight">
 																	{seoData?.community || filtersParams.community || filtersParams.city || "Florida"} FL
-																</h2>
+																</h1>
 															</div>
 
 															<div className="prose prose-gray max-w-none lg:max-h-[500px] overflow-y-auto pr-2 prose-p:text-gray-500 prose-headings:text-primary custom-scrollbar">
@@ -190,13 +190,30 @@ export default async function RootLayout({
 																			}
 																		} catch (e) {}
 																		
-																		// Strip HTML tags and markdown
-																		cleanInfoText = cleanInfoText.replace(/<[^>]*>?/gm, '');
+																		// 1. Remove script and style tags along with their contents
+																		cleanInfoText = cleanInfoText.replace(/<script[\s\S]*?<\/script>/gi, '');
+																		cleanInfoText = cleanInfoText.replace(/<style[\s\S]*?<\/style>/gi, '');
+
+																		// 2. Remove raw HTML tables (golf course tables are rendered in dedicated cards below)
+																		cleanInfoText = cleanInfoText.replace(/<table[\s\S]*?<\/table>/gi, '');
+																		cleanInfoText = cleanInfoText.replace(/<li>\s*<strong>\s*Golf Course Details:?[\s\S]*?<\/li>/gi, '');
+
+																		// 3. Format headings and list items with clean line breaks
+																		cleanInfoText = cleanInfoText.replace(/<\/(h[1-6]|p|div|li|tr)>/gi, '\n\n');
+																		cleanInfoText = cleanInfoText.replace(/<br\s*\/?>/gi, '\n');
+																		cleanInfoText = cleanInfoText.replace(/<li[^>]*>/gi, '• ');
+
+																		// 4. Strip all remaining HTML tags
+																		cleanInfoText = cleanInfoText.replace(/<[^>]+>/g, '');
+
+																		// 5. Clean up any leftover markdown heading markers or entities
 																		cleanInfoText = cleanInfoText
+																			.replace(/^#{1,6}\s+/gm, '')
 																			.replaceAll("*", "")
-																			.replaceAll("###", "•")
-																			.replaceAll("##", "•")
-																			.replaceAll("#", "");
+																			.replace(/&nbsp;/gi, ' ')
+																			.replace(/&amp;/gi, '&')
+																			.replace(/\n{3,}/g, '\n\n')
+																			.trim();
 																			
 																		return (
 																			<ReadMore className="text-gray-500 leading-relaxed">

@@ -57,15 +57,34 @@ export default async function AreaInfoComponent({
 
 						{/* Right Content */}
 						<div className="prose prose-lg max-w-none text-gray-700">
-							<h2 className="text-4xl font-serif text-primary mb-8 border-b border-gray-200 pb-4">
+							<h1 className="text-4xl font-serif text-primary mb-8 border-b border-gray-200 pb-4">
 								About {seoData?.community || community || city}
 							</h2>
-							{seoData?.content?.infoText && seoData.content.infoText.trim().length > 0 ? (
-								<div 
-									className="text-gray-500 leading-relaxed space-y-4"
-									dangerouslySetInnerHTML={{ __html: seoData.content.infoText }} 
-								/>
-							) : (
+							{(() => {
+								let rawText = seoData?.content?.infoText || "";
+								try {
+									if (rawText.trim().startsWith("{")) {
+										const parsed = JSON.parse(rawText);
+										rawText = parsed.infoText || parsed.InfoText || rawText;
+									}
+								} catch (e) {}
+
+								// Remove script, style, and raw tables
+								rawText = rawText.replace(/<script[\s\S]*?<\/script>/gi, '');
+								rawText = rawText.replace(/<style[\s\S]*?<\/style>/gi, '');
+								rawText = rawText.replace(/<table[\s\S]*?<\/table>/gi, '');
+								rawText = rawText.replace(/<li>\s*<strong>\s*Golf Course Details:?[\s\S]*?<\/li>/gi, '');
+
+								if (rawText && rawText.trim().length > 0) {
+									return (
+										<div 
+											className="text-gray-500 leading-relaxed space-y-4"
+											dangerouslySetInnerHTML={{ __html: rawText }} 
+										/>
+									);
+								}
+								return null;
+							})() || (
 								<ReadMore className="text-gray-500 leading-relaxed">
 									{`${city}, Florida: Your Gateway to Paradise Living\n\nNestled along Florida's pristine Gulf Coast, ${city} represents the epitome of luxury living, combining world-class amenities with natural beauty that captivates residents and visitors alike. This enchanting city has evolved from a small fishing village into one of America's most desirable destinations for those seeking an exceptional quality of life.`}
 								</ReadMore>
