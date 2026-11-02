@@ -98,7 +98,7 @@ export default async function Listing({
 		}
 	}
 	let images: string[] = [];
-	const isOffMarket = ["Withdrawn", "Canceled", "Expired"].includes(property.StandardStatus || "");
+	const isOffMarket = ["Withdrawn", "Canceled", "Expired", "Off Market", "Off-Market"].includes(property.StandardStatus || "");
 
 	if (isOffMarket) {
 		const lat = property.Latitude || 26.142;
@@ -352,27 +352,25 @@ export default async function Listing({
 							</div>
 						</CardContent>
 
-						<CardFooter className="bg-gray-50 border-t border-gray-200 px-6 py-4">
-							<div className="text-xs text-gray-600 leading-relaxed">
-								<span className="font-medium">Source:</span>{" "}
-								NAPLESMLS#
-								{property.MLSNumber}
-								{!isOffMarket && (
-									<>
-										<br />
-										<span className="font-medium">
-											Listing Office:
-										</span>{" "}
-										{property.ListOfficeName || (property.raw as any)?.ListOfficeName || "N/A"}
-										<br />
-										<span className="font-medium">
-											Showing Office:
-										</span>{" "}
-										GULFSHORE GROUP
-									</>
-								)}
-							</div>
-						</CardFooter>
+						{!isOffMarket && (
+							<CardFooter className="bg-gray-50 border-t border-gray-200 px-6 py-4">
+								<div className="text-xs text-gray-600 leading-relaxed">
+									<span className="font-medium">Source:</span>{" "}
+									NAPLESMLS#
+									{property.MLSNumber}
+									<br />
+									<span className="font-medium">
+										Listing Office:
+									</span>{" "}
+									{property.ListOfficeName || (property.raw as any)?.ListOfficeName || "N/A"}
+									<br />
+									<span className="font-medium">
+										Showing Office:
+									</span>{" "}
+									GULFSHORE GROUP
+								</div>
+							</CardFooter>
+						)}
 					</Card>
 				</div>
 

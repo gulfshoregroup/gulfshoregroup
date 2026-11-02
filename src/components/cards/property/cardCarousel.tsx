@@ -32,7 +32,7 @@ export default function CardCarousel({
 
 	const media = property.images as any;
 	let images: string[] = [];
-	const isOffMarket = ["Withdrawn", "Canceled", "Expired"].includes(property.StandardStatus || "");
+	const isOffMarket = ["Withdrawn", "Canceled", "Expired", "Off Market", "Off-Market"].includes(property.StandardStatus || "");
 
 	if (isOffMarket) {
 		const lat = property.Latitude || 26.142;

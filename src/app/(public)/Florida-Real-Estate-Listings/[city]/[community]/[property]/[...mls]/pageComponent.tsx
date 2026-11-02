@@ -51,7 +51,7 @@ export default function PropertyDetail(property: Property) {
 	const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 	useTrackViewedProperty(property.id);
 
-	const isOffMarket = ["Withdrawn", "Canceled", "Expired"].includes(property.StandardStatus || "");
+	const isOffMarket = ["Withdrawn", "Canceled", "Expired", "Off Market", "Off-Market"].includes(property.StandardStatus || "");
 
 
 	const handleSendEmail = () => {

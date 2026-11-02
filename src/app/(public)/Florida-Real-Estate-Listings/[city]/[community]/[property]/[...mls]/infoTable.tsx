@@ -194,7 +194,7 @@ export default function PropertyDetailsTable({
 		? `${formatNumber(property.LotSizeSquareFeet)} sq ft`
 		: null;
 
-	const isOffMarket = ["Withdrawn", "Canceled", "Expired"].includes(property.StandardStatus || "");
+	const isOffMarket = ["Withdrawn", "Canceled", "Expired", "Off Market", "Off-Market"].includes(property.StandardStatus || "");
 	const description = isOffMarket ? null : ((property as any)?.Description || (property.raw as any)?.PublicRemarks || null);
 
 	// Parse features from JSON fields
@@ -287,10 +287,12 @@ export default function PropertyDetailsTable({
 									value={property.ListOfficeName}
 								/>
 							)}
-							<InfoRow
-								label="MLS Number"
-								value={property.MLSNumber}
-							/>
+							{!isOffMarket && (
+								<InfoRow
+									label="MLS Number"
+									value={property.MLSNumber}
+								/>
+							)}
 							<InfoRow
 								label="Stories"
 								value={property.StoriesTotal}
@@ -301,7 +303,8 @@ export default function PropertyDetailsTable({
 				</AccordionItem>
 
 				{/* Pricing */}
-				<AccordionItem value="pricing" className="px-4 md:px-6">
+				{!isOffMarket && (
+					<AccordionItem value="pricing" className="px-4 md:px-6">
 					<AccordionTrigger className="text-left">
 						<div className="flex items-center gap-2">
 							<DollarSignIcon
@@ -397,6 +400,7 @@ export default function PropertyDetailsTable({
 						</div>
 					</AccordionContent>
 				</AccordionItem>
+				)}
 
 				{/* Location & Lot */}
 				<AccordionItem value="location" className="px-4 md:px-6">
@@ -457,7 +461,8 @@ export default function PropertyDetailsTable({
 				</AccordionItem>
 
 				{/* Amenities & Features */}
-				<AccordionItem value="amenities" className="px-4 md:px-6">
+				{!isOffMarket && (
+					<AccordionItem value="amenities" className="px-4 md:px-6">
 					<AccordionTrigger className="text-left">
 						<div className="flex items-center gap-2">
 							<SparklesIcon
@@ -552,6 +557,7 @@ export default function PropertyDetailsTable({
 						</div>
 					</AccordionContent>
 				</AccordionItem>
+				)}
 
 				{property.PropertyType === "Lot and Land" ? null : (
 					<>
