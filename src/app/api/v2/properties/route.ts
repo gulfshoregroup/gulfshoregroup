@@ -252,19 +252,37 @@ export async function GET(req: NextRequest) {
 
 		const qVal = query.get("q") || query.get("search");
 		if (qVal) {
-			where.AND = where.AND || [];
-			where.AND.push({
-				OR: [
-					{ City: { contains: qVal } },
-					{ Community: { contains: qVal } },
-					{ SubdivisionName: { contains: qVal } },
-					{ PostalCode: { contains: qVal } },
-					{ MLSNumber: { contains: qVal } },
-					{ ListingId: { contains: qVal } },
-					{ FullAddress: { contains: qVal } },
-					{ Description: { contains: qVal } },
-				],
-			});
+			const cleanQ = qVal.replace(/,\s*(fl|florida)\b/gi, "").trim();
+			const upperQ = cleanQ.toUpperCase();
+			const KNOWN_CITIES: Record<string, string> = {
+				"NAPLES": "Naples",
+				"BONITA SPRINGS": "Bonita Springs",
+				"ESTERO": "Estero",
+				"AVE MARIA": "Ave Maria",
+				"MARCO ISLAND": "Marco Island",
+				"FORT MYERS": "Fort Myers",
+				"CAPE CORAL": "Cape Coral",
+				"FORT MYERS BEACH": "Fort Myers Beach",
+				"BABCOCK RANCH": "Babcock Ranch",
+				"LEHIGH ACRES": "Lehigh Acres",
+				"SANIBEL": "Sanibel"
+			};
+			if (KNOWN_CITIES[upperQ]) {
+				where.City = { contains: KNOWN_CITIES[upperQ] };
+			} else {
+				where.AND = where.AND || [];
+				where.AND.push({
+					OR: [
+						{ City: { contains: cleanQ } },
+						{ Community: { contains: cleanQ } },
+						{ SubdivisionName: { contains: cleanQ } },
+						{ PostalCode: { contains: cleanQ } },
+						{ MLSNumber: { contains: cleanQ } },
+						{ ListingId: { contains: cleanQ } },
+						{ FullAddress: { contains: cleanQ } },
+					],
+				});
+			}
 		}
 
 		// ---- Beds & Baths ----

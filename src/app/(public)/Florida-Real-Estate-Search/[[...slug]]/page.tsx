@@ -46,7 +46,8 @@ export default async function ListingsPage({
 			? `New Matches in ${capitalizeWords(searchKeyword as string)}, FL (Last 24 Hours)`
 			: "Your New Property Matches (Last 24 Hours)";
 	} else if (searchKeyword) {
-		heading = `Listings in ${capitalizeWords(searchKeyword as string)}, FL`;
+		const cleanHeadingKeyword = (searchKeyword as string).replace(/,\s*(fl|florida)\b/gi, "").trim();
+		heading = `Listings in ${capitalizeWords(cleanHeadingKeyword)}, FL`;
 	} else if (!heading) {
 		heading = "Listings in Florida and Surrounding Area";
 	}
