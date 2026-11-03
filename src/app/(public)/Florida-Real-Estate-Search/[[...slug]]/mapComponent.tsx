@@ -795,16 +795,16 @@ export default function MapComponent({
 						streetViewControl: false,
 						fullscreenControl: false,
 						zoomControl: true,
-						minZoom: 10,
+						minZoom: 8,
 						maxZoom: 20,
 						restriction: {
 							latLngBounds: {
-								north: 27.5,
-								south: 24.5,
-								west: -83.0,
-								east: -79.8,
+								north: 31.0,
+								south: 24.0,
+								west: -87.8,
+								east: -79.5,
 							},
-							strictBounds: true,
+							strictBounds: false,
 						},
 						zoomControlOptions: {
 							position: window.google.maps.ControlPosition.RIGHT_CENTER,

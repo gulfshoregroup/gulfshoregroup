@@ -5,6 +5,10 @@ import { getFeaturedProperties } from "@/lib/properties/getFeaturedProperties";
 
 const MAX_LIMIT = 200;
 
+const CACHE_HEADERS = {
+	"Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+};
+
 function parseNumber(value?: string | null) {
 	if (!value) return undefined;
 	const n = Number(value);

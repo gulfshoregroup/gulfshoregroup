@@ -130,10 +130,15 @@ export default async function ExtractSearchParams(
 						matchedCommunity = formattedSlugs[1] || null;
 					} else if (dbCityList.includes(formattedSlugs[1])) {
 						matchedCity = formattedSlugs[1] || null;
+						matchedCommunity = formattedSlugs[0] || null;
+					} else {
+						matchedCommunity = formattedSlugs[0] || null;
 					}
-				} else {
+				} else if (formattedSlugs.length === 1) {
 					if (dbCityList.includes(formattedSlugs[0])) {
 						matchedCity = formattedSlugs[0] || null;
+					} else {
+						matchedCommunity = formattedSlugs[0] || null;
 					}
 				}
 			}
