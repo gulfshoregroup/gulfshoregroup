@@ -47,14 +47,14 @@ export async function GET(req: NextRequest) {
 
 		// 1️⃣ FAST IN-MEMORY CACHE (< 1ms response)
 		const memCached = getFromSearchMemory(cacheKey);
-		if (memCached) return NextResponse.json(memCached);
+		if (memCached) return NextResponse.json(memCached, { headers: CACHE_HEADERS });
 
 		// 2️⃣ REDIS CACHE
 		const cached = await redisGet(cacheKey);
 		if (cached) {
 			const parsed = typeof cached === "string" ? JSON.parse(cached) : cached;
 			setInSearchMemory(cacheKey, parsed, 600);
-			return NextResponse.json(parsed);
+			return NextResponse.json(parsed, { headers: CACHE_HEADERS });
 		}
 
 		// ---- Pagination ----
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
 				totalPages: 1,
 			};
 			setInSearchMemory(cacheKey, responsePayload, 600);
-			return NextResponse.json(responsePayload);
+			return NextResponse.json(responsePayload, { headers: CACHE_HEADERS });
 		}
 
 		// ---- Sorting ----
@@ -660,7 +660,7 @@ export async function GET(req: NextRequest) {
 		setInSearchMemory(cacheKey, response, 600);
 		await redisSet(cacheKey, response, 7200);
 
-		return NextResponse.json(response);
+		return NextResponse.json(response, { headers: CACHE_HEADERS });
 	} catch (error: any) {
 		console.error("Search error:", error);
 		return NextResponse.json(
