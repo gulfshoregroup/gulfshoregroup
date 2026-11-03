@@ -159,10 +159,24 @@ export default function MapComponent({
 	const urlLat = searchParams?.get("lat") ? parseFloat(searchParams.get("lat")!) : null;
 	const urlLng = searchParams?.get("lng") ? parseFloat(searchParams.get("lng")!) : null;
 	const urlZoom = searchParams?.get("zoom") ? parseInt(searchParams.get("zoom")!, 10) : null;
+	
+	// Discard bad ocean coordinates (e.g. 26.3024, -81.9459 out in Gulf of Mexico water)
+	const isKnownBadOceanCoord = Boolean(
+		urlLat && urlLng && (
+			(Math.abs(urlLat - 26.3024) < 0.05 && Math.abs(urlLng - -81.9459) < 0.05) ||
+			(urlLng < -81.88 && urlLat < 26.4)
+		)
+	);
+	
 	const hasUrlCoords = Boolean(
+		!isKnownBadOceanCoord &&
 		urlLat && !isNaN(urlLat) && urlLat >= 24.0 && urlLat <= 31.5 &&
 		urlLng && !isNaN(urlLng) && urlLng >= -88.0 && urlLng <= -79.5
 	);
+
+	// Primary client market: Naples, FL (Heart of Gulfshore Group luxury listings)
+	const NAPLES_MAIN_CENTER = React.useMemo(() => ({ lat: 26.165, lng: -81.775 }), []);
+
 	const initialCenter = React.useMemo(() => {
 		if (hasUrlCoords && urlLat && urlLng) {
 			return { lat: urlLat, lng: urlLng };
@@ -176,8 +190,19 @@ export default function MapComponent({
 			(searchDev && CITY_CENTERS[searchDev] ? searchDev : null) ??
 			(searchDev && COMMUNITY_CITY_MAP[searchDev] ? COMMUNITY_CITY_MAP[searchDev] : null) ??
 			null;
-		return (lookupKey && CITY_CENTERS[lookupKey]) ? CITY_CENTERS[lookupKey] : { lat: 26.142, lng: -81.7948 };
-	}, [hasUrlCoords, urlLat, urlLng, filterParams?.city, filterParams?.developmentName, filterParams?.community]);
+		return (lookupKey && CITY_CENTERS[lookupKey]) ? CITY_CENTERS[lookupKey] : NAPLES_MAIN_CENTER;
+	}, [hasUrlCoords, urlLat, urlLng, filterParams?.city, filterParams?.developmentName, filterParams?.community, NAPLES_MAIN_CENTER]);
+
+	// Clean ocean coordinates from URL if present
+	React.useEffect(() => {
+		if (isKnownBadOceanCoord && typeof window !== "undefined" && window.history && window.history.replaceState) {
+			const url = new URL(window.location.href);
+			url.searchParams.delete("lat");
+			url.searchParams.delete("lng");
+			url.searchParams.delete("zoom");
+			window.history.replaceState(null, "", url.toString());
+		}
+	}, [isKnownBadOceanCoord]);
 
 	const [center, setCenter] = useState(initialCenter);
 	const [mapTypeId, setMapTypeId] = useState<"roadmap" | "satellite" | "hybrid" | "terrain">("hybrid");
@@ -192,6 +217,7 @@ export default function MapComponent({
 	const hasCenteredRef = useRef(false);
 	const isCenteringRef = useRef(false);
 	const lastFetchedBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
+	const isUserInteractingRef = useRef(false);
 
 	const dispatch = useAppDispatch();
 	const properties = useSelector(selectAllProperties);
@@ -278,7 +304,7 @@ export default function MapComponent({
 	React.useEffect(() => {
 		if (hasCenteredRef.current || !mapRef.current) return;
 
-		// If URL coords exist (e.g. user refreshed the page or followed a link), NEVER reset back to downtown!
+		// If valid URL coords exist (from intentional user navigation/refresh), preserve them
 		if (hasUrlCoords && urlLat && urlLng) {
 			mapRef.current.setCenter({ lat: urlLat, lng: urlLng });
 			if (urlZoom && !isNaN(urlZoom)) {
@@ -309,37 +335,12 @@ export default function MapComponent({
 			return;
 		}
 
-		// 2. If properties are already loaded with valid coordinates, fit to listings
-		if (properties.length > 0) {
-			const bounds = new window.google.maps.LatLngBounds();
-			let hasValidCoords = false;
-			properties.forEach((p: any) => {
-				const lat = parseFloat(p.Latitude);
-				const lng = parseFloat(p.Longitude);
-				if (!isNaN(lat) && !isNaN(lng) && lat >= 24.0 && lat <= 31.5 && lng >= -88.0 && lng <= -79.5) {
-					bounds.extend({ lat, lng });
-					hasValidCoords = true;
-				}
-			});
-			if (hasValidCoords) {
-				mapRef.current.fitBounds(bounds);
-				window.google.maps.event.addListenerOnce(mapRef.current, "bounds_changed", () => {
-					const z = mapRef.current?.getZoom();
-					if (z && z > 15) mapRef.current?.setZoom(15);
-					if (z && z < 9) mapRef.current?.setZoom(9);
-					setTimeout(() => { isCenteringRef.current = false; }, 300);
-				});
-				hasCenteredRef.current = true;
-				return;
-			}
-		}
-
-		// 3. Fallback: Southwest Florida regional center
-		mapRef.current.setCenter(SW_FL_CENTER);
-		mapRef.current.setZoom(10);
+		// 2. Default firmly to client's primary home market: Naples, Florida (Zoom 11)
+		mapRef.current.setCenter(NAPLES_MAIN_CENTER);
+		mapRef.current.setZoom(12);
 		hasCenteredRef.current = true;
 		setTimeout(() => { isCenteringRef.current = false; }, 300);
-	}, [filterParams?.city, filterParams?.community, filterParams?.developmentName, filterParams?.postalCode, properties, isLoaded, SW_FL_CENTER]);
+	}, [filterParams?.city, filterParams?.community, filterParams?.developmentName, filterParams?.postalCode, isLoaded, NAPLES_MAIN_CENTER, hasUrlCoords, urlLat, urlLng, urlZoom]);
 
 	const handlemarkerClick = (property: any) => {
 		if (
@@ -386,16 +387,21 @@ export default function MapComponent({
 				return;
 			}
 
-			// Sync current center and zoom to URL so refresh preserves exact position
-			if (typeof window !== "undefined" && window.history && window.history.replaceState) {
+			// Sync current center and zoom to URL only when user intentionally drags or zooms
+			if (isUserInteractingRef.current && typeof window !== "undefined" && window.history && window.history.replaceState) {
 				const curCenter = mapRef.current.getCenter();
 				const curZoom = mapRef.current.getZoom();
 				if (curCenter) {
-					const url = new URL(window.location.href);
-					url.searchParams.set("lat", curCenter.lat().toFixed(4));
-					url.searchParams.set("lng", curCenter.lng().toFixed(4));
-					if (curZoom) url.searchParams.set("zoom", curZoom.toString());
-					window.history.replaceState(null, "", url.toString());
+					const cLat = curCenter.lat();
+					const cLng = curCenter.lng();
+					// Never write ocean coordinates
+					if (!(cLng < -81.88 && cLat < 26.4)) {
+						const url = new URL(window.location.href);
+						url.searchParams.set("lat", cLat.toFixed(4));
+						url.searchParams.set("lng", cLng.toFixed(4));
+						if (curZoom) url.searchParams.set("zoom", curZoom.toString());
+						window.history.replaceState(null, "", url.toString());
+					}
 				}
 			}
 
@@ -531,6 +537,9 @@ export default function MapComponent({
 	const onLoad = useCallback(
 		(map: google.maps.Map) => {
 			mapRef.current = map;
+			map.addListener("dragstart", () => {
+				isUserInteractingRef.current = true;
+			});
 			map.addListener("idle", refreshData);
 			const panorama = map.getStreetView();
 			panorama.addListener("visible_changed", () => {
@@ -776,7 +785,7 @@ export default function MapComponent({
 					onLoad={onLoad}
 					onUnmount={onUnmount}
 					center={center}
-					zoom={hasUrlCoords && urlZoom ? urlZoom : 10}
+					zoom={hasUrlCoords && urlZoom ? urlZoom : 12}
 					mapTypeId={mapTypeId}
 					mapContainerStyle={mapContainerStyle}
 					onRightClick={handleRightClick}
@@ -786,16 +795,16 @@ export default function MapComponent({
 						streetViewControl: false,
 						fullscreenControl: false,
 						zoomControl: true,
-						minZoom: 8,
+						minZoom: 10,
 						maxZoom: 20,
 						restriction: {
 							latLngBounds: {
-								north: 31.5,
-								south: 24.0,
-								west: -88.0,
-								east: -79.5,
+								north: 27.5,
+								south: 24.5,
+								west: -83.0,
+								east: -79.8,
 							},
-							strictBounds: false,
+							strictBounds: true,
 						},
 						zoomControlOptions: {
 							position: window.google.maps.ControlPosition.RIGHT_CENTER,
