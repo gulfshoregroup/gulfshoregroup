@@ -18,6 +18,10 @@ export interface SearchParamsResult {
 	page: string;
 	features: string[];
 	community?: string | null;
+	q?: string;
+	subdivision?: string;
+	daysOld?: string;
+	school?: string;
 }
 
 let cachedDbCities: string[] | null = null;
