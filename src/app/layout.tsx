@@ -17,11 +17,9 @@ const poppins = Poppins({
 	display: "swap",
 });
 
-import dynamic from "next/dynamic";
 import UtmTracker from "../components/global/utmTracker";
-
-const ForcedLoginModal = dynamic(() => import("../components/auth/ForcedLoginModal"), { ssr: false });
-const MissingPhoneModal = dynamic(() => import("../components/auth/MissingPhoneModal"), { ssr: false });
+import ForcedLoginModal from "../components/auth/ForcedLoginModal";
+import MissingPhoneModal from "../components/auth/MissingPhoneModal";
 
 export const metadata: Metadata = {
 	title: "Naples Florida Real Estate Office - GULFSHORE GROUP",
