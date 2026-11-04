@@ -158,7 +158,7 @@ export default function RootLayout({
 								window.addEventListener('scroll', loadOneSignal, { passive: true, once: true });
 								window.addEventListener('click', loadOneSignal, { once: true });
 								window.addEventListener('touchstart', loadOneSignal, { passive: true, once: true });
-								setTimeout(loadOneSignal, 4500);
+								window.addEventListener('mousemove', loadOneSignal, { passive: true, once: true });
 							})();
 							`,
 						}}

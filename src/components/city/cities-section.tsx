@@ -71,7 +71,11 @@ export default function CitiesSection() {
 				// Keep fallback default cities if fetch fails
 			}
 		};
-		fetchCities();
+		if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+			(window as any).requestIdleCallback(() => fetchCities());
+		} else {
+			setTimeout(fetchCities, 2000);
+		}
 	}, []);
 
 	if (!cities || cities.length === 0) {
