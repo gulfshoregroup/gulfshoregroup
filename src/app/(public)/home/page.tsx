@@ -1,21 +1,33 @@
 import CitiesSection from "@/components/city/cities-section";
 import Footer from "@/components/global/footer";
 import Hero from "@/components/home/hero-section";
-import WhyChooseUs from "@/components/home/whyus-section";
 import { Suspense } from "react";
-import FeaturesSection from "@/components/home/features-section";
-import AboutSection from "@/components/about-section";
 import type { Metadata } from "next";
 import PropertySection from "@/components/property/propertysection/propertySlider";
-import BlogSection from "@/components/blogs/blogSection";
-import CityFAQ from "@/components/city/city-faq";
-
-import ReviewsSection from "@/components/home/scrollingReviewSection";
 import { getFeaturedProperties } from "@/lib/properties/getFeaturedProperties";
 import dynamic from "next/dynamic";
 
+// Below-the-fold dynamic imports for minimal initial JS execution (TBT < 150ms)
 const FloodZoneLookup = dynamic(
 	() => import("@/components/property/FloodZoneLookup")
+);
+const ReviewsSection = dynamic(
+	() => import("@/components/home/scrollingReviewSection")
+);
+const WhyChooseUs = dynamic(
+	() => import("@/components/home/whyus-section")
+);
+const FeaturesSection = dynamic(
+	() => import("@/components/home/features-section")
+);
+const AboutSection = dynamic(
+	() => import("@/components/about-section")
+);
+const BlogSection = dynamic(
+	() => import("@/components/blogs/blogSection")
+);
+const CityFAQ = dynamic(
+	() => import("@/components/city/city-faq")
 );
 // Enhanced metadata generation with comprehensive SEO
 export async function generateMetadata(): Promise<Metadata> {
