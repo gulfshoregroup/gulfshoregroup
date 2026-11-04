@@ -125,10 +125,16 @@ export default async function SearchListingPage({
 		redirect(`/Florida-Real-Estate-Search/${citySlug}/${communitySlug}${viewParam}`);
 	}
 
-	// 7. Database Match: Property Address
+	// 7. Database Match: Property Address (handles full address with city/zip e.g. "3696 Nelsons Walk, Naples 34102")
+	const streetPart = cleanSlug.includes(",") ? cleanSlug.split(",")[0].trim() : cleanSlug;
+	const normalizedStreet = streetPart.replace(/['’]/g, "");
 	const addressMatch = await prisma.property.findFirst({
 		where: {
-			FullAddress: { contains: cleanSlug }
+			OR: [
+				{ FullAddress: { contains: cleanSlug } },
+				{ FullAddress: { contains: streetPart } },
+				{ FullAddress: { contains: normalizedStreet } }
+			]
 		},
 		select: { City: true, Community: true, FullAddress: true, MLSNumber: true }
 	});

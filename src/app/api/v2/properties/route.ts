@@ -270,18 +270,21 @@ export async function GET(req: NextRequest) {
 			if (KNOWN_CITIES[upperQ]) {
 				where.City = { contains: KNOWN_CITIES[upperQ] };
 			} else {
+				const streetPart = cleanQ.includes(",") ? cleanQ.split(",")[0].trim() : cleanQ;
+				const orConditions: any[] = [
+					{ City: { contains: cleanQ } },
+					{ Community: { contains: cleanQ } },
+					{ SubdivisionName: { contains: cleanQ } },
+					{ PostalCode: { contains: cleanQ } },
+					{ MLSNumber: { contains: cleanQ } },
+					{ ListingId: { contains: cleanQ } },
+					{ FullAddress: { contains: cleanQ } },
+				];
+				if (streetPart && streetPart !== cleanQ) {
+					orConditions.push({ FullAddress: { contains: streetPart } });
+				}
 				where.AND = where.AND || [];
-				where.AND.push({
-					OR: [
-						{ City: { contains: cleanQ } },
-						{ Community: { contains: cleanQ } },
-						{ SubdivisionName: { contains: cleanQ } },
-						{ PostalCode: { contains: cleanQ } },
-						{ MLSNumber: { contains: cleanQ } },
-						{ ListingId: { contains: cleanQ } },
-						{ FullAddress: { contains: cleanQ } },
-					],
-				});
+				where.AND.push({ OR: orConditions });
 			}
 		}
 
