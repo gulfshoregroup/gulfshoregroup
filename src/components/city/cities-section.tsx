@@ -1,11 +1,9 @@
 "use client";
+
 import { Card } from "../ui/card";
 import Image from "next/image";
-import { ScrollArea, ScrollBar } from "../ui/scroll-area";
+import Link from "next/link";
 import capitalizeWords from "@/hooks/capitalize-letter";
-import { useEffect, useState } from "react";
-import { Skeleton } from "../ui/skeleton";
-import { useRouter } from "next/navigation";
 import {
 	Carousel,
 	CarouselContent,
@@ -13,7 +11,6 @@ import {
 	CarouselNext,
 	CarouselPrevious,
 } from "../ui/carousel";
-import axios from "axios";
 
 const DEFAULT_FEATURED_CITIES = [
 	{ id: 1, name: "Naples", slug: "naples", defaultImage: null, images: null, _count: { communities: 371, properties: 4978 } },
@@ -33,91 +30,20 @@ const DEFAULT_FEATURED_CITIES = [
 ];
 
 export default function CitiesSection() {
-	const [cities, setCities] = useState<any[]>(DEFAULT_FEATURED_CITIES);
-	const router = useRouter();
-	useEffect(() => {
-		const fetchCities = async () => {
-			try {
-				const citiesRes = await axios.get(
-					`/api/v2/cities?type=featured`
-				);
-				if (citiesRes.data && Array.isArray(citiesRes.data.data) && citiesRes.data.data.length > 0) {
-					const allowedSWFL = [
-						"naples",
-						"bonita springs",
-						"marco island",
-						"estero",
-						"fort myers",
-						"cape coral",
-						"ave maria",
-						"sanibel",
-						"captiva",
-						"fort myers beach",
-						"miromar lakes",
-						"babcock ranch",
-						"lehigh acres",
-						"immokalee",
-					];
-					const filtered = citiesRes.data.data.filter((c: any) =>
-						c?.name &&
-						allowedSWFL.includes(c.name.trim().toLowerCase()) &&
-						(c._count?.properties ?? c._count?.communities ?? 1) > 0
-					);
-					if (filtered.length > 0) {
-						setCities(filtered);
-					}
-				}
-			} catch (error) {
-				// Keep fallback default cities if fetch fails
-			}
-		};
-		if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-			(window as any).requestIdleCallback(() => fetchCities());
-		} else {
-			setTimeout(fetchCities, 2000);
-		}
-	}, []);
-
-	if (!cities || cities.length === 0) {
-		return (
-			<section className="w-dvw pl-4 md:pl-12">
-				<ScrollArea className="w-full whitespace-nowrap rounded-md">
-					<div className=" space-x-2 p-4 flex">
-						{Array.from({ length: 7 }).map((_, index) => (
-							<Skeleton
-								key={index}
-								className="h-56 w-44 md:w-48 rounded-2xl shrink-0"
-							/>
-						))}
-					</div>
-					<ScrollBar orientation="horizontal" />
-				</ScrollArea>
-			</section>
-		);
-	}
-
 	return (
-		<>
-			<div className="w-11/12 mx-auto">
-				<Carousel
-					opts={{
-						align: "start",
-						loop: true,
-					}}>
-					<CarouselContent className="my-2">
-						{" "}
-						{cities.map((city: any, index: number) => {
-							return (
-								<CarouselItem key={index} className=" basis-auto">
+		<div className="w-11/12 mx-auto">
+			<Carousel
+				opts={{
+					align: "start",
+					loop: true,
+				}}>
+				<CarouselContent className="my-2">
+					{DEFAULT_FEATURED_CITIES.map((city, index) => {
+						const cityHref = `/Florida-Real-Estate-Search/${capitalizeWords(city.name).replaceAll(" ", "-")}`;
+						return (
+							<CarouselItem key={index} className=" basis-auto">
+								<Link href={cityHref} className="block">
 									<Card
-										onClick={() => {
-											router.replace(
-												`/Florida-Real-Estate-Search/${capitalizeWords(
-													city.name
-												).replaceAll(" ", "-")}`
-											);
-										}}
-										key={index}
 										className="h-64 w-52 md:w-56 group relative overflow-hidden hover:cursor-pointer rounded-2xl border-0 shadow-md shrink-0">
 										<div className="relative h-full w-full">
 											<Image
@@ -139,14 +65,14 @@ export default function CitiesSection() {
 											</div>
 										</div>
 									</Card>
-								</CarouselItem>
-							);
-						})}
-					</CarouselContent>
-					<CarouselPrevious className="w-9 h-9 left-1 md:-left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md border-0" />
-					<CarouselNext className="w-9 h-9 right-1 md:-right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md border-0" />
-				</Carousel>
-			</div>
-		</>
+								</Link>
+							</CarouselItem>
+						);
+					})}
+				</CarouselContent>
+				<CarouselPrevious className="w-9 h-9 left-1 md:-left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md border-0" />
+				<CarouselNext className="w-9 h-9 right-1 md:-right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md border-0" />
+			</Carousel>
+		</div>
 	);
 }

@@ -1,7 +1,4 @@
-"use client";
-
 import { Star } from "lucide-react";
-import ReadMore from "../property/readmore";
 
 interface Review {
 	name: string;

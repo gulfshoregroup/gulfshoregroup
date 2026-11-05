@@ -1,13 +1,11 @@
-import React, { Suspense } from "react";
+import React from "react";
 import Link from "next/link";
 import {
-	ArrowUpRightFromSquare,
 	Calculator,
 	ChevronsRightIcon,
 	Map,
 	Search,
 } from "lucide-react";
-import { Filters } from "../search/desktopFilters";
 
 const FeaturesSection = () => {
 	return (
@@ -41,14 +39,12 @@ const FeaturesSection = () => {
 										property type, and more.
 									</p>
 
-									<Suspense
-										fallback={
-											<span className="text-gray-500">
-												Loading filters…
-											</span>
-										}>
-										<Filters asLink={true} />
-									</Suspense>
+									<Link
+										href="/Florida-Real-Estate-Search"
+										className="text-blue-700 font-medium items-center text-sm md:text-md hover:underline inline-flex gap-0.5 cursor-pointer">
+										<span>Filter Properties</span>
+										<ChevronsRightIcon size={20} />
+									</Link>
 								</div>
 							</div>
 						</div>

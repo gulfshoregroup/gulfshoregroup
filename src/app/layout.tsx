@@ -18,8 +18,7 @@ const poppins = Poppins({
 });
 
 import UtmTracker from "../components/global/utmTracker";
-import ForcedLoginModal from "../components/auth/ForcedLoginModal";
-import MissingPhoneModal from "../components/auth/MissingPhoneModal";
+import AuthModals from "../components/auth/AuthModals";
 
 export const metadata: Metadata = {
 	title: "Naples Florida Real Estate Office - GULFSHORE GROUP",
@@ -122,8 +121,7 @@ export default function RootLayout({
 					/>
 					<StoreProvider>
 						<UtmTracker />
-						<ForcedLoginModal />
-						<MissingPhoneModal />
+						<AuthModals />
 						{children}
 					</StoreProvider>
 
@@ -141,6 +139,7 @@ export default function RootLayout({
 									window.removeEventListener('scroll', loadOneSignal);
 									window.removeEventListener('click', loadOneSignal);
 									window.removeEventListener('touchstart', loadOneSignal);
+									window.removeEventListener('mousemove', loadOneSignal);
 									var script = document.createElement('script');
 									script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
 									script.async = true;
@@ -164,19 +163,37 @@ export default function RootLayout({
 						}}
 					/>
 					<Script
-						src="https://www.googletagmanager.com/gtag/js?id=G-1VDEW2DPN8"
-						strategy="lazyOnload"
-					/>
-					<Script
-						id="google-analytics"
+						id="google-analytics-deferred"
 						strategy="lazyOnload"
 						dangerouslySetInnerHTML={{
 							__html: `
-							window.dataLayer = window.dataLayer || [];
-							function gtag(){dataLayer.push(arguments);}
-							gtag('js', new Date());
-							gtag('config', 'G-1VDEW2DPN8', { send_page_view: true });
-						`,
+							(function() {
+								var loaded = false;
+								function loadGA() {
+									if (loaded) return;
+									loaded = true;
+									window.removeEventListener('scroll', loadGA);
+									window.removeEventListener('click', loadGA);
+									window.removeEventListener('touchstart', loadGA);
+									window.removeEventListener('mousemove', loadGA);
+									
+									var script = document.createElement('script');
+									script.src = "https://www.googletagmanager.com/gtag/js?id=G-1VDEW2DPN8";
+									script.async = true;
+									document.head.appendChild(script);
+
+									window.dataLayer = window.dataLayer || [];
+									function gtag(){dataLayer.push(arguments);}
+									gtag('js', new Date());
+									gtag('config', 'G-1VDEW2DPN8', { send_page_view: true });
+								}
+								window.addEventListener('scroll', loadGA, { passive: true, once: true });
+								window.addEventListener('click', loadGA, { once: true });
+								window.addEventListener('touchstart', loadGA, { passive: true, once: true });
+								window.addEventListener('mousemove', loadGA, { passive: true, once: true });
+								setTimeout(loadGA, 4000);
+							})();
+							`,
 						}}
 					/>
 				</body>

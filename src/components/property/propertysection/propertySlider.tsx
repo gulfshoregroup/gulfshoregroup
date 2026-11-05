@@ -54,8 +54,6 @@ export default function PropertySection({
 	useEffect(() => {
 		// If initialProperties are provided, synchronize state and skip client fetch
 		if (initialProperties && initialProperties.length > 0) {
-			setProperties(initialProperties);
-			setLoading(false);
 			return;
 		}
 
