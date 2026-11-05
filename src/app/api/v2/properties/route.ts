@@ -655,14 +655,29 @@ export async function GET(req: NextRequest) {
 
 		// PERF: each stored image object has ~10 fields (~370 bytes) but the UI only reads
 		// MediaURL + MediaCategory. Trimming keeps ALL photos while cutting payload ~70%.
-		const slimImages = (imgs: any) =>
-			Array.isArray(imgs)
-				? imgs.map((img: any) =>
-						img && typeof img === "object"
-							? { MediaURL: img.MediaURL, MediaCategory: img.MediaCategory }
-							: img
-				  )
-				: [];
+		const slimImages = (imgs: any) => {
+			let arr = imgs;
+			if (typeof arr === "string") {
+				try {
+					arr = JSON.parse(arr);
+				} catch (e) {
+					arr = [];
+				}
+			}
+			if (!Array.isArray(arr)) return [];
+			return arr
+				.map((img: any) => {
+					if (typeof img === "string" && img.trim() !== "") {
+						return { MediaURL: img, MediaCategory: "Photo" };
+					}
+					if (img && typeof img === "object") {
+						const url = img.MediaURL || img.url || img.URL || img.mediaUrl || img.MediaUrl || img.source;
+						return url ? { MediaURL: url, MediaCategory: img.MediaCategory || "Photo" } : null;
+					}
+					return null;
+				})
+				.filter(Boolean);
+		};
 
 		const data = properties.map((p: any) => {
 			return {

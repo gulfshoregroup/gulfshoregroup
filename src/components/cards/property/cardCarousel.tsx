@@ -30,7 +30,14 @@ export default function CardCarousel({
 }) {
 	const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
-	const media = property.images as any;
+	let media = property.images as any;
+	if (typeof media === "string") {
+		try {
+			media = JSON.parse(media);
+		} catch (e) {
+			media = [];
+		}
+	}
 	let images: string[] = [];
 	const isOffMarket = ["Withdrawn", "Canceled", "Expired", "Off Market", "Off-Market"].includes(property.StandardStatus || "");
 
@@ -38,16 +45,17 @@ export default function CardCarousel({
 		const lat = property.Latitude || 26.142;
 		const lng = property.Longitude || -81.7948;
 		const mapApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-		images = [`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=19&size=600x400&maptype=satellite&key=${mapApiKey}`];
-	} else if (Array.isArray(media) && media.length > 0) {
+		if (mapApiKey) {
+			images = [`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=19&size=600x400&maptype=satellite&key=${mapApiKey}`];
+		}
+	}
+
+	if (images.length === 0 && Array.isArray(media) && media.length > 0) {
 		images = media
 			.map((item: any) => {
-				// Handle plain URL strings
-				if (typeof item === "string" && item.trim() !== "") return item;
-				// Handle objects with MediaURL (accept Photo category or missing category)
-				if (typeof item?.MediaURL === "string" && item.MediaURL.trim() !== "") {
-					if (!item.MediaCategory || item.MediaCategory === "Photo") return item.MediaURL;
-				}
+				if (typeof item === "string" && item.trim() !== "") return item.trim();
+				const url = item?.MediaURL || item?.url || item?.URL || item?.mediaUrl || item?.MediaUrl;
+				if (typeof url === "string" && url.trim() !== "") return url.trim();
 				return null;
 			})
 			.filter(Boolean) as string[];

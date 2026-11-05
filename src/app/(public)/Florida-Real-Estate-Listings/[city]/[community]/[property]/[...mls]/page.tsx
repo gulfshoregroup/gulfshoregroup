@@ -107,8 +107,13 @@ export default async function Listing({
 		images = [`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=19&size=800x400&maptype=satellite&key=${mapApiKey}`];
 	} else if (media && Array.isArray(media) && media.length > 0) {
 		images = media
-			.filter((item: any) => item.MediaCategory === "Photo")
-			.map((item: any) => item.MediaURL);
+			.map((item: any) => {
+				if (typeof item === "string" && item.trim() !== "") return item.trim();
+				const url = item?.MediaURL || item?.url || item?.URL || item?.mediaUrl || item?.MediaUrl;
+				if (typeof url === "string" && url.trim() !== "") return url.trim();
+				return null;
+			})
+			.filter(Boolean);
 	}
 
 	const isValidField = (value: any) => {

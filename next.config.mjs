@@ -47,7 +47,22 @@ const nextConfig = {
 			},
 			{
 				protocol: "https",
+				hostname: "**.cloudfront.net",
+				pathname: "/**",
+			},
+			{
+				protocol: "https",
 				hostname: "dvvjkgh94f2v6.cloudfront.net",
+				pathname: "/**",
+			},
+			{
+				protocol: "https",
+				hostname: "**.bridgedataoutput.com",
+				pathname: "/**",
+			},
+			{
+				protocol: "https",
+				hostname: "**.amazonaws.com",
 				pathname: "/**",
 			},
 			{
