@@ -148,6 +148,16 @@ export default function MapViewList({
 					</button>
 				)}
 				<button
+					onClick={() => handleStatusChange("Expired")}
+					className={`pb-2.5 font-medium border-b-2 transition-all ${
+						currentStatus === "Expired"
+							? "border-[#B89A6A] text-[#1C1712] font-semibold"
+							: "border-transparent text-[#7A7060] hover:text-[#1C1712]"
+					}`}
+				>
+					Off Market
+				</button>
+				<button
 					onClick={() => handleStatusChange("Pending")}
 					className={`pb-2.5 font-medium border-b-2 transition-all ${
 						currentStatus === "Pending"
@@ -161,7 +171,7 @@ export default function MapViewList({
 		</div>
 	);
 
-	if (loading || (list.length === 0 && success === null && !error)) {
+	if ((loading && list.length === 0) || (list.length === 0 && success === null && !error)) {
 		return (
 			<div className="w-full">
 				{StickyHeader}

@@ -1,6 +1,7 @@
 import capitalizeWords from "@/hooks/capitalize-letter";
 import UrlMaker from "@/hooks/url-maker";
 import prisma from "@/lib/prisma";
+import { extractAddressParts } from "@/lib/search-filters";
 import { redirect } from "next/navigation";
 
 const KNOWN_SWFL_CITIES: Record<string, string> = {
@@ -126,28 +127,25 @@ export default async function SearchListingPage({
 	}
 
 	// 7. Database Match: Property Address (handles full address with city/zip e.g. "3696 Nelsons Walk, Naples 34102")
-	const streetPart = cleanSlug.includes(",") ? cleanSlug.split(",")[0].trim() : cleanSlug;
-	const normalizedStreet = streetPart.replace(/['’]/g, "");
-	const addressMatch = await prisma.property.findFirst({
-		where: {
-			OR: [
-				{ FullAddress: { contains: cleanSlug } },
-				{ FullAddress: { contains: streetPart } },
-				{ FullAddress: { contains: normalizedStreet } }
-			]
-		},
-		select: { City: true, Community: true, FullAddress: true, MLSNumber: true }
-	});
+	const addressVariants = extractAddressParts(cleanSlug);
+	if (addressVariants.length > 0) {
+		const addressMatch = await prisma.property.findFirst({
+			where: {
+				OR: addressVariants.map((v) => ({ FullAddress: { contains: v } })),
+			},
+			select: { City: true, Community: true, FullAddress: true, MLSNumber: true }
+		});
 
-	if (addressMatch) {
-		redirect(
-			UrlMaker(
-				addressMatch.City,
-				addressMatch.Community || "",
-				addressMatch.FullAddress,
-				addressMatch.MLSNumber
-			)
-		);
+		if (addressMatch) {
+			redirect(
+				UrlMaker(
+					addressMatch.City,
+					addressMatch.Community || "",
+					addressMatch.FullAddress,
+					addressMatch.MLSNumber
+				)
+			);
+		}
 	}
 
 	// 8. Database Match: Subdivision Name

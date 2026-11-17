@@ -213,3 +213,66 @@ export const buildSearchPathWithLocation = ({
 	}
 	return BASE_SEARCH_PATH;
 };
+
+
+export function extractAddressParts(query: string): string[] {
+	if (!query || typeof query !== 'string') return [];
+	let clean = query.replace(/,\s*(fl|florida|usa)\b/gi, '').trim();
+
+	// 1. If comma exists: '3696 Nelsons Walk, Naples 34102' -> '3696 Nelsons Walk'
+	let streetCandidate = clean.includes(',') ? clean.split(',')[0].trim() : clean;
+
+	// 2. If no comma, strip 5-digit zip code if at end
+	streetCandidate = streetCandidate.replace(/\s+\d{5}(-\d{4})?$/i, '').trim();
+
+	// 3. Strip known SWFL cities if attached to the end without comma
+	const knownCityPattern = /\s+(naples|bonita springs|bonita|estero|ave maria|marco island|fort myers beach|fort myers|cape coral|babcock ranch|lehigh acres|immokalee|sanibel|captiva)$/i;
+	streetCandidate = streetCandidate.replace(knownCityPattern, '').trim();
+
+	const variants = new Set<string>();
+	if (clean && clean.length >= 3) variants.add(clean);
+	if (streetCandidate && streetCandidate.length >= 3) {
+		variants.add(streetCandidate);
+		// Without apostrophes: "Nelson's" -> "Nelsons"
+		variants.add(streetCandidate.replace(/['’]/g, ''));
+		// With apostrophe before trailing 's': "Nelsons" -> "Nelson's"
+		variants.add(streetCandidate.replace(/\b([a-zA-Z]+)s\b/g, "$1's"));
+
+		// Common street suffix abbreviations
+		const suffixMap: [RegExp, string][] = [
+			[/\bwalk\b/gi, 'Wlk'],
+			[/\bwlk\b/gi, 'Walk'],
+			[/\bcourt\b/gi, 'Ct'],
+			[/\bct\b/gi, 'Court'],
+			[/\bstreet\b/gi, 'St'],
+			[/\bst\b/gi, 'Street'],
+			[/\bdrive\b/gi, 'Dr'],
+			[/\bdr\b/gi, 'Drive'],
+			[/\blane\b/gi, 'Ln'],
+			[/\bln\b/gi, 'Lane'],
+			[/\broad\b/gi, 'Rd'],
+			[/\brd\b/gi, 'Road'],
+			[/\bboulevard\b/gi, 'Blvd'],
+			[/\bblvd\b/gi, 'Boulevard'],
+			[/\bcircle\b/gi, 'Cir'],
+			[/\bcir\b/gi, 'Circle'],
+			[/\bway\b/gi, 'Wy'],
+			[/\bwy\b/gi, 'Way'],
+			[/\bparkway\b/gi, 'Pkwy'],
+			[/\bpkwy\b/gi, 'Parkway'],
+			[/\bterrace\b/gi, 'Ter'],
+			[/\bter\b/gi, 'Terrace'],
+			[/\bplace\b/gi, 'Pl'],
+			[/\bpl\b/gi, 'Place'],
+		];
+		for (const [pattern, replacement] of suffixMap) {
+			if (pattern.test(streetCandidate)) {
+				const swapped = streetCandidate.replace(pattern, replacement);
+				variants.add(swapped);
+				variants.add(swapped.replace(/['’]/g, ''));
+			}
+		}
+	}
+
+	return Array.from(variants).filter((v) => v.length >= 3);
+}

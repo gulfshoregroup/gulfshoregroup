@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { extractAddressParts } from "@/lib/search-filters";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
@@ -10,18 +11,26 @@ export async function GET(req: Request) {
 			return NextResponse.json({ suggestions: [] });
 		}
 
+		const addressVariants = extractAddressParts(q);
+		const orClauses: any[] = [
+			{ City: { contains: q } },
+			{ Community: { contains: q } },
+			{ SubdivisionName: { contains: q } },
+			{ PostalCode: { contains: q } },
+			{ MLSNumber: { contains: q } },
+			{ ListingId: { contains: q } },
+			{ FullAddress: { contains: q } },
+		];
+		for (const v of addressVariants) {
+			if (v !== q) {
+				orClauses.push({ FullAddress: { contains: v } });
+			}
+		}
+
 		const properties = await prisma.property.findMany({
 			where: {
 				NOT: { PropertyType: { contains: "Lease" } },
-				OR: [
-					{ City: { contains: q } },
-					{ Community: { contains: q } },
-					{ SubdivisionName: { contains: q } },
-					{ PostalCode: { contains: q } },
-					{ MLSNumber: { contains: q } },
-					{ ListingId: { contains: q } },
-					{ FullAddress: { contains: q } },
-				],
+				OR: orClauses,
 			},
 			select: {
 				City: true,
@@ -127,9 +136,12 @@ export async function GET(req: Request) {
 			}
 
 			// FULL ADDRESS
+			const matchesAddress = p.FullAddress && (
+				p.FullAddress.toLowerCase().includes(q.toLowerCase()) ||
+				addressVariants.some(v => p.FullAddress.toLowerCase().includes(v.toLowerCase()))
+			);
 			if (
-				p.FullAddress &&
-				p.FullAddress.toLowerCase().includes(q.toLowerCase()) &&
+				matchesAddress &&
 				!suggestionsMap.has(`address-${p.FullAddress}`)
 			) {
 				suggestionsMap.set(`address-${p.FullAddress}`, {

@@ -354,7 +354,9 @@ export default function MapComponent({
 				const lat = parseFloat(property.Latitude);
 				const lng = parseFloat(property.Longitude);
 				if (!isNaN(lat) && !isNaN(lng)) {
+					isCenteringRef.current = true;
 					mapRef.current.panTo({ lat, lng });
+					setTimeout(() => { isCenteringRef.current = false; }, 1500);
 				}
 			}
 		} else {
@@ -847,7 +849,7 @@ export default function MapComponent({
 				</GoogleMap>
 			)}
 			{ui.details && !showDrone && (
-				<div className="absolute bottom-2 left-2 right-2 z-40 lg:hidden">
+				<div className="absolute bottom-4 left-4 z-40 max-w-sm sm:max-w-md w-full shadow-2xl">
 					<PropertyCard2
 						property={ui.details}
 						onCardClose={() => dispatch(setMapCard(null))}

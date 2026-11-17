@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { redisGet, redisSet } from "@/lib/safeRedis";
 import { getFeaturedProperties } from "@/lib/properties/getFeaturedProperties";
+import { extractAddressParts } from "@/lib/search-filters";
 
 const MAX_LIMIT = 200;
 
@@ -127,12 +128,15 @@ export async function GET(req: NextRequest) {
 
 		// ---- Listing Status ----
 		let isMockingClosed = false;
-		const statusVal = query.get("status") || query.get("Status") || "Active";
+		const statusParam = query.get("status") || query.get("Status");
+		const qValRaw = query.get("q") || query.get("search");
+		const isSpecificAddress = Boolean(qValRaw && /^\d+\s+[a-zA-Z]/i.test(qValRaw.trim()));
+		const statusVal = statusParam || (isSpecificAddress ? "All" : "Active");
 		if (statusVal && statusVal !== "All") {
 			if (statusVal === "Sold" || statusVal === "Closed") {
 				where.StandardStatus = { in: ["Closed", "Sold"] };
 				isMockingClosed = false;
-			} else if (statusVal === "Expired") {
+			} else if (statusVal === "Expired" || statusVal === "Off Market" || statusVal === "OffMarket") {
 				where.StandardStatus = { in: ["Expired", "Withdrawn", "Canceled"] };
 			} else if (statusVal === "Closed/Expired" || statusVal === "Closed / Expired") {
 				where.StandardStatus = { in: ["Closed", "Sold", "Expired", "Withdrawn", "Canceled"] };
@@ -270,7 +274,7 @@ export async function GET(req: NextRequest) {
 			if (KNOWN_CITIES[upperQ]) {
 				where.City = { contains: KNOWN_CITIES[upperQ] };
 			} else {
-				const streetPart = cleanQ.includes(",") ? cleanQ.split(",")[0].trim() : cleanQ;
+				const addressVariants = extractAddressParts(cleanQ);
 				const orConditions: any[] = [
 					{ City: { contains: cleanQ } },
 					{ Community: { contains: cleanQ } },
@@ -280,8 +284,10 @@ export async function GET(req: NextRequest) {
 					{ ListingId: { contains: cleanQ } },
 					{ FullAddress: { contains: cleanQ } },
 				];
-				if (streetPart && streetPart !== cleanQ) {
-					orConditions.push({ FullAddress: { contains: streetPart } });
+				for (const v of addressVariants) {
+					if (v !== cleanQ) {
+						orConditions.push({ FullAddress: { contains: v } });
+					}
 				}
 				where.AND = where.AND || [];
 				where.AND.push({ OR: orConditions });
