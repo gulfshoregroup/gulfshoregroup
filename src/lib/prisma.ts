@@ -41,19 +41,22 @@ function createPrismaClient() {
 		user: url.username,
 		password: url.password,
 		database: url.pathname ? url.pathname.slice(1) : "railway",
-		connectTimeout: 90000,
-		connectionLimit: 40,
-		acquireTimeout: 90000,
-		socketTimeout: 120000,
+		connectTimeout: 15000,  // 15s — was 90s
+		connectionLimit: 10,    // 10 — was 40 (Railway free tier has limits)
+		acquireTimeout: 20000,  // 20s — was 90s
+		socketTimeout: 60000,   // 60s
+		waitForConnections: true,
 	} as any);
 	return new PrismaClient({ adapter });
 }
 
-const prisma = globalForPrisma.prisma || createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-	globalForPrisma.prisma = prisma;
+// Always cache the Prisma client globally — in production too.
+// Without this, every request creates a new connection pool → pool exhaustion → 90s timeout.
+if (!globalForPrisma.prisma) {
+	globalForPrisma.prisma = createPrismaClient();
 }
+
+const prisma = globalForPrisma.prisma;
 
 export default prisma;
 export { prisma };
