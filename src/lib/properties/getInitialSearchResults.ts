@@ -9,6 +9,30 @@ export type InitialSearchResults = {
 	totalPages: number;
 };
 
+// Fields read by PropertyCard / CardCarousel (+ ids used by map/wishlist).
+// Everything else (descriptions, agent contacts, 30-60 photos per listing)
+// was being serialized into the page HTML for 36 listings (~370 KB).
+const CARD_FIELDS = [
+	"id", "ListingId", "ListingKey", "MLSNumber", "Community", "Development",
+	"StandardStatus", "MlsStatus", "StatusType", "OnMarketDate", "OnMarketTimestamp",
+	"ListPrice", "ClosePrice", "OriginalListPrice",
+	"City", "StateOrProvince", "PostalCode", "FullAddress",
+	"PropertyType", "PropertySubType", "BedroomsTotal", "BathroomsFull", "BathroomsHalf",
+	"BathroomsTotalDecimal", "LivingArea", "YearBuilt", "LotSizeAcres",
+	"Latitude", "Longitude", "WaterfrontYN", "PoolPrivateYN", "SpaYN", "GulfAccessYN",
+	"HOAFee", "HOAFeeFreq", "MasterHOAFee", "MasterHOAFeeFreq", "MandatoryHOAYN",
+	"ListOfficeName", "isWishlisted",
+	"VirtualTourURLBranded", "VirtualTourURLUnbranded", // map details panel
+];
+const MAX_CARD_PHOTOS = 8; // CardCarousel shows at most 8
+
+function slimForCard(p: any) {
+	const out: any = {};
+	for (const k of CARD_FIELDS) if (p[k] !== undefined) out[k] = p[k];
+	out.images = Array.isArray(p.images) ? p.images.slice(0, MAX_CARD_PHOTOS) : p.images;
+	return out;
+}
+
 export const SEARCH_PAGE_LIMIT = 36; // must match `limit` in state/slices/searchSlice.ts
 
 /**
@@ -45,7 +69,7 @@ export async function getInitialSearchResults(
 		if (!json?.success || !Array.isArray(json.data)) return undefined;
 
 		return {
-			data: json.data,
+			data: json.data.map(slimForCard),
 			total: Number(json.total) || 0,
 			totalPages: Number(json.totalPages) || 0,
 		};

@@ -8,9 +8,8 @@ import { getFeaturedProperties } from "@/lib/properties/getFeaturedProperties";
 import dynamic from "next/dynamic";
 
 // Below-the-fold dynamic imports for minimal initial JS execution (TBT < 150ms)
-const FloodZoneLookup = dynamic(
-	() => import("@/components/property/FloodZoneLookup")
-);
+// Flood tool JS loads only when scrolled near (see lazyFloodZoneLookup.tsx).
+import FloodZoneLookup from "@/components/property/lazyFloodZoneLookup";
 const ReviewsSection = dynamic(
 	() => import("@/components/home/scrollingReviewSection")
 );

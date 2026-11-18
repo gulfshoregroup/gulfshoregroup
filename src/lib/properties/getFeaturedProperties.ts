@@ -11,8 +11,29 @@ const globalForFeatured = globalThis as unknown as {
 	featuredFetchPromise?: Promise<Property[]> | null;
 };
 
-const FEATURED_CACHE_KEY = "featured:home:latest:v2";
+const FEATURED_CACHE_KEY = "featured:home:latest:v3"; // v3 = slim payload
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes in-memory
+
+// Cards show at most 8 photos and only read MediaURL (+ MediaCategory).
+function slimCardImages(imgs: any) {
+	let arr = imgs;
+	if (typeof arr === "string") {
+		try {
+			arr = JSON.parse(arr);
+		} catch {
+			arr = [];
+		}
+	}
+	if (!Array.isArray(arr)) return [];
+	return arr
+		.map((img: any) => {
+			if (typeof img === "string" && img.trim() !== "") return { MediaURL: img, MediaCategory: "Photo" };
+			const url = img?.MediaURL || img?.url || img?.URL || img?.mediaUrl || img?.MediaUrl;
+			return url ? { MediaURL: url, MediaCategory: img.MediaCategory || "Photo" } : null;
+		})
+		.filter(Boolean)
+		.slice(0, 8);
+}
 
 export async function getFeaturedProperties(): Promise<Property[]> {
 	const now = Date.now();
@@ -69,115 +90,44 @@ export async function getFeaturedProperties(): Promise<Property[]> {
 				} as any,
 				take: 8,
 				orderBy: { OnMarketTimestamp: "desc" },
+				// Only the fields the property card renders. The full row (all MLS
+				// photo metadata, agent contacts, HOA, zoning...) was ~170 KB of the
+				// homepage HTML, serialized into the page for 8 cards.
 				select: {
 					id: true,
-					ListingKey: true,
 					ListingId: true,
 					MLSNumber: true,
-					SourceSystemKey: true,
-					Development: true,
 					Community: true,
 					StandardStatus: true,
 					MlsStatus: true,
-					StatusType: true,
 					OnMarketDate: true,
 					OnMarketTimestamp: true,
-					StatusChangeTimestamp: true,
-					ModificationTimestamp: true,
-					BridgeModificationTimestamp: true,
-					MajorChangeType: true,
-					MajorChangeTimestamp: true,
 					ListPrice: true,
 					ClosePrice: true,
 					OriginalListPrice: true,
-					PriceChangeTimestamp: true,
 					City: true,
 					StateOrProvince: true,
 					PostalCode: true,
-					CountyOrParish: true,
 					FullAddress: true,
-					Description: true,
 					PropertyType: true,
 					PropertySubType: true,
 					BedroomsTotal: true,
 					BathroomsFull: true,
-					BathroomsHalf: true,
-					BathroomsTotalInteger: true,
-					BathroomsTotalDecimal: true,
 					LivingArea: true,
-					LivingAreaUnits: true,
-					BuildingAreaTotal: true,
-					BuildingAreaUnits: true,
 					YearBuilt: true,
-					StoriesTotal: true,
-					RoomsTotal: true,
 					LotSizeAcres: true,
-					LotSizeSquareFeet: true,
-					LotSizeArea: true,
-					LotSizeUnits: true,
-					SubdivisionName: true,
-					MLSAreaMajor: true,
-					MLSAreaMinor: true,
-					Directions: true,
 					Latitude: true,
 					Longitude: true,
-					MapCoordinate: true,
-					HeatingYN: true,
-					CoolingYN: true,
-					GarageYN: true,
-					GarageSpaces: true,
-					AttachedGarageYN: true,
-					CarportYN: true,
-					CarportSpaces: true,
-					CoveredSpaces: true,
-					ParkingTotal: true,
 					WaterfrontYN: true,
-					ViewYN: true,
-					View: true,
-					GulfAccessYN: true,
 					PoolPrivateYN: true,
 					SpaYN: true,
-					AssociationYN: true,
-					AssociationFee: true,
-					AssociationFeeFrequency: true,
-					AssociationAmenities: true,
-					CommunityFeatures: true,
-					DaysOnMarket: true,
-					NewConstructionYN: true,
-					Furnished: true,
-					PossessionType: true,
-					Zoning: true,
-					ZoningDescription: true,
-					LandLeaseYN: true,
-					TaxYear: true,
-					MasterHOAFee: true,
 					HOAFee: true,
 					HOAFeeFreq: true,
+					MasterHOAFee: true,
 					MasterHOAFeeFreq: true,
 					MandatoryHOAYN: true,
-					ListAgentFullName: true,
-					ListAgentKey: true,
-					ListAgentMlsId: true,
-					ListAgentEmail: true,
-					ListAgentDirectPhone: true,
-					ListAgentCellPhone: true,
-					ListAgentOfficePhone: true,
-					ListAgentOfficePhoneExt: true,
 					ListOfficeName: true,
-					ListOfficeKey: true,
-					ListOfficeMlsId: true,
-					ListOfficeEmail: true,
-					ListOfficePhone: true,
-					ListOfficePhoneExt: true,
-					PhotosCount: true,
-					PhotosChangeTimestamp: true,
-					VideosCount: true,
-					VideosChangeTimestamp: true,
-					VirtualTourURLUnbranded: true,
-					VirtualTourURLBranded: true,
-					AllPixDownloaded: true,
 					images: true,
-					communityId: true,
 				},
 			});
 
@@ -188,7 +138,10 @@ export async function getFeaturedProperties(): Promise<Property[]> {
 			const properties = await Promise.race([queryPromise, timeoutPromise]);
 
 			if (properties && properties.length > 0) {
-				const typedProps = properties as unknown as Property[];
+				const typedProps = properties.map((p: any) => ({
+					...p,
+					images: slimCardImages(p.images),
+				})) as unknown as Property[];
 				globalForFeatured.featuredPropertiesCache = {
 					data: typedProps,
 					expiresAt: Date.now() + CACHE_TTL_MS,

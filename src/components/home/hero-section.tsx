@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import Image from "next/image";
+import CloudinaryImage from "@/components/global/cloudinaryImage";
 import SearchBox from "./home-searchbox";
 
 
@@ -11,13 +11,14 @@ const HeroSection = () => {
         <section className="relative w-full min-h-[65vh] md:min-h-[85vh] bg-slate-950">
             {/* Background Image - Optimized Next/Image with priority for instant LCP */}
             <div className="absolute inset-0 overflow-hidden">
-                <Image
+                {/* Served straight from Cloudinary's CDN (not via our server) for a faster LCP. */}
+                <CloudinaryImage
                     src={heroImage}
                     alt="Buy Or Sell In Naples, FL And Surrounding Area"
                     fill
                     priority
-                    quality={80}
-                    sizes="(max-width: 768px) 100vw, 1920px"
+                    fetchPriority="high"
+                    sizes="100vw"
                     className="object-cover object-center"
                 />
             </div>
