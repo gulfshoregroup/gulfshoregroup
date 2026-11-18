@@ -120,9 +120,9 @@ export default function MapViewList({
 	const StickyHeader = (
 		<div className="sticky top-0 z-40 bg-white w-full mb-6">
 			<div className="w-11/12 max-w-[1600px] mx-auto pt-4 pb-2">
-				<h1 className="lg:text-xl text-lg font-medium text-primary">
+				<h2 className="lg:text-xl text-lg font-medium text-primary">
 					{heading}
-				</h1>
+				</h2>
 			</div>
 			<div className="w-11/12 max-w-[1600px] mx-auto flex border-b border-[#E8E4DC] gap-6 text-sm">
 				<button

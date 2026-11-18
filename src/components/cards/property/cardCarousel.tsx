@@ -29,6 +29,7 @@ export default function CardCarousel({
 	property: Property;
 }) {
 	const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
+	const [isInteracted, setIsInteracted] = useState(false);
 
 	let media = property.images as any;
 	if (typeof media === "string") {
@@ -62,18 +63,24 @@ export default function CardCarousel({
 	}
 	// Limit carousel preview to at most 8 photos to keep DOM lightweight and fast
 	const imageArray = images.slice(0, 8);
+	// Render only the first image on initial load for maximum performance; expand to full carousel on user hover/interaction
+	const visibleImages = isInteracted ? imageArray : imageArray.slice(0, 1);
 
 	return (
-		<div className="p-0 bg-gray-300 w-full h-full rounded-t-2xl">
+		<div
+			className="p-0 bg-gray-300 w-full h-full rounded-t-2xl"
+			onMouseEnter={() => setIsInteracted(true)}
+			onTouchStart={() => setIsInteracted(true)}
+		>
 			<div className="relative overflow-visible w-full h-full rounded-t-2xl">
-				{imageArray.length ? (
+				{visibleImages.length ? (
 					<Carousel
 						className="w-full h-full"
 						opts={{
 							loop: true,
 						}}>
 						<CarouselContent className="ml-0">
-							{imageArray.map((img: string, index: number) => (
+							{visibleImages.map((img: string, index: number) => (
 								<CarouselItem key={index} className="pl-0">
 									<AspectRatio
 										ratio={16 / 9}

@@ -1,9 +1,4 @@
-import dns from "node:dns";
-if (dns && typeof dns.setDefaultResultOrder === "function") {
-	try {
-		dns.setDefaultResultOrder("ipv4first");
-	} catch (e) {}
-}
+// Note: dns.setDefaultResultOrder is handled at the Node.js process level, not here
 import { PrismaClient } from "../app/generated/prisma/client";
 
 const globalForPrisma = global as unknown as {
