@@ -21,6 +21,15 @@ const mapContainerStyle = {
 };
 
 export default function PropertyMap({ property, Latitude, Longitude }: PropertyMapProps) {
+	const [activeCoords, setActiveCoords] = useState<{ lat: number; lng: number } | null>(() => {
+		const numLat = parseFloat(Latitude?.toString() || "");
+		const numLng = parseFloat(Longitude?.toString() || "");
+		if (numLat && numLng && !isNaN(numLat) && !isNaN(numLng) && numLat >= 24.0 && numLat <= 31.5 && numLng >= -88.0 && numLng <= -79.5) {
+			return { lat: numLat, lng: numLng };
+		}
+		return null;
+	});
+	const [isGeocoding, setIsGeocoding] = useState(!activeCoords && Boolean(property?.FullAddress));
 	const [mapTypeId, setMapTypeId] = useState<"roadmap" | "satellite" | "hybrid" | "terrain">("hybrid");
 	const [streetViewActive, setStreetViewActive] = useState(false);
 	const [showFema, setShowFema] = useState(false);
@@ -36,6 +45,28 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 		id: "google-map-script",
 		googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
 	});
+
+	// Client-side Geocoder fallback if MLS coordinates are missing/null
+	React.useEffect(() => {
+		if (activeCoords || !isLoaded || !property?.FullAddress) {
+			if (!activeCoords && !property?.FullAddress) setIsGeocoding(false);
+			return;
+		}
+
+		if (typeof google !== "undefined" && google.maps && google.maps.Geocoder) {
+			const geocoder = new google.maps.Geocoder();
+			const fullAddr = `${property.FullAddress}, ${property.City || "Naples"}, FL ${property.PostalCode || ""}`.trim();
+			geocoder.geocode({ address: fullAddr }, (results, status) => {
+				setIsGeocoding(false);
+				if (status === "OK" && results?.[0]?.geometry?.location) {
+					const loc = results[0].geometry.location;
+					setActiveCoords({ lat: loc.lat(), lng: loc.lng() });
+				}
+			});
+		} else {
+			setIsGeocoding(false);
+		}
+	}, [isLoaded, property, activeCoords]);
 
 	// close dropdown on click outside
 	React.useEffect(() => {
@@ -151,17 +182,20 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 		mapRef.current = null;
 	}, []);
 
-	const isInvalidCoord =
-		!Latitude ||
-		!Longitude ||
-		isNaN(Latitude) ||
-		isNaN(Longitude) ||
-		Latitude < 24.0 ||
-		Latitude > 31.5 ||
-		Longitude < -88.0 ||
-		Longitude > -79.5;
+	if (isGeocoding) {
+		return (
+			<div className="h-[400px] w-full rounded-xl bg-slate-100 flex flex-col items-center justify-center border border-slate-200">
+				<div className="flex flex-col items-center gap-2">
+					<div className="w-10 h-10 rounded-full bg-[#B89A6A]/15 border border-[#B89A6A]/30 flex items-center justify-center animate-pulse">
+						<MapPin className="w-5 h-5 text-[#B89A6A] animate-bounce" />
+					</div>
+					<span className="text-xs font-semibold text-gray-700">Locating Property on Map...</span>
+				</div>
+			</div>
+		);
+	}
 
-	if (isInvalidCoord) {
+	if (!activeCoords) {
 		return (
 			<div className="text-gray-500 text-sm p-4 bg-gray-50 border rounded-lg text-center">
 				Map location not available for this property.
@@ -335,7 +369,7 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 					<GoogleMap
 							onLoad={onLoad}
 							onUnmount={onUnmount}
-							center={{ lat: Latitude, lng: Longitude }}
+							center={activeCoords}
 							zoom={16}
 							mapTypeId={mapTypeId}
 							mapContainerStyle={{ width: "100%", height: "100%" }}
@@ -356,7 +390,7 @@ export default function PropertyMap({ property, Latitude, Longitude }: PropertyM
 								},
 							}}
 						>
-							<Marker position={{ lat: Latitude, lng: Longitude }} />
+							<Marker position={activeCoords} />
 						</GoogleMap>
 				)}
 			</div>

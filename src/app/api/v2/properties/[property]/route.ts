@@ -93,6 +93,37 @@ export async function GET(
 			);
 		}
 
+		// 📍 Auto Geocoding Fallback if MLS coordinates are missing/null
+		const numLat = parseFloat(res.Latitude?.toString() || "");
+		const numLng = parseFloat(res.Longitude?.toString() || "");
+		const isInvalidCoord = !numLat || !numLng || isNaN(numLat) || isNaN(numLng);
+
+		if (isInvalidCoord && res.FullAddress) {
+			try {
+				const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+				if (apiKey) {
+					const geocodeAddr = `${res.FullAddress}, ${res.City || "Naples"}, FL ${res.PostalCode || ""}`.trim();
+					const geocodeRes = await fetch(
+						`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(geocodeAddr)}&key=${apiKey}`,
+						{ signal: AbortSignal.timeout(4000) }
+					);
+					const geocodeData = await geocodeRes.json();
+					if (geocodeData.status === "OK" && geocodeData.results?.[0]?.geometry?.location) {
+						const { lat, lng } = geocodeData.results[0].geometry.location;
+						res.Latitude = lat;
+						res.Longitude = lng;
+						// Persist to DB in the background so future requests are instant
+						prisma.property.update({
+							where: { id: res.id },
+							data: { Latitude: lat, Longitude: lng }
+						}).catch((e: any) => console.warn("Failed to persist geocoded coords:", e.message));
+					}
+				}
+			} catch (geoErr: any) {
+				console.warn("Geocoding fallback error:", geoErr.message);
+			}
+		}
+
 		// Inject images from raw.Media if images field is null
 		const rawData = res.raw as any;
 		const resolvedImages =

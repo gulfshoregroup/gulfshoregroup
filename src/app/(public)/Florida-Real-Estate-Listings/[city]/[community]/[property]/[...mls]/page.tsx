@@ -113,7 +113,7 @@ export default async function Listing({
 				if (typeof url === "string" && url.trim() !== "") return url.trim();
 				return null;
 			})
-			.filter(Boolean);
+			.filter(Boolean) as string[];
 	}
 
 	const isValidField = (value: any) => {
