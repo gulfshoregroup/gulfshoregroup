@@ -79,6 +79,7 @@ const SliderComponent = ({
 										height={800}
 										priority={index === 0}
 										loading={index === 0 ? "eager" : "lazy"}
+										sizes="(max-width: 1024px) 92vw, 46vw"
 										quality={80}
 										className="rounded-xl h-[calc(100vh/2)] w-full mx-auto object-cover"
 									/>
@@ -111,6 +112,7 @@ const SliderComponent = ({
 								width={550}
 								height={550}
 								loading="lazy"
+								sizes="(max-width: 1024px) 23vw, 23vw"
 								quality={75}
 								className="rounded-lg object-cover h-24 sm:h-32 lg:h-[calc(100vh/4)] w-full"
 							/>

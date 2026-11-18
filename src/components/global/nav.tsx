@@ -72,12 +72,20 @@ const Navbar = () => {
 		siteUrl: "https://gulfshoregroup.com",
 	});
 
+	// Defaults above render immediately; the admin-edited values are fetched
+	// when the browser is idle so this request doesn't compete with first paint.
 	useEffect(() => {
-		fetchClientGeneralSettings()
-			.then((data) => {
-				setGeneralSettings(data);
-			})
-			.catch(() => {});
+		const load = () =>
+			fetchClientGeneralSettings()
+				.then((data) => setGeneralSettings(data))
+				.catch(() => {});
+		const w = window as any;
+		if (typeof w.requestIdleCallback === "function") {
+			const id = w.requestIdleCallback(load, { timeout: 4000 });
+			return () => w.cancelIdleCallback?.(id);
+		}
+		const t = setTimeout(load, 2000);
+		return () => clearTimeout(t);
 	}, []);
 
 	// Redirect admin users to admin panel ONLY right after fresh login in production

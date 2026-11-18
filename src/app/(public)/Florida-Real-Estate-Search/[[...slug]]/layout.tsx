@@ -27,20 +27,22 @@ export async function generateMetadata({
 	const filtersParams = await ExtractSearchParams(slugs);
 	try {
 		const meta = await GetSeoData({ params: filtersParams });
+		const canonical = `https://gulfshoregroup.com/Florida-Real-Estate-Search${
+			meta.canonicalUrl.replaceAll("//", "/") || ""
+		}`;
 
 		return {
 			title: meta.title,
 			description: meta.description,
 			keywords: meta.keywords,
 			alternates: {
-				canonical: `https://gulfshoregroup.com/Florida-Real-Estate-Search${
-					meta.canonicalUrl.replaceAll("//", "/") || ""
-				}`,
+				canonical,
 			},
 			openGraph: {
 				title: meta.title,
 				description: meta.description,
-				url: "https://gulfshoregroup.com",
+				url: canonical, // was hard-coded to the homepage URL
+
 				siteName: "Gulfshore Group",
 				images: [
 					{

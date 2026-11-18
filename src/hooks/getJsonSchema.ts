@@ -1,224 +1,155 @@
-import UrlMaker from "./url-maker";
+import capitalizeWords from "./capitalize-letter";
+import {
+	getBaths,
+	getListingDescription,
+	getListingImageUrls,
+	getListingTitle,
+	getListingUrl,
+	isLandListing,
+	SITE_URL,
+} from "@/lib/seo/listing";
 
+const BROKERAGE = {
+	"@type": "RealEstateAgent",
+	"@id": `${SITE_URL}/#organization`,
+	name: "Gulfshore Group",
+	url: SITE_URL,
+	telephone: "+1-239-992-9119",
+	email: "mailbox@gulfshoregroup.com",
+};
+
+const OFF_MARKET = ["Withdrawn", "Canceled", "Expired", "Off Market", "Off-Market", "Closed", "Sold"];
+
+const isoDate = (d: any) => {
+	if (!d) return undefined;
+	const dt = new Date(d);
+	return isNaN(dt.getTime()) ? undefined : dt.toISOString().split("T")[0];
+};
+
+/**
+ * Schema.org JSON-LD for a listing page: RealEstateListing + the House /
+ * Apartment / Landform it offers + BreadcrumbList.
+ * Reads the CURRENT Prisma `Property` fields.
+ */
 export default function createHouseJsonLd(listing: any) {
-	const baseUrl = "https://gulfshoregroup.com";
+	const url = getListingUrl(listing);
+	const images = getListingImageUrls(listing, 10);
+	const city = capitalizeWords(listing.City || "");
+	const community = capitalizeWords(listing.Community || "");
+	const land = isLandListing(listing);
+	const isCondo = /condo|apartment/i.test(listing.PropertySubType || "");
+	const price = Number(listing.ListPrice);
+	const lat = Number(listing.Latitude);
+	const lng = Number(listing.Longitude);
+	const beds = Number(listing.BedroomsTotal);
+	const baths = getBaths(listing);
+	const sqft = Number(listing.LivingArea);
+	const acres = Number(listing.LotSizeAcres);
+	const offMarket = OFF_MARKET.includes(listing.StandardStatus || "");
 
-	const absoluteImageUrls: string[] = Array.isArray(
-		listing.AllPixList
-	)
-		? listing.AllPixList.map((path: string) =>
-				path.startsWith("http") ? path : baseUrl + path
-		  )
-		: listing.DefaultPic
-		? [listing.DefaultPic]
-		: [];
-
-	const formatDate = (d: any) => {
-		if (!d) return undefined;
-		const dt = new Date(d);
-		return isNaN(dt.getTime())
-			? undefined
-			: dt.toISOString().split("T")[0];
+	const address = {
+		"@type": "PostalAddress",
+		streetAddress: listing.FullAddress || undefined,
+		addressLocality: city || undefined,
+		addressRegion: listing.StateOrProvince || "FL",
+		postalCode: listing.PostalCode || undefined,
+		addressCountry: "US",
 	};
 
-	// Base URL for property page
-	const propertyUrl =
-		baseUrl +
-		UrlMaker(
-			listing.City,
-			listing.Development || listing.DevelopmentName,
-			listing.PropertyAddress
-		);
+	const amenityFeature = [
+		listing.PoolPrivateYN && "Private Pool",
+		listing.WaterfrontYN && "Waterfront",
+		listing.GulfAccessYN && "Gulf Access",
+		listing.SpaYN && "Spa",
+		listing.GarageYN && "Garage",
+		listing.NewConstructionYN && "New Construction",
+	]
+		.filter(Boolean)
+		.map((name) => ({ "@type": "LocationFeatureSpecification", name, value: true }));
 
-	// 🏠 HOUSE OBJECT
-	const houseObj: any = {
-		"@id": "#theHouse",
-		"@type": "House",
-		name: listing.PropertyAddress || "Home for Sale",
-		description:
-			listing.PropertyInformation ||
-			listing.BuildingDesc ||
-			"Residential property for sale.",
-		url: propertyUrl,
-		image: absoluteImageUrls.length ? absoluteImageUrls : undefined,
-		numberOfRooms: listing.RoomCount
-			? Number(listing.RoomCount)
-			: listing.BedsTotal
-			? Number(listing.BedsTotal)
-			: undefined,
-		numberOfBathroomsTotal: listing.BathsTotal
-			? Number(listing.BathsTotal)
-			: undefined,
-		floorSize: listing.ApproxLivingArea
-			? {
-					"@type": "QuantitativeValue",
-					value: Number(listing.ApproxLivingArea),
-					unitCode: "FTK", // square feet
-			  }
-			: undefined,
-		address: {
-			"@type": "PostalAddress",
-			streetAddress: listing.PropertyAddress || undefined,
-			addressLocality: listing.City || undefined,
-			addressRegion: listing.StateOrProvince || undefined,
-			postalCode: listing.PostalCode || undefined,
-			addressCountry: "US",
-		},
-		petsAllowed: listing.Pets || undefined,
-		telephone: "+1-239-992-9119",
+	const place: any = {
+		"@id": `${url}#property`,
+		"@type": land ? "Landform" : isCondo ? "Apartment" : "SingleFamilyResidence",
+		name: listing.FullAddress,
+		url,
+		image: images.length ? images : undefined,
+		address,
 		geo:
-			listing?.location?.coordinates?.length === 2
-				? {
-						"@type": "GeoCoordinates",
-						latitude: listing.location.coordinates[1],
-						longitude: listing.location.coordinates[0],
-				  }
+			Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0
+				? { "@type": "GeoCoordinates", latitude: lat, longitude: lng }
 				: undefined,
-		amenityFeature: [
-			listing.PrivatePoolYN === "Yes" || listing.PrivatePoolYN === "1"
-				? {
-						"@type": "LocationFeatureSpecification",
-						name: "Swimming Pool",
-						value: true,
-				  }
-				: null,
-			listing.WaterfrontYN === "Yes" || listing.WaterfrontYN === "1"
-				? {
-						"@type": "LocationFeatureSpecification",
-						name: "Waterfront",
-						value: true,
-				  }
-				: null,
-			listing.GulfAccessYN === "Yes" || listing.GulfAccessYN === "1"
-				? {
-						"@type": "LocationFeatureSpecification",
-						name: "Gulf Access",
-						value: true,
-				  }
-				: null,
-			listing.PrivateSpaYN === "Yes" || listing.PrivateSpaYN === "1"
-				? {
-						"@type": "LocationFeatureSpecification",
-						name: "Spa",
-						value: true,
-				  }
-				: null,
-			listing.FencedYardYN === "Yes" || listing.FencedYardYN === "1"
-				? {
-						"@type": "LocationFeatureSpecification",
-						name: "Fenced Yard",
-						value: true,
-				  }
-				: null,
-		].filter(Boolean),
+		amenityFeature: amenityFeature.length ? amenityFeature : undefined,
 	};
-
-	// 🏡 LISTING NODE (for Houses)
-	const PropertyListingNode: any = {
-		"@type": "RealEstateListing",
-		datePosted: formatDate(listing.DateAdded),
-		dateModified: formatDate(listing.LastChangeDate),
-		availability: listing.StatusType || listing.Status || "Available",
-		price: listing.CurrentPrice
-			? Number(listing.CurrentPrice)
-			: undefined,
-		priceCurrency: "USD",
-		provider: {
-			"@type": "RealEstateAgent",
-			name: "Dimitri Schwarz",
-			url: baseUrl,
-			telephone: "+1-239-992-9119",
-		},
-		itemOffered: { "@id": "#theHouse" },
-	};
-
-	// 🏞️ LAND OBJECT (for “Lot and Land”)
-	const landObj: any = {
-		"@id": "#theLand",
-		"@type": "Landform",
-		name: listing.PropertyAddress || "Land for Sale",
-		description:
-			listing.PropertyInformation ||
-			listing.BuildingDesc ||
-			"Vacant lot or land for sale.",
-		image: absoluteImageUrls.length ? absoluteImageUrls : undefined,
-		url: propertyUrl,
-		address: {
-			"@type": "PostalAddress",
-			streetAddress: listing.PropertyAddress || undefined,
-			addressLocality: listing.City || undefined,
-			addressRegion: listing.StateOrProvince || "FL",
-			postalCode: listing.PostalCode || undefined,
-			addressCountry: "US",
-		},
-		geo:
-			listing?.location?.coordinates?.length === 2
-				? {
-						"@type": "GeoCoordinates",
-						latitude: listing.location.coordinates[1],
-						longitude: listing.location.coordinates[0],
-				  }
-				: undefined,
-		area:
-			listing.LotSizeArea || listing.Acres
-				? {
-						"@type": "QuantitativeValue",
-						value:
-							Number(listing.LotSizeArea) ||
-							Number(listing.Acres) ||
-							undefined,
-						unitCode: listing.LotSizeUnit || "ACR",
-				  }
-				: undefined,
-	};
-
-	// 🌱 LISTING NODE (for Land)
-	const LandListingNode: any = {
-		"@type": "RealEstateListing",
-		datePosted: formatDate(listing.DateAdded),
-		dateModified: formatDate(listing.LastChangeDate),
-		availability: listing.StatusType || listing.Status || "Available",
-		price: listing.CurrentPrice
-			? Number(listing.CurrentPrice)
-			: undefined,
-		priceCurrency: "USD",
-		provider: {
-			"@type": "RealEstateAgent",
-			name: "Dimitri Schwarz",
-			url: baseUrl,
-			telephone: "+1-239-992-9119",
-			email: "mailbox@gulfshoregroup.com",
-			logo: "https://res.cloudinary.com/dm68hqwp9/image/upload/v1752289211/Dimitri-schwarz_r9ognl.jpg",
-		},
-		amenityFeature: [
-			listing.WaterfrontYN === "Yes" || listing.WaterfrontYN === "1"
-				? {
-						"@type": "LocationFeatureSpecification",
-						name: "Waterfront",
-						value: true,
-				  }
-				: null,
-			listing.GulfAccessYN === "Yes" || listing.GulfAccessYN === "1"
-				? {
-						"@type": "LocationFeatureSpecification",
-						name: "Gulf Access",
-						value: true,
-				  }
-				: null,
-		].filter(Boolean),
-		itemOffered: { "@id": "#theLand" },
-	};
-
-	// 🎯 Return the appropriate schema
-	if (listing.PropertyType === "Lot and Land") {
-		return {
-			"@context": "https://schema.org",
-			"@graph": [landObj, LandListingNode],
+	if (!land) {
+		place.numberOfBedrooms = beds > 0 ? beds : undefined;
+		place.numberOfBathroomsTotal = baths;
+		place.numberOfRooms = Number(listing.RoomsTotal) > 0 ? Number(listing.RoomsTotal) : beds > 0 ? beds : undefined;
+		place.floorSize =
+			sqft > 0 ? { "@type": "QuantitativeValue", value: sqft, unitCode: "FTK" } : undefined;
+		place.yearBuilt = Number(listing.YearBuilt) > 0 ? Number(listing.YearBuilt) : undefined;
+	}
+	if (acres > 0) {
+		place.additionalProperty = {
+			"@type": "PropertyValue",
+			name: "Lot size",
+			value: acres,
+			unitCode: "ACR",
 		};
 	}
 
+	const listingNode: any = {
+		"@type": "RealEstateListing",
+		"@id": `${url}#listing`,
+		url,
+		name: getListingTitle(listing),
+		description: listing.Description || getListingDescription(listing),
+		image: images.length ? images : undefined,
+		datePosted: isoDate(listing.OnMarketDate || listing.OnMarketTimestamp),
+		dateModified: isoDate(listing.ModificationTimestamp),
+		identifier: listing.MLSNumber || listing.ListingId,
+		about: { "@id": `${url}#property` },
+		provider: BROKERAGE,
+		offers:
+			price > 0
+				? {
+						"@type": "Offer",
+						price,
+						priceCurrency: "USD",
+						availability: offMarket
+							? "https://schema.org/SoldOut"
+							: "https://schema.org/InStock",
+						url,
+						seller: BROKERAGE,
+				  }
+				: undefined,
+	};
+
+	const crumbs = [
+		{ name: "Home", item: SITE_URL },
+		{ name: `${city} Real Estate`, item: `${SITE_URL}/Florida-Real-Estate-Search/${city.replaceAll(" ", "-")}` },
+		community && community.toLowerCase() !== city.toLowerCase()
+			? {
+					name: community,
+					item: `${SITE_URL}/Florida-Real-Estate-Search/${city}/${community}`
+						.replaceAll(" ", "-")
+						.replaceAll("&", "And"),
+			  }
+			: null,
+		{ name: listing.FullAddress, item: url },
+	].filter(Boolean) as { name: string; item: string }[];
+
+	const breadcrumb = {
+		"@type": "BreadcrumbList",
+		itemListElement: crumbs.map((c, i) => ({
+			"@type": "ListItem",
+			position: i + 1,
+			name: c.name,
+			item: c.item,
+		})),
+	};
+
 	return {
 		"@context": "https://schema.org",
-		"@graph": [houseObj, PropertyListingNode],
+		"@graph": [listingNode, place, breadcrumb],
 	};
 }

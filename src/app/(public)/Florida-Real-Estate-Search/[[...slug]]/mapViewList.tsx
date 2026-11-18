@@ -11,8 +11,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
 	clearFilters,
 	fetchProperties,
+	hydrateResults,
 	setFilters,
 } from "@/state/slices/searchSlice";
+import { syncSearchToDb } from "@/state/api";
 import { EMPTY_FILTERS } from "@/lib/search-filters";
 import { AppDispatch, RootState } from "@/state/store";
 import { SearchX } from "lucide-react";
@@ -30,23 +32,26 @@ export default function MapViewList({
 	filter,
 	view,
 	heading,
+	initialData,
 }: {
 	view: any;
 	filter: any;
 	heading: string;
+	/** First page of results rendered on the server (list view only). */
+	initialData?: { data: any[]; total: number; totalPages: number };
 }) {
-	const {
-		mobileMapView,
-		success,
-		list,
-		listView,
-		error,
-		loading,
-		total,
-		totalPages,
-		filters,
-		details,
-	} = useSelector((state: RootState) => state.search);
+	const store = useSelector((state: RootState) => state.search);
+	const { mobileMapView, listView, error, loading, details, limit } = store;
+
+	// Until Redux has results, render the server-provided first page so the
+	// listings are in the HTML (SEO + AI crawlers) and there's no skeleton flash.
+	const usingInitial =
+		!!initialData && view !== "map" && store.success === null && !loading && !error;
+	const success = usingInitial ? true : store.success;
+	const list = usingInitial ? initialData!.data : store.list;
+	const total = usingInitial ? initialData!.total : store.total;
+	const totalPages = usingInitial ? initialData!.totalPages : store.totalPages;
+	const filters = usingInitial ? { ...EMPTY_FILTERS, ...filter } : store.filters;
 	const path = usePathname();
 	const searchParams = useSearchParams();
 
@@ -70,17 +75,24 @@ export default function MapViewList({
 		const rest = list.filter((p: any) => p.MLSNumber !== details.MLSNumber);
 		return [selectedItem, ...rest];
 	}, [list, details, view]);
+	// Remembers which server payload was already loaded into Redux, so a new
+	// server render (navigation to another city/page) hydrates again, while a
+	// client-only filter change fetches from the API as before.
+	const hydratedFrom = React.useRef<typeof initialData>(undefined);
 	React.useEffect(() => {
 		if (view !== "map") {
-			dispatch(
-				setFilters({
-					...EMPTY_FILTERS,
-					...filter,
-				})
-			);
-			dispatch(fetchProperties());
+			const nextFilters = { ...EMPTY_FILTERS, ...filter };
+			dispatch(setFilters(nextFilters));
+			if (initialData && hydratedFrom.current !== initialData && limit === 36) {
+				hydratedFrom.current = initialData;
+				dispatch(hydrateResults(initialData));
+				// Keep lead search-history tracking that the API fetch used to trigger.
+				void syncSearchToDb(nextFilters, initialData.total);
+			} else {
+				dispatch(fetchProperties());
+			}
 		}
-	}, [dispatch, view, filterString]);
+	}, [dispatch, view, filterString, initialData]);
 
 	const gridClass =
 		view === "map"

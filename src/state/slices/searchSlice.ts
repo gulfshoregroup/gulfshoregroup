@@ -88,6 +88,18 @@ const searchSlice = createSlice({
 		setFilters: (state, action: PayloadAction<Filters>) => {
 			state.filters = action.payload;
 		},
+		// Fill results from the server-rendered first page (no client fetch).
+		hydrateResults: (
+			state,
+			action: PayloadAction<{ data: any[]; total: number; totalPages: number }>
+		) => {
+			state.list = action.payload.data as any;
+			state.total = action.payload.total;
+			state.totalPages = action.payload.totalPages;
+			state.success = true;
+			state.loading = false;
+			state.error = null;
+		},
 		setMapCard: (state, action: PayloadAction<Property | null>) => {
 			state.details = action.payload;
 		},
@@ -144,6 +156,7 @@ const searchSlice = createSlice({
 
 export const {
 	setFilters,
+	hydrateResults,
 	setCoordinates,
 	clearFilters,
 	setSort,

@@ -26,9 +26,8 @@ const AboutSection = dynamic(
 const BlogSection = dynamic(
 	() => import("@/components/blogs/blogSection")
 );
-const CityFAQ = dynamic(
-	() => import("@/components/city/city-faq")
-);
+// Server component (no client JS) — imported directly, not via dynamic().
+import CityFAQ from "@/components/city/city-faq";
 // Enhanced metadata generation with comprehensive SEO
 export async function generateMetadata(): Promise<Metadata> {
 	const siteUrl = "https://gulfshoregroup.com";
@@ -187,20 +186,60 @@ export default async function Home() {
 				id="structured-data"
 				type="application/ld+json"
 				dangerouslySetInnerHTML={{
+					// Entity data for Google + AI engines. TODO(dev): add streetAddress,
+					// geo, openingHours and sameAs (Google Business Profile, Facebook,
+					// Instagram, LinkedIn, Zillow/Realtor.com agent profiles).
 					__html: JSON.stringify({
 						"@context": "https://schema.org",
-						"@type": "RealEstateAgent",
-						name: "Gulfshore Group",
-						url: "https://gulfshoregroup.com",
-						telephone: "+1-239-992-9119",
-						email: "mailbox@gulfshoregroup.com",
-						address: {
-							"@type": "PostalAddress",
-							addressLocality: "Naples",
-							addressRegion: "FL",
-							postalCode: "34102",
-							addressCountry: "US",
-						},
+						"@graph": [
+							{
+								"@type": "RealEstateAgent",
+								"@id": "https://gulfshoregroup.com/#organization",
+								name: "Gulfshore Group",
+								url: "https://gulfshoregroup.com",
+								logo: "https://gulfshoregroup.com/logo.png",
+								image: "https://gulfshoregroup.com/logo.png",
+								telephone: "+1-239-992-9119",
+								email: "mailbox@gulfshoregroup.com",
+								priceRange: "$$$",
+								address: {
+									"@type": "PostalAddress",
+									addressLocality: "Naples",
+									addressRegion: "FL",
+									postalCode: "34102",
+									addressCountry: "US",
+								},
+								areaServed: [
+									"Naples", "Marco Island", "Bonita Springs", "Estero",
+									"Fort Myers", "Fort Myers Beach", "Cape Coral", "Sanibel",
+									"Captiva", "Lehigh Acres", "Ave Maria", "Immokalee",
+									"Babcock Ranch", "Miromar Lakes",
+								].map((name) => ({
+									"@type": "City",
+									name: `${name}, FL`,
+								})),
+								knowsAbout: [
+									"Southwest Florida real estate",
+									"Naples luxury homes",
+									"Waterfront and Gulf access homes",
+									"Golf community real estate",
+									"Condos for sale in Naples FL",
+									"FEMA flood zones in Collier and Lee County",
+								],
+							},
+							{
+								"@type": "WebSite",
+								"@id": "https://gulfshoregroup.com/#website",
+								url: "https://gulfshoregroup.com",
+								name: "Gulfshore Group",
+								publisher: { "@id": "https://gulfshoregroup.com/#organization" },
+								potentialAction: {
+									"@type": "SearchAction",
+									target: "https://gulfshoregroup.com/Florida-Real-Estate-Search?q={search_term_string}",
+									"query-input": "required name=search_term_string",
+								},
+							},
+						],
 					}),
 				}}
 			/>

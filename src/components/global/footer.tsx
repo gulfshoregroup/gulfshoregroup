@@ -11,13 +11,23 @@ export default function Footer() {
 	const [siteName, setSiteName] = useState("GulfshoreGroup");
 	const [siteUrl, setSiteUrl] = useState("https://gulfshoregroup.com");
 
+	// Same as the navbar: load admin-edited values when the browser is idle
+	// (shares one cached request with the navbar).
 	useEffect(() => {
-		fetchClientGeneralSettings()
-			.then((data) => {
-				if (data.siteName) setSiteName(data.siteName);
-				if (data.siteUrl) setSiteUrl(data.siteUrl);
-			})
-			.catch(() => {});
+		const load = () =>
+			fetchClientGeneralSettings()
+				.then((data) => {
+					if (data.siteName) setSiteName(data.siteName);
+					if (data.siteUrl) setSiteUrl(data.siteUrl);
+				})
+				.catch(() => {});
+		const w = window as any;
+		if (typeof w.requestIdleCallback === "function") {
+			const id = w.requestIdleCallback(load, { timeout: 4000 });
+			return () => w.cancelIdleCallback?.(id);
+		}
+		const t = setTimeout(load, 2000);
+		return () => clearTimeout(t);
 	}, []);
 
 	const cities = [

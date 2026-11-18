@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Inter, Poppins } from "next/font/google";
+import { Poppins } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import StoreProvider from "../state/StoreProvider";
 import Script from "next/script";
 
-const inter = Inter({
-	subsets: ["latin"],
-	variable: "--font-inter",
-	display: "swap",
-});
+// Only Poppins is used (globals.css sets body font to var(--font-poppins)).
+// The Inter webfont was downloaded on every page but never applied, so it was removed.
 const poppins = Poppins({
 	subsets: ["latin"],
 	weight: ["400", "500", "600", "700"],
@@ -77,45 +74,39 @@ export default function RootLayout({
 			<html
 				lang="en"
 				suppressHydrationWarning
-				className={`${inter.variable} ${poppins.variable}`}>
+				className={poppins.variable}>
 				<head>
+					{/* Only origins needed for above-the-fold images. Maps, OneSignal and
+					    GTM load later (on interaction), so preconnecting to them on every
+					    page just wasted early connections. */}
 					<link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
-					<link rel="dns-prefetch" href="https://res.cloudinary.com" />
 					<link rel="preconnect" href="https://dvvjkgh94f2v6.cloudfront.net" crossOrigin="anonymous" />
-					<link rel="dns-prefetch" href="https://dvvjkgh94f2v6.cloudfront.net" />
-					<link rel="preconnect" href="https://maps.googleapis.com" />
-					<link rel="preconnect" href="https://maps.gstatic.com" crossOrigin="anonymous" />
-					<link rel="dns-prefetch" href="https://maps.googleapis.com" />
-					<link rel="dns-prefetch" href="https://maps.gstatic.com" />
-					<link rel="preconnect" href="https://cdn.onesignal.com" />
-					<link rel="preconnect" href="https://www.googletagmanager.com" />
 				</head>
 				<body className="antialiased">
 					<script
 						dangerouslySetInnerHTML={{
 							__html: `
-							window.addEventListener('error', function(event) {
-								fetch('/api/v2/log-error', {
-									method: 'POST',
-									headers: { 'Content-Type': 'application/json' },
-									body: JSON.stringify({
-										message: event.message,
-										stack: event.error ? event.error.stack : null,
-										url: window.location.href
-									})
-								}).catch(function() {});
-							});
-							window.addEventListener('unhandledrejection', function(event) {
-								fetch('/api/v2/log-error', {
-									method: 'POST',
-									headers: { 'Content-Type': 'application/json' },
-									body: JSON.stringify({
-										message: event.reason ? event.reason.message : 'Unhandled Rejection',
-										stack: event.reason ? event.reason.stack : null,
-										url: window.location.href
-									})
-								}).catch(function() {});
-							});
+							(function() {
+								// Report browser errors, but at most 5 unique ones per page view.
+								var sent = 0, seen = {};
+								function report(message, stack) {
+									var key = String(message).slice(0, 200);
+									if (sent >= 5 || seen[key]) return;
+									seen[key] = true; sent++;
+									var body = JSON.stringify({ message: message, stack: stack, url: window.location.href });
+									if (navigator.sendBeacon) {
+										navigator.sendBeacon('/api/v2/log-error', new Blob([body], { type: 'application/json' }));
+									} else {
+										fetch('/api/v2/log-error', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body, keepalive: true }).catch(function() {});
+									}
+								}
+								window.addEventListener('error', function(event) {
+									report(event.message, event.error ? event.error.stack : null);
+								});
+								window.addEventListener('unhandledrejection', function(event) {
+									report(event.reason ? event.reason.message : 'Unhandled Rejection', event.reason ? event.reason.stack : null);
+								});
+							})();
 							`
 						}}
 					/>

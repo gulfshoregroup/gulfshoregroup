@@ -5,6 +5,7 @@ import { parseFiltersFromQuery } from "@/lib/search-filters";
 import CityFAQ from "@/components/city/city-faq";
 import GetSeoData from "@/hooks/getSeoData";
 import capitalizeWords from "@/hooks/capitalize-letter";
+import { getInitialSearchResults } from "@/lib/properties/getInitialSearchResults";
 
 export default async function ListingsPage({
 	params,
@@ -29,14 +30,14 @@ export default async function ListingsPage({
 		page: filterFromQuery.page ?? filterFromSlug.page ?? "1",
 	};
 
-	let seoData;
-	try {
-		seoData = await GetSeoData({
-			params: filterFromSlug,
-		});
-	} catch (error) {
-		console.error("Error fetching SEO data:", error);
-	}
+	// SEO data and the first page of listings load in parallel on the server.
+	const [seoData, initialData] = await Promise.all([
+		GetSeoData({ params: filterFromSlug }).catch((error: any) => {
+			console.error("Error fetching SEO data:", error);
+			return undefined;
+		}),
+		view === "map" ? Promise.resolve(undefined) : getInitialSearchResults(filter),
+	]);
 
 	let heading = seoData?.heading;
 	
@@ -58,6 +59,7 @@ export default async function ListingsPage({
 				filter={filter}
 				view={view === "map" ? "map" : "list"}
 				heading={heading}
+				initialData={initialData}
 			/>
 			<CityFAQ city={filter.city} />
 		</>

@@ -74,6 +74,11 @@ const nextConfig = {
 		minimumCacheTTL: 60 * 60 * 24 * 30, // cache for 30 days
 	},
 
+	// /home duplicates "/" (same page, same content) -> consolidate to one URL.
+	async redirects() {
+		return [{ source: "/home", destination: "/", permanent: true }];
+	},
+
 	poweredByHeader: false,
 	compress: true,
 

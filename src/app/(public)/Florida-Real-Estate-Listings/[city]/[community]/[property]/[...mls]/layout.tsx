@@ -1,7 +1,12 @@
 import { FetchProperty } from "@/DAL/FetchProperties";
 import capitalizeWords from "@/hooks/capitalize-letter";
-import { formatPrice } from "@/hooks/formatPrice";
-import UrlMaker from "@/hooks/url-maker";
+import {
+	getListingDescription,
+	getListingImageUrls,
+	getListingTitle,
+	getListingUrl,
+	SITE_URL,
+} from "@/lib/seo/listing";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -9,18 +14,14 @@ type Props = {
 	params: Promise<{ mls: string[] }>;
 };
 
-// Enhanced metadata generation with comprehensive SEO
-export async function generateMetadata({
-	params,
-}: Props): Promise<Metadata> {
+const OFF_MARKET = ["Withdrawn", "Canceled", "Expired", "Off Market", "Off-Market"];
+
+// Listing metadata. Reads the CURRENT Prisma Property fields (see src/lib/seo/listing.ts).
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	const id = (await params).mls?.[0];
 
-	const siteUrl = "https://gulfshoregroup.com";
-
 	if (!id) {
-		return redirect(
-			`https://gulfshoregroup.com/Florida-Real-Estate-Search`
-		);
+		return redirect(`${SITE_URL}/Florida-Real-Estate-Search`);
 	}
 
 	try {
@@ -30,116 +31,48 @@ export async function generateMetadata({
 			return {
 				title: "Property Not Found | Gulfshore Group",
 				description:
-					"This property is not available. Explore other luxury real estate options in Florida.",
-				robots: "noindex, nofollow",
+					"This property is not available. Explore other homes, condos and land for sale in Southwest Florida.",
+				robots: { index: false, follow: true },
 			};
 		}
 
-		const propertytype =
-			property.PropertyType === "Lot and Land"
-				? "Land"
-				: property.OwnershipDesc === "Single Family"
-				? "Single Family Home"
-				: property.OwnershipDesc;
-		const city = capitalizeWords(property.City);
-		const development = capitalizeWords(
-			property.Development || property.DevelopmentName
-		);
-		const price = formatPrice(property.CurrentPrice);
+		const title = getListingTitle(property);
+		const description = getListingDescription(property);
+		const propertyUrl = getListingUrl(property);
+		const city = capitalizeWords(property.City || "");
+		const community = capitalizeWords(property.Community || "");
+		const photos = getListingImageUrls(property, 4);
 
-		// Enhanced description for better SEO
-		const descriptiontxt =
-			propertytype === "Land"
-				? `${Number(
-						property.Acres
-				  )} acres ${propertytype} for sale - ${
-						property.PropertyAddress
-				  }. ${Math.ceil(
-						Number(property.Acres) * 43560
-				  )} SQFT. Price: ${price} ${
-						property.PrivatePoolYN === "1" ? ",Pool" : ""
-				  }  ${property.PrivateSpaYN === "1" ? ",Spa" : ""} ${
-						property.GulfAccessYN === "1" ? ",Gulf Access" : ""
-				  } ${
-						property.WaterfrontYN === "1" ? ",Waterfront" : ""
-				  }. Contact for more details.`
-				: `${propertytype} for sale - ${
-						property.PropertyAddress
-				  } with ${Number(property.BedsTotal)} beds and ${Number(
-						property.BathsTotal
-				  ).toFixed(1)} baths ${
-						property.PrivatePoolYN === "1" ? ", Pool" : ""
-				  }  ${property.PrivateSpaYN === "1" ? ", Spa" : ""} ${
-						property.GulfAccessYN === "1" ? ", Gulf Access " : ""
-				  } ${
-						property.WaterfrontYN === "1" ? ", Waterfront" : ""
-				  }. ${Number(property.ApproxLivingArea).toFixed(
-						1
-				  )} sqft. Price: ${price}. | Gulfshore Group.`;
+		const images = photos.length
+			? photos.map((url) => ({
+					url,
+					alt: `${property.FullAddress}, ${city} FL`,
+			  }))
+			: [
+					{
+						url: `${SITE_URL}/logo.png`,
+						alt: "Gulfshore Group - Southwest Florida Real Estate",
+					},
+			  ];
 
-		// SEO-optimized title
-		const title = `${property.FullAddress} - Gulfshore Group`;
-
-		// Enhanced images with proper alt text
-		const images =
-			property.AllPixList && property.AllPixList.length > 0
-				? [
-						{
-							url: property.AllPixList[0].startsWith("http")
-								? property.AllPixList[0]
-								: `https://gulfshoregroup.com${property.AllPixList[0].startsWith("/") ? "" : "/"}${property.AllPixList[0]}`,
-							width: 1920,
-							height: 1080,
-							alt: `${property.PropertyAddress} - image`,
-						},
-				  ]
-				: [
-						{
-							url: "https://gulfshoregroup.com/logo.png",
-							width: 1200,
-							height: 630,
-							alt: "Gulfshore Group - Florida Real Estate",
-						},
-				  ];
-
-		const propertyLink = UrlMaker(
-			property.City,
-			property.Development || property.DevelopmentName,
-			property.FullAddress,
-			property.MLSNumber
-		);
-
-		const propertyUrl = `${siteUrl + propertyLink}`;
+		// Sold / withdrawn listings stay crawlable (follow) but are not indexed,
+		// so Google's index only holds listings that are actually for sale.
+		const isOffMarket = OFF_MARKET.includes(property.StandardStatus || "");
 
 		return {
-			title,
-			description: descriptiontxt,
+			title: { absolute: `${title} | Gulfshore Group` },
+			description,
 			keywords: [
-				`${property.FullAddress}`,
 				`${city} real estate`,
-				`${development} homes`,
-				`Florida property`,
-				`${propertytype} for sale`,
-				`MLS ${property.MLSNumber}`,
-				`${city} homes`,
-				`luxury real estate Florida`,
-				`Gulfshore Group`,
-				...(property.BedroomsTotal
-					? [`${property.BedroomsTotal} bedroom homes`]
-					: []),
-				...(property.BathroomsFull
-					? [`${property.BathroomsFull} bathroom homes`]
-					: []),
-			].join(", "),
-			authors: [{ name: "Gulfshore Group" }],
-			creator: "Gulfshore Group",
-			publisher: "Gulfshore Group",
-			category: "Real Estate",
-			classification: "Real Estate Listing",
-
+				community ? `${community} homes for sale` : null,
+				`${city} homes for sale`,
+				`MLS ${property.MLSNumber || property.ListingId}`,
+			]
+				.filter(Boolean)
+				.join(", "),
 			openGraph: {
 				title,
-				description: descriptiontxt,
+				description,
 				url: propertyUrl,
 				siteName: "Gulfshore Group",
 				images,
@@ -149,28 +82,22 @@ export async function generateMetadata({
 			twitter: {
 				card: "summary_large_image",
 				title,
-				description: descriptiontxt,
-				images: images.map((img: any) => img.url),
-				creator: "@GulfshoreGroup",
+				description,
+				images: images.map((img) => img.url),
 				site: "@GulfshoreGroup",
 			},
-
-			robots: {
-				index: true,
-				follow: true,
-				googleBot: {
-					index: true,
-					follow: true,
-					"max-video-preview": -1,
-					"max-image-preview": "large",
-					"max-snippet": -1,
-				},
-			},
-
-			other: {
-				"msapplication-TileColor": "#da532c",
-				"theme-color": "#ffffff",
-			},
+			robots: isOffMarket
+				? { index: false, follow: true }
+				: {
+						index: true,
+						follow: true,
+						googleBot: {
+							index: true,
+							follow: true,
+							"max-image-preview": "large",
+							"max-snippet": -1,
+						},
+				  },
 			alternates: {
 				canonical: propertyUrl,
 			},
@@ -178,24 +105,17 @@ export async function generateMetadata({
 	} catch (error) {
 		console.error("Error generating metadata:", error);
 		return {
-			title: "Error Loading Property | Gulfshore Group",
+			title: "Florida Real Estate Listing | Gulfshore Group",
 			description:
-				"There was an error loading this property. Please try again or browse our other listings.",
-			robots: "noindex, nofollow",
+				"Homes, condos and land for sale in Naples and Southwest Florida.",
 		};
 	}
 }
 
-export default function RootLayout({
+export default function ListingLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	return (
-		<>
-			<div className="min-h-[80dvh]">{children}</div>
-		</>
-	);
+	return <div className="min-h-[80dvh]">{children}</div>;
 }
-
-export const revalidate = 6400; // cache for 2 hours

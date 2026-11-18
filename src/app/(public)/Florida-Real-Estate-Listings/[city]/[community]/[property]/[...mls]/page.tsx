@@ -35,6 +35,7 @@ import {
 import React, { Suspense } from "react";
 import PropertyDetail from "./pageComponent";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import MortgageCalculator from "@/components/property/mortgage-card";
 import fetchMetadataFromSlug from "@/DAL/FetchMetaData";
 import Image from "next/image";
@@ -67,26 +68,10 @@ export default async function Listing({
 			(property as any).PropertyClass?.toLowerCase().includes("lease") ||
 			(property as any).PropertyClass?.toLowerCase().includes("rental"));
 
-	// Handle case when property is not found or is a lease property
+	// Missing or lease listing -> real HTTP 404 (src/app/not-found.tsx), not a
+	// "Property Not Found" page served with status 200 (soft 404).
 	if (!property || isLease) {
-		return (
-			<div className="min-h-screen flex items-center justify-center">
-				<div className="text-center px-4">
-					<h1 className="text-2xl font-bold mb-4 text-gray-900">
-						Property Not Found
-					</h1>
-					<p className="text-gray-600 mb-6 max-w-md mx-auto">
-						This property is either no longer available or is not offered for sale.
-					</p>
-					<Link
-						href="/Florida-Real-Estate-Search"
-						className="inline-flex items-center justify-center px-6 py-2.5 bg-[#B89A6A] hover:bg-[#a6895b] text-white font-medium rounded-lg transition-colors shadow-sm"
-					>
-						Explore Properties For Sale
-					</Link>
-				</div>
-			</div>
-		);
+		notFound();
 	}
 
 	let media = (property.images ?? (property as any)?.raw?.Media) as any;
