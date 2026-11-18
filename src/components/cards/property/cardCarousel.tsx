@@ -4,7 +4,7 @@ import ListingLabels from "@/components/property/listingLabels";
 import SocialShare from "@/components/property/share-card";
 import { WishListButton } from "@/components/property/wishlistButton";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Landmark } from "lucide-react";
+import { ArrowLeft, ArrowRight, Landmark } from "lucide-react";
 import {
 	Carousel,
 	CarouselContent,
@@ -73,7 +73,43 @@ export default function CardCarousel({
 			onTouchStart={() => setIsInteracted(true)}
 		>
 			<div className="relative overflow-visible w-full h-full rounded-t-2xl">
-				{visibleImages.length ? (
+				{/* Before any hover/touch, show a plain first photo. Mounting an Embla
+				    carousel for every card on load was a large part of the page's
+				    Total Blocking Time (8 cards on the homepage, 36 on search pages). */}
+				{!isInteracted && imageArray.length > 0 && !imageErrors[0] ? (
+					<div className="relative w-full">
+						<AspectRatio ratio={16 / 9} className="w-full overflow-hidden">
+							<Image
+								src={imageArray[0]}
+								alt={`${property.FullAddress}-0`}
+								fill={true}
+								sizes="(max-width: 768px) 100vw, 456px"
+								loading="lazy"
+								quality={75}
+								onError={() => setImageErrors(prev => ({ ...prev, [0]: true }))}
+								className="object-cover group-hover:scale-105 transition duration-700 ease-in-out"
+							/>
+						</AspectRatio>
+						{imageArray.length > 1 && (
+							<>
+								<button
+									type="button"
+									aria-label="Previous slide"
+									onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsInteracted(true); }}
+									className="absolute left-0 top-1/2 -translate-y-1/2 z-20 cursor-pointer bg-white text-black border-0 shadow-md h-9 w-9 rounded-full flex items-center justify-center">
+									<ArrowLeft className="h-4 w-4" />
+								</button>
+								<button
+									type="button"
+									aria-label="Next slide"
+									onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsInteracted(true); }}
+									className="absolute right-0 top-1/2 -translate-y-1/2 z-20 cursor-pointer bg-white text-black border-0 shadow-md h-9 w-9 rounded-full flex items-center justify-center">
+									<ArrowRight className="h-4 w-4" />
+								</button>
+							</>
+						)}
+					</div>
+				) : visibleImages.length ? (
 					<Carousel
 						className="w-full h-full"
 						opts={{
