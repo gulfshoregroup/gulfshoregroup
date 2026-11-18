@@ -1,35 +1,12 @@
-"use client";
-
+// No "use client": the footer is static links and text, so it renders with
+// no client JavaScript. Only <SiteName /> (admin-editable name) hydrates.
 import Image from "next/image";
 import Link from "next/link";
 import FooterLinks from "./footerLinks";
 import SearchSuggestions from "./searchSuggestions";
-import { useState, useEffect } from "react";
-import { fetchClientGeneralSettings } from "@/lib/general-settings-client";
+import SiteName from "./siteName";
 
 export default function Footer() {
-	const [siteName, setSiteName] = useState("GulfshoreGroup");
-	const [siteUrl, setSiteUrl] = useState("https://gulfshoregroup.com");
-
-	// Same as the navbar: load admin-edited values when the browser is idle
-	// (shares one cached request with the navbar).
-	useEffect(() => {
-		const load = () =>
-			fetchClientGeneralSettings()
-				.then((data) => {
-					if (data.siteName) setSiteName(data.siteName);
-					if (data.siteUrl) setSiteUrl(data.siteUrl);
-				})
-				.catch(() => {});
-		const w = window as any;
-		if (typeof w.requestIdleCallback === "function") {
-			const id = w.requestIdleCallback(load, { timeout: 4000 });
-			return () => w.cancelIdleCallback?.(id);
-		}
-		const t = setTimeout(load, 2000);
-		return () => clearTimeout(t);
-	}, []);
-
 	const cities = [
 		"Naples",
 		"Bonita Springs",
@@ -56,10 +33,10 @@ export default function Footer() {
 										src="/logored.svg"
 										width={32}
 										height={32}
-										alt={`${siteName} Logo`}
+										alt="Gulfshore Group Logo"
 									/>
 									<h2 className="text-xl text-primary font-bold">
-										{siteName}
+										<SiteName />
 									</h2>
 								</div>
 							</div>
@@ -126,10 +103,10 @@ export default function Footer() {
 					</div>
 				</div>
 				<div className="w-full h-fit text-center text-sm py-3">
-					Thanks for visiting {siteName}.
+					Thanks for visiting <SiteName />.
 				</div>
 				<div className="w-full h-fit text-sm lg:text-base py-2 border-t-2 border-white text-white bg-black text-center poppins">
-					&copy; {siteName} | All rights reserved. <br />
+					&copy; <SiteName /> | All rights reserved. <br />
 				</div>
 			</footer>
 		</>
