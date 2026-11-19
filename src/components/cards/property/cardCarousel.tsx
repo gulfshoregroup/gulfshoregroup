@@ -1,4 +1,5 @@
 "use client";
+import { isMlsPhoto } from "@/lib/mlsPhoto";
 import { Property } from "@/app/generated/prisma/client";
 import ListingLabels from "@/components/property/listingLabels";
 import SocialShare from "@/components/property/share-card";
@@ -81,6 +82,7 @@ export default function CardCarousel({
 						<AspectRatio ratio={16 / 9} className="w-full overflow-hidden">
 							<Image
 								src={imageArray[0]}
+								unoptimized={isMlsPhoto(imageArray[0])}
 								alt={`${property.FullAddress}-0`}
 								fill={true}
 								sizes="(max-width: 768px) 100vw, 456px"
@@ -131,6 +133,7 @@ export default function CardCarousel({
 										) : (
 											<Image
 												src={img}
+												unoptimized={isMlsPhoto(img)}
 												alt={`${property.FullAddress}-${index}`}
 												fill={true}
 												sizes="(max-width: 768px) 100vw, 456px"

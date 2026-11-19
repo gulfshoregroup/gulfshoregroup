@@ -1,4 +1,5 @@
 "use client";
+import { isMlsPhoto } from "@/lib/mlsPhoto";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -280,6 +281,7 @@ export const PropertyCard2 = ({
 							width={200}
 							height={420}
 							src={images[0]}
+							unoptimized={isMlsPhoto(images[0])}
 							loading="lazy"
 							quality={75}
 							alt={property.FullAddress}

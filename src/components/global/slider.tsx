@@ -1,4 +1,5 @@
 "use client";
+import { isMlsPhoto } from "@/lib/mlsPhoto";
 import React, { useState, useCallback, useEffect } from "react";
 import {
 	Carousel,
@@ -74,13 +75,14 @@ const SliderComponent = ({
 								<div className="relative">
 									<Image
 										src={image}
+										unoptimized={isMlsPhoto(image)}
 										alt={address + "-" + (index + 1)}
 										width={800}
 										height={800}
 										priority={index === 0}
 										loading={index === 0 ? "eager" : "lazy"}
 										sizes="(max-width: 1024px) 92vw, 46vw"
-										quality={80}
+										quality={75}
 										className="rounded-xl h-[calc(100vh/2)] w-full mx-auto object-cover"
 									/>
 									<Button
@@ -108,6 +110,7 @@ const SliderComponent = ({
 							onClick={() => openFullscreen(image, index)}>
 							<Image
 								src={image}
+								unoptimized={isMlsPhoto(image)}
 								alt={address + "-" + (index + 1)}
 								width={550}
 								height={550}
