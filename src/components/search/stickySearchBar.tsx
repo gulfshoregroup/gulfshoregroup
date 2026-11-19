@@ -57,7 +57,7 @@ export default function StickySearchBar() {
 	const params = useSearchParams();
 	const view = params.get("view");
 	const dispatch = useDispatch<AppDispatch>();
-	const { filters } = useSelector((state: RootState) => state.search);
+	const filters = useSelector((state: RootState) => state.search.filters);
 
 	const onQuickPriceChange = (minPrice: string, maxPrice: string) => {
 		const nextFilters = {

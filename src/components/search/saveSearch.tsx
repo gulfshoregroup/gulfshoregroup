@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { parseLocationFromPathname } from "@/lib/search-filters";
 
 export default function SaveSearchButton() {
-	const { filters } = useSelector((state: RootState) => state.search);
+	const filters = useSelector((state: RootState) => state.search.filters);
 	const { isLoaded, isSignedIn } = useAuth();
 	const router = useRouter();
     const pathname = usePathname();

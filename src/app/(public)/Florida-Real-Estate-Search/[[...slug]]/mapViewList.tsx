@@ -20,7 +20,7 @@ import { AppDispatch, RootState } from "@/state/store";
 import { SearchX } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import React, { Suspense } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { shallowEqual, useDispatch, useSelector } from "react-redux";
 import dynamic from "next/dynamic";
 
 const FloodZoneLookup = dynamic(
@@ -40,7 +40,14 @@ export default function MapViewList({
 	/** First page of results rendered on the server (list view only). */
 	initialData?: { data: any[]; total: number; totalPages: number };
 }) {
-	const store = useSelector((state: RootState) => state.search);
+	// Everything except hoveredMLS: hovering a card must not re-render all cards.
+	const store = useSelector(
+		(state: RootState) => {
+			const { hoveredMLS, ...rest } = state.search;
+			return rest;
+		},
+		shallowEqual
+	);
 	const { mobileMapView, listView, error, loading, details, limit } = store;
 
 	// Until Redux has results, render the server-provided first page so the
@@ -93,6 +100,36 @@ export default function MapViewList({
 			}
 		}
 	}, [dispatch, view, filterString, initialData]);
+
+	// Map view loads up to 100 listings per map move. Render them in batches of
+	// 24 (more appear automatically as the user scrolls) instead of building
+	// 100 cards at once. List view is unchanged (all 36 in the HTML for SEO).
+	const MAP_BATCH = 24;
+	const [mapVisible, setMapVisible] = React.useState(MAP_BATCH);
+	const loadMoreRef = React.useRef<HTMLDivElement>(null);
+	React.useEffect(() => {
+		setMapVisible(MAP_BATCH);
+	}, [list]);
+	const mapHasMore = view === "map" && orderedList.length > mapVisible;
+	React.useEffect(() => {
+		if (!mapHasMore) return;
+		const el = loadMoreRef.current;
+		if (!el || !("IntersectionObserver" in window)) {
+			setMapVisible(orderedList.length);
+			return;
+		}
+		const io = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((e) => e.isIntersecting)) {
+					setMapVisible((n) => n + MAP_BATCH);
+				}
+			},
+			{ rootMargin: "600px" }
+		);
+		io.observe(el);
+		return () => io.disconnect();
+	}, [mapHasMore, orderedList.length]);
+	const cardsToRender = view === "map" ? orderedList.slice(0, mapVisible) : list;
 
 	const gridClass =
 		view === "map"
@@ -326,7 +363,7 @@ export default function MapViewList({
 			)}
 
 			<div className={gridClass}>
-				{(view === "map" ? orderedList : list).map((property, i: number) => (
+				{cardsToRender.map((property, i: number) => (
 					<PropertyCard
 						key={(property as any).MLSNumber || i}
 						isSelected={details?.MLSNumber === (property as any).MLSNumber}
@@ -334,6 +371,7 @@ export default function MapViewList({
 					/>
 				))}
 			</div>
+			{mapHasMore && <div ref={loadMoreRef} className="h-10" aria-hidden="true" />}
 
 			{Number(totalPages) >= 1 && (
 				<PaginationComponent2

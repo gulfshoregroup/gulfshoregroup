@@ -19,7 +19,7 @@ import {
 } from "@/lib/search-filters";
 
 export const SortComponent = ({ classname }: { classname?: string }) => {
-	const { filters } = useSelector((state: RootState) => state.search);
+	const filters = useSelector((state: RootState) => state.search.filters);
 	const dispatch = useDispatch<AppDispatch>();
 	const pathname = usePathname();
 	const router = useRouter();

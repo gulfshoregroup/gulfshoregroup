@@ -3,7 +3,8 @@ import React, { useRef, useCallback, useState } from "react";
 import axios from "axios";
 import { GoogleMap, useJsApiLoader, MarkerClustererF } from "@react-google-maps/api";
 import MarkerItem from "@/components/map/marker";
-import { useSelector } from "react-redux";
+import { shallowEqual, useSelector } from "react-redux";
+import type { RootState } from "@/state/store";
 import { Layers, ChevronDown, MapPin } from "lucide-react";
 import { useAppDispatch } from "@/state/store";
 import {
@@ -221,7 +222,13 @@ export default function MapComponent({
 
 	const dispatch = useAppDispatch();
 	const properties = useSelector(selectAllProperties);
-	const ui = useSelector(selectUi);
+	// Only the fields this component reads. Selecting the whole search slice made
+	// the entire map re-render every time the mouse moved over a listing card
+	// (hoveredMLS changes); markers already subscribe to their own highlight.
+	const ui = useSelector(
+		(s: RootState) => ({ details: s.search.details, filters: s.search.filters, loading: s.search.loading }),
+		shallowEqual
+	);
 	
 	const { isLoaded } = useJsApiLoader({
 		id: "google-map-script",
