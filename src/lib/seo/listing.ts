@@ -52,6 +52,13 @@ export function getListingUrl(listing: any): string {
 	)}`;
 }
 
+const OFF_MARKET_STATUSES = ["Withdrawn", "Canceled", "Expired", "Off Market", "Off-Market", "Closed", "Sold"];
+
+/** Withdrawn / expired / sold listings: page stays live, but must not say "for sale". */
+export function isOffMarketListing(listing: any): boolean {
+	return OFF_MARKET_STATUSES.includes(listing?.StandardStatus || "");
+}
+
 export function isLandListing(listing: any): boolean {
 	const t = `${listing?.PropertyType || ""} ${listing?.PropertySubType || ""}`.toLowerCase();
 	return t.includes("land") || t.includes("lot");
@@ -94,6 +101,9 @@ export function getListingTitle(listing: any): string {
 	const type = getListingTypeLabel(listing);
 	const beds = Number(listing.BedroomsTotal) > 0 ? `${listing.BedroomsTotal} Bed ` : "";
 	const price = money(listing.ListPrice);
+	if (isOffMarketListing(listing)) {
+		return `${location} | ${isLandListing(listing) ? "" : beds}${type} (Off Market)`;
+	}
 	return `${location} | ${isLandListing(listing) ? "" : beds}${type} for Sale${price ? ` ${price}` : ""}`;
 }
 
@@ -110,11 +120,13 @@ export function getListingDescription(listing: any): string {
 		listing.NewConstructionYN ? "new construction" : null,
 	].filter(Boolean);
 
+	const offMarket = isOffMarketListing(listing);
+	const saleWord = offMarket ? "(off market)" : "for sale";
 	const parts: string[] = [];
 	if (isLandListing(listing)) {
 		const acres = Number(listing.LotSizeAcres);
 		parts.push(
-			`${Number.isFinite(acres) && acres > 0 ? `${acres} acre ` : ""}land for sale at ${listing.FullAddress}`
+			`${Number.isFinite(acres) && acres > 0 ? `${acres} acre ` : ""}land ${saleWord} at ${listing.FullAddress}`
 		);
 	} else {
 		const beds = Number(listing.BedroomsTotal);
@@ -127,7 +139,7 @@ export function getListingDescription(listing: any): string {
 		]
 			.filter(Boolean)
 			.join(", ");
-		parts.push(`${specs ? specs + " " : ""}${type.toLowerCase()} for sale at ${listing.FullAddress}`);
+		parts.push(`${specs ? specs + " " : ""}${type.toLowerCase()} ${saleWord} at ${listing.FullAddress}`);
 	}
 	if (community && community.toLowerCase() !== city.toLowerCase()) {
 		parts.push(`in ${community}, ${city}, FL`);
@@ -135,7 +147,7 @@ export function getListingDescription(listing: any): string {
 		parts.push(`in ${city}, FL`);
 	}
 	let text = parts.join(" ");
-	if (price) text += ` listed at ${price}`;
+	if (price) text += offMarket ? `, last listed at ${price}` : ` listed at ${price}`;
 	if (features.length) text += `. Features: ${features.join(", ")}`;
 	text += `. MLS# ${listing.MLSNumber || listing.ListingId}. Photos, price history, flood zone and schools on Gulfshore Group.`;
 	return text;
