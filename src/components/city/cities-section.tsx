@@ -3,6 +3,7 @@
 import { Card } from "../ui/card";
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import capitalizeWords from "@/hooks/capitalize-letter";
 import {
 	Carousel,
@@ -42,6 +43,8 @@ export default function CitiesSection() {
 						const cityHref = `/Florida-Real-Estate-Search/${capitalizeWords(city.name).replaceAll(" ", "-")}`;
 						return (
 							<CarouselItem key={index} className=" basis-auto">
+								{/* Suspense per card: hydrates in small tasks (lower TBT), no visual change. */}
+								<Suspense fallback={null}>
 								<Link href={cityHref} className="block">
 									<Card
 										className="h-64 w-52 md:w-56 group relative overflow-hidden hover:cursor-pointer rounded-2xl border-0 shadow-md shrink-0">
@@ -66,6 +69,7 @@ export default function CitiesSection() {
 										</div>
 									</Card>
 								</Link>
+								</Suspense>
 							</CarouselItem>
 						);
 					})}

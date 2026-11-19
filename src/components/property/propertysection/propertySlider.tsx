@@ -130,7 +130,12 @@ export default function PropertySection({
 							<CarouselItem
 								key={property.MLSNumber}
 								className="md:basis-1/2 lg:basis-1/2 xl:basis-1/3">
-								<PropertyCard {...property} />
+{/* Each card in its own Suspense boundary: React then hydrates the cards as
+								    separate small tasks instead of one long blocking task (lower TBT).
+								    The HTML is already server-rendered, so nothing changes visually. */}
+								<Suspense fallback={null}>
+									<PropertyCard {...property} />
+								</Suspense>
 							</CarouselItem>
 						))}
 

@@ -363,12 +363,14 @@ export default function MapViewList({
 			)}
 
 			<div className={gridClass}>
+				{/* One Suspense boundary per card = hydration split into small tasks (lower TBT). */}
 				{cardsToRender.map((property, i: number) => (
-					<PropertyCard
-						key={(property as any).MLSNumber || i}
-						isSelected={details?.MLSNumber === (property as any).MLSNumber}
-						{...(property as any)}
-					/>
+					<Suspense key={(property as any).MLSNumber || i} fallback={null}>
+						<PropertyCard
+							isSelected={details?.MLSNumber === (property as any).MLSNumber}
+							{...(property as any)}
+						/>
+					</Suspense>
 				))}
 			</div>
 			{mapHasMore && <div ref={loadMoreRef} className="h-10" aria-hidden="true" />}
