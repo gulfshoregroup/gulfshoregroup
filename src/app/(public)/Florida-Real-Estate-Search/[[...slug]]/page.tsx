@@ -6,6 +6,8 @@ import CityFAQ from "@/components/city/city-faq";
 import GetSeoData from "@/hooks/getSeoData";
 import capitalizeWords from "@/hooks/capitalize-letter";
 import { getInitialSearchResults } from "@/lib/properties/getInitialSearchResults";
+import { correctedSearchPath } from "@/lib/seo/area-path";
+import { permanentRedirect } from "next/navigation";
 
 export default async function ListingsPage({
 	params,
@@ -18,6 +20,20 @@ export default async function ListingsPage({
 }) {
 	const slug = (await params).slug || [];
 	const sp = await searchParams;
+
+	// /NAPLES, /naples, /bonita-springs -> permanent redirect to /Naples,
+	// /Bonita-Springs, so Google sees ONE URL per city/community.
+	// Property types (Homes, Condos) and filter segments are never touched.
+	const correctedPath = correctedSearchPath(slug);
+	if (correctedPath) {
+		const qs = new URLSearchParams();
+		for (const [k, v] of Object.entries(sp)) {
+			if (Array.isArray(v)) v.forEach((x) => qs.append(k, x));
+			else if (v !== undefined) qs.append(k, v);
+		}
+		const query = qs.toString();
+		permanentRedirect(query ? `${correctedPath}?${query}` : correctedPath);
+	}
 	const view = typeof sp.view === "string" ? sp.view : undefined;
 	const filterFromSlug = await ExtractSearchParams(slug);
 	const filterFromQuery = parseFiltersFromQuery(sp);

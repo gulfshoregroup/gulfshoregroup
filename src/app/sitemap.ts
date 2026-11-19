@@ -1,7 +1,8 @@
 import { MetadataRoute } from "next";
 import prisma from "@/lib/prisma";
-import capitalizeWords from "@/hooks/capitalize-letter";
 import { getListingUrl } from "@/lib/seo/listing";
+import { areaPath, areaSegment } from "@/lib/seo/area-path";
+import { getActiveAreas, MIN_LISTINGS_FOR_SITEMAP } from "@/lib/seo/areas";
 
 const BASE_URL = "https://gulfshoregroup.com";
 const MAX_URLS_PER_SITEMAP = 50000; // Google's limit
@@ -9,12 +10,6 @@ const BATCH_SIZE = 5000;
 
 // Regenerate at most once per hour instead of on every crawler hit.
 export const revalidate = 3600;
-
-const toPath = (s: string) =>
-	capitalizeWords(s || "")
-		.trim()
-		.replaceAll(/\s+/g, "-")
-		.replaceAll("&", "And");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const now = new Date();
@@ -33,28 +28,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
 	// City + community landing pages: the pages that should rank for
 	// "<city> homes for sale" / "<community> homes for sale".
+	// Built from the Property table (areas with real active listings only), and
+	// with the exact URL format used by the canonical tag, so they always match.
 	const areaRoutes: MetadataRoute.Sitemap = [];
 	try {
-		const cities = await prisma.city.findMany({
-			select: {
-				name: true,
-				updatedAt: true,
-				communities: { select: { name: true, updatedAt: true, propertyCount: true } },
-			},
-		});
-		for (const city of cities) {
-			const c = toPath(city.name);
-			if (!c) continue;
+		const areas = await getActiveAreas();
+		for (const city of areas) {
+			if (city.count < MIN_LISTINGS_FOR_SITEMAP) continue; // skip thin pages
 			areaRoutes.push(
-				{ url: `${BASE_URL}/Florida-Real-Estate-Search/${c}`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
-				{ url: `${BASE_URL}/explore/${c}`, lastModified: city.updatedAt, changeFrequency: "weekly", priority: 0.8 }
+				{ url: `${BASE_URL}${areaPath(city.name)}`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
+				{ url: `${BASE_URL}/explore/${encodeURIComponent(areaSegment(city.name))}`, lastModified: now, changeFrequency: "weekly", priority: 0.7 }
 			);
 			for (const community of city.communities) {
-				const m = toPath(community.name);
-				if (!m || community.propertyCount === 0) continue; // skip empty (thin) pages
+				if (community.count < MIN_LISTINGS_FOR_SITEMAP) continue;
 				areaRoutes.push({
-					url: `${BASE_URL}/Florida-Real-Estate-Search/${c}/${m}`,
-					lastModified: community.updatedAt,
+					url: `${BASE_URL}${areaPath(city.name, community.name)}`,
+					lastModified: now,
 					changeFrequency: "daily",
 					priority: 0.8,
 				});

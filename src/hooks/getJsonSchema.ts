@@ -1,4 +1,5 @@
 import capitalizeWords from "./capitalize-letter";
+import { areaPath } from "@/lib/seo/area-path";
 import {
 	getBaths,
 	getListingDescription,
@@ -124,16 +125,12 @@ export default function createHouseJsonLd(listing: any) {
 				: undefined,
 	};
 
+	const hasCommunity = community && community.toLowerCase() !== city.toLowerCase();
 	const crumbs = [
 		{ name: "Home", item: SITE_URL },
-		{ name: `${city} Real Estate`, item: `${SITE_URL}/Florida-Real-Estate-Search/${city.replaceAll(" ", "-")}` },
-		community && community.toLowerCase() !== city.toLowerCase()
-			? {
-					name: community,
-					item: `${SITE_URL}/Florida-Real-Estate-Search/${city}/${community}`
-						.replaceAll(" ", "-")
-						.replaceAll("&", "And"),
-			  }
+		{ name: `${city} Real Estate`, item: `${SITE_URL}${areaPath(city)}` },
+		hasCommunity
+			? { name: community, item: `${SITE_URL}${areaPath(city, community)}` }
 			: null,
 		{ name: listing.FullAddress, item: url },
 	].filter(Boolean) as { name: string; item: string }[];

@@ -16,6 +16,7 @@ import CityLinksSection from "@/components/search/links-section/cityLinksSection
 import capitalizeWords from "@/hooks/capitalize-letter";
 import MarketReportSection from "@/components/search/marketReportSection";
 import GolfCourseCard from "@/components/community/GolfCourseCard";
+import { areaPath, SEARCH_BASE_PATH } from "@/lib/seo/area-path";
 type Props = {
 	params: Promise<{ slug?: string[] }>;
 };
@@ -27,9 +28,17 @@ export async function generateMetadata({
 	const filtersParams = await ExtractSearchParams(slugs);
 	try {
 		const meta = await GetSeoData({ params: filtersParams });
-		const canonical = `https://gulfshoregroup.com/Florida-Real-Estate-Search${
-			meta.canonicalUrl.replaceAll("//", "/") || ""
-		}`;
+		// Canonical uses the same URL format as the sitemap and the site's links
+		// ("/Naples", "/Naples/Pelican-Bay"). It used to be built from the raw
+		// database values ("/NAPLES/PELICAN BAY": capitals, and a space), which
+		// disagreed with the sitemap and was an invalid URL.
+		const canonical =
+			"https://gulfshoregroup.com" +
+			(filtersParams.city
+				? areaPath(filtersParams.city, filtersParams.developmentName)
+				: filtersParams.developmentName
+				? areaPath(filtersParams.developmentName)
+				: SEARCH_BASE_PATH);
 
 		return {
 			title: meta.title,

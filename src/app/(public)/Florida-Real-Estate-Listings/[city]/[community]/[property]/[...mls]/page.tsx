@@ -36,6 +36,7 @@ import React, { Suspense } from "react";
 import PropertyDetail from "./pageComponent";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { areaPath } from "@/lib/seo/area-path";
 import MortgageCalculator from "@/components/property/mortgage-card";
 import fetchMetadataFromSlug from "@/DAL/FetchMetaData";
 import Image from "next/image";
@@ -146,19 +147,14 @@ export default async function Listing({
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
 							<BreadcrumbLink
-								href={`/Florida-Real-Estate-Search/${city}`.replaceAll(
-									" ",
-									"-"
-								)}>
+								href={areaPath(city)}>
 								{city}
 							</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
 							<BreadcrumbLink
-								href={`/Florida-Real-Estate-Search/${city}/${development}`
-									.replaceAll(" ", "-")
-									.replaceAll("&", "And")}>
+								href={areaPath(city, development)}>
 								{development}
 							</BreadcrumbLink>
 						</BreadcrumbItem>
