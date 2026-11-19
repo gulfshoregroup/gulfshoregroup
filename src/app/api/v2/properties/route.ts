@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { gzipSync } from "zlib";
 import prisma from "@/lib/prisma";
 import { redisGet, redisSet } from "@/lib/safeRedis";
 import { getFeaturedProperties } from "@/lib/properties/getFeaturedProperties";
@@ -30,6 +31,33 @@ if (process.env.NODE_ENV !== "production") {
 	globalForSearch.countMemoryCache = countMemoryCache;
 }
 
+// ---- Response size (search list + map) ----
+// The search UI (cards, list view, map pins, map card) never shows these, but
+// they were ~65% of every response: 100 map listings = ~955 KB, of which
+// all photos (avg 42/listing) = 462 KB and descriptions = 201 KB.
+// Cards/map show at most 8 photos. Full details stay on the listing page API.
+const LIST_RESPONSE_DROP_FIELDS = ["Description", "AssociationAmenities", "CommunityFeatures", "View", "Directions"];
+const MAX_LIST_PHOTOS = 8;
+
+// JSON from this route was being sent uncompressed. Gzip it when the browser
+// accepts it (typically ~75-85% smaller). Server-side callers that don't send
+// Accept-Encoding (e.g. getInitialSearchResults) still get plain JSON.
+function jsonResponse(req: NextRequest, body: any, headers: Record<string, string> = CACHE_HEADERS) {
+	const str = JSON.stringify(body);
+	const acceptsGzip = (req.headers.get("accept-encoding") || "").includes("gzip");
+	if (!acceptsGzip || str.length < 1024) {
+		return NextResponse.json(body, { headers });
+	}
+	return new NextResponse(new Uint8Array(gzipSync(str)), {
+		headers: {
+			...headers,
+			"Content-Type": "application/json",
+			"Content-Encoding": "gzip",
+			Vary: "Accept-Encoding",
+		},
+	});
+}
+
 function getFromSearchMemory(key: string) {
 	const item = searchMemoryCache.get(key);
 	if (item && item.expiresAt > Date.now()) return item.data;
@@ -48,18 +76,18 @@ function setInSearchMemory(key: string, data: any, ttlSeconds = 600) {
 export async function GET(req: NextRequest) {
 	try {
 		const query = req.nextUrl.searchParams;
-		const cacheKey = "search:v2:" + query.toString();
+		const cacheKey = "search:v3:" + query.toString(); // v3 = slim list payload
 
 		// 1️⃣ FAST IN-MEMORY CACHE (< 1ms response)
 		const memCached = getFromSearchMemory(cacheKey);
-		if (memCached) return NextResponse.json(memCached, { headers: CACHE_HEADERS });
+		if (memCached) return jsonResponse(req, memCached);
 
 		// 2️⃣ REDIS CACHE
 		const cached = await redisGet(cacheKey);
 		if (cached) {
 			const parsed = typeof cached === "string" ? JSON.parse(cached) : cached;
 			setInSearchMemory(cacheKey, parsed, 600);
-			return NextResponse.json(parsed, { headers: CACHE_HEADERS });
+			return jsonResponse(req, parsed);
 		}
 
 		// ---- Pagination ----
@@ -95,7 +123,7 @@ export async function GET(req: NextRequest) {
 				totalPages: 1,
 			};
 			setInSearchMemory(cacheKey, responsePayload, 600);
-			return NextResponse.json(responsePayload, { headers: CACHE_HEADERS });
+			return jsonResponse(req, responsePayload);
 		}
 
 		// ---- Sorting ----
@@ -686,10 +714,12 @@ export async function GET(req: NextRequest) {
 		};
 
 		const data = properties.map((p: any) => {
+			const slim: any = { ...p };
+			for (const f of LIST_RESPONSE_DROP_FIELDS) delete slim[f];
 			return {
-				...p,
+				...slim,
 				StandardStatus: isMockingClosed ? "Closed" : p.StandardStatus,
-				images: slimImages(p.images),
+				images: slimImages(p.images).slice(0, MAX_LIST_PHOTOS),
 				isWishlisted: false,
 			};
 		});
@@ -706,7 +736,7 @@ export async function GET(req: NextRequest) {
 		setInSearchMemory(cacheKey, response, 600);
 		await redisSet(cacheKey, response, 7200);
 
-		return NextResponse.json(response, { headers: CACHE_HEADERS });
+		return jsonResponse(req, response);
 	} catch (error: any) {
 		console.error("Search error:", error);
 		return NextResponse.json(
