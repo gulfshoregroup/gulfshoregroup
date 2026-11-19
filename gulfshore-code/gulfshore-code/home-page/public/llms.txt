@@ -1,0 +1,21 @@
+# Gulfshore Group
+
+> Gulfshore Group is a Naples, Florida real estate office led by Realtor Dimitri Schwarz.
+> The site lists every active MLS home, condo and lot for sale in Southwest Florida,
+> updated daily. Phone: +1-239-992-9119. Email: mailbox@gulfshoregroup.com.
+
+## Search listings by city
+- [Naples homes for sale](https://gulfshoregroup.com/Florida-Real-Estate-Search/Naples)
+- [Bonita Springs homes for sale](https://gulfshoregroup.com/Florida-Real-Estate-Search/Bonita-Springs)
+- [Marco Island homes for sale](https://gulfshoregroup.com/Florida-Real-Estate-Search/Marco-Island)
+- [Fort Myers homes for sale](https://gulfshoregroup.com/Florida-Real-Estate-Search/Fort-Myers)
+- [Cape Coral homes for sale](https://gulfshoregroup.com/Florida-Real-Estate-Search/Cape-Coral)
+
+## City guides
+- [Naples area guide](https://gulfshoregroup.com/explore/Naples)
+
+## Services
+- [Sell your home](https://gulfshoregroup.com/sell)
+- [Property management](https://gulfshoregroup.com/property-management)
+- [Mortgage calculator](https://gulfshoregroup.com/mortgage-calculator)
+- [About Dimitri Schwarz](https://gulfshoregroup.com/about)

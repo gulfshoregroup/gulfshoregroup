@@ -5,6 +5,7 @@
 // share-settings request are not part of every listing card's initial load.
 import { useState, useEffect } from "react";
 import { DialogTitle } from "@/components/ui/dialog";
+import { fetchClientGeneralSettings } from "@/lib/general-settings-client";
 import {
 	FacebookShareButton,
 	TwitterShareButton,
@@ -31,13 +32,10 @@ export default function ShareDialogBody({
 	const [shareBody, setShareBody] = useState("Take a look at this property I found: ");
 
 	useEffect(() => {
-		fetch("/api/admin/general-settings")
-			.then((res) => res.json())
-			.then((data) => {
-				if (data.shareSubject) setShareSubject(data.shareSubject);
-				if (data.shareBody) setShareBody(data.shareBody);
-			})
-			.catch(() => {});
+		fetchClientGeneralSettings().then((settings) => {
+			setShareSubject(settings.shareSubject);
+			setShareBody(settings.shareBody);
+		});
 	}, []);
 
 	const propertyUrlLink =

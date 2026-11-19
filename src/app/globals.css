@@ -44,6 +44,22 @@ body {
 	animation: scroll var(--scroll-duration, 20s) linear infinite;
 }
 
+/* Visible keyboard focus ring (doesn't affect mouse/touch users) */
+:focus-visible {
+	outline: 3px solid var(--primary-color, #c8102e);
+	outline-offset: 2px;
+}
+
+/* Respect the OS "reduce motion" setting: pause decorative/infinite animations */
+@media (prefers-reduced-motion: reduce) {
+	.animate-fade-carousel,
+	.animate-scroll,
+	.spinLoader,
+	.bouncing-loader > div {
+		animation: none !important;
+	}
+}
+
 .spinLoader {
 	width: 16px;
 	height: 16px;

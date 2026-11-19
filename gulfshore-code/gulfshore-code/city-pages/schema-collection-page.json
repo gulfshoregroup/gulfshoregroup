@@ -1,0 +1,33 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "CollectionPage",
+      "@id": "https://gulfshoregroup.com/Florida-Real-Estate-Search/Condos/Naples#page",
+      "name": "Naples Condos for Sale",
+      "url": "https://gulfshoregroup.com/Florida-Real-Estate-Search/Condos/Naples",
+      "dateModified": "2026-11-18",
+      "about": { "@type": "City", "name": "Naples", "containedInPlace": { "@type": "State", "name": "Florida" } },
+      "publisher": { "@id": "https://gulfshoregroup.com/#org" },
+      "mainEntity": {
+        "@type": "ItemList",
+        "numberOfItems": 487,
+        "itemListElement": [
+          {
+            "@type": "ListItem", "position": 1,
+            "url": "https://gulfshoregroup.com/Florida-Real-Estate-Listings/Naples/Moorings/3100-Gulf-Shore-BLVD-N-504/226041802",
+            "name": "3100 Gulf Shore Blvd N #504, Naples, FL"
+          }
+        ]
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://gulfshoregroup.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Naples", "item": "https://gulfshoregroup.com/Florida-Real-Estate-Search/Naples" },
+        { "@type": "ListItem", "position": 3, "name": "Condos", "item": "https://gulfshoregroup.com/Florida-Real-Estate-Search/Condos/Naples" }
+      ]
+    }
+  ]
+}

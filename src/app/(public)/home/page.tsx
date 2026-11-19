@@ -186,8 +186,8 @@ export default async function Home() {
 				type="application/ld+json"
 				dangerouslySetInnerHTML={{
 					// Entity data for Google + AI engines. TODO(dev): add streetAddress,
-					// geo, openingHours and sameAs (Google Business Profile, Facebook,
-					// Instagram, LinkedIn, Zillow/Realtor.com agent profiles).
+					// geo and openingHours, and a Google Business Profile / LinkedIn /
+					// Zillow / Realtor.com agent profile link to sameAs below.
 					__html: JSON.stringify({
 						"@context": "https://schema.org",
 						"@graph": [
@@ -217,6 +217,10 @@ export default async function Home() {
 									"@type": "City",
 									name: `${name}, FL`,
 								})),
+								sameAs: [
+									"https://www.facebook.com/share/1Kc3pRfpPr/",
+									"https://www.instagram.com/gulfshoregroup_florida/",
+								],
 								knowsAbout: [
 									"Southwest Florida real estate",
 									"Naples luxury homes",

@@ -1,0 +1,59 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "RealEstateAgent",
+      "@id": "https://gulfshoregroup.com/#org",
+      "name": "Gulfshore Group",
+      "url": "https://gulfshoregroup.com/",
+      "logo": "https://gulfshoregroup.com/logo.png",
+      "image": "https://gulfshoregroup.com/og-home.jpg",
+      "telephone": "+1-239-992-9119",
+      "email": "mailbox@gulfshoregroup.com",
+      "priceRange": "$$$",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "[STREET ADDRESS]",
+        "addressLocality": "Naples",
+        "addressRegion": "FL",
+        "postalCode": "34102",
+        "addressCountry": "US"
+      },
+      "geo": { "@type": "GeoCoordinates", "latitude": [LAT], "longitude": [LNG] },
+      "openingHoursSpecification": [{
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+        "opens": "[09:00]", "closes": "[17:00]"
+      }],
+      "areaServed": [
+        {"@type": "City", "name": "Naples, FL"},
+        {"@type": "City", "name": "Bonita Springs, FL"},
+        {"@type": "City", "name": "Marco Island, FL"},
+        {"@type": "City", "name": "Estero, FL"},
+        {"@type": "City", "name": "Fort Myers, FL"},
+        {"@type": "City", "name": "Cape Coral, FL"},
+        {"@type": "City", "name": "Sanibel, FL"},
+        {"@type": "City", "name": "Fort Myers Beach, FL"}
+      ],
+      "sameAs": [
+        "https://www.facebook.com/share/1Kc3pRfpPr/",
+        "https://www.instagram.com/gulfshoregroup_florida/",
+        "[Google Business Profile URL]", "[Zillow / Realtor.com agent profile URL]"
+      ],
+      "employee": {
+        "@type": "Person",
+        "name": "Dimitri Schwarz",
+        "jobTitle": "Realtor",
+        "telephone": "+1-239-992-9119",
+        "image": "https://res.cloudinary.com/dm68hqwp9/image/upload/v1752289211/Dimitri-schwarz_r9ognl.jpg"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://gulfshoregroup.com/#website",
+      "url": "https://gulfshoregroup.com/",
+      "name": "Gulfshore Group",
+      "publisher": { "@id": "https://gulfshoregroup.com/#org" }
+    }
+  ]
+}
