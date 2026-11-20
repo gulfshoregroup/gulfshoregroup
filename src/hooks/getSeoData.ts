@@ -291,9 +291,10 @@ const GetSeoDataInternal = async ({
 			email: "mailbox@gulfshoregroup.com",
 			address: {
 				"@type": "PostalAddress",
+				streetAddress: "2367 Vanderbilt Beach Rd, Suite 812",
 				addressLocality: "Naples",
 				addressRegion: "FL",
-				postalCode: "34102",
+				postalCode: "34109",
 				addressCountry: "US",
 			},
 		},

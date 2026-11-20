@@ -59,8 +59,8 @@ export default function CitiesSection() {
 												alt={`/Florida-Real-Estate-Search/${city.name}`}
 											/>
 											<div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-4 text-center">
-												<span className="font-bold text-white text-lg md:text-xl tracking-wide drop-shadow-sm uppercase">
-													{city.name}
+												<span className="font-bold text-white text-lg md:text-xl tracking-wide drop-shadow-sm">
+													{capitalizeWords(city.name)}
 												</span>
 												<span className="text-xs md:text-sm font-semibold text-gray-200 mt-1">
 													{(city._count?.properties ?? city._count?.communities ?? 0)} Listings

@@ -185,9 +185,9 @@ export default async function Home() {
 				id="structured-data"
 				type="application/ld+json"
 				dangerouslySetInnerHTML={{
-					// Entity data for Google + AI engines. TODO(dev): add streetAddress,
-					// geo and openingHours, and a Google Business Profile / LinkedIn /
-					// Zillow / Realtor.com agent profile link to sameAs below.
+					// Entity data for Google + AI engines. TODO(dev): add geo coordinates
+					// and a Google Business Profile / LinkedIn / Zillow / Realtor.com
+					// agent profile link to sameAs below.
 					__html: JSON.stringify({
 						"@context": "https://schema.org",
 						"@graph": [
@@ -203,10 +203,20 @@ export default async function Home() {
 								priceRange: "$$$",
 								address: {
 									"@type": "PostalAddress",
+									streetAddress: "2367 Vanderbilt Beach Rd, Suite 812",
 									addressLocality: "Naples",
 									addressRegion: "FL",
-									postalCode: "34102",
+									postalCode: "34109",
 									addressCountry: "US",
+								},
+								openingHoursSpecification: {
+									"@type": "OpeningHoursSpecification",
+									dayOfWeek: [
+										"Monday", "Tuesday", "Wednesday", "Thursday",
+										"Friday", "Saturday", "Sunday",
+									],
+									opens: "09:00",
+									closes: "20:00",
 								},
 								areaServed: [
 									"Naples", "Marco Island", "Bonita Springs", "Estero",

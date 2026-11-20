@@ -27,7 +27,7 @@ export async function GET() {
 
 > Gulfshore Group is a real estate brokerage based in Naples, Florida, serving buyers, sellers and owners across Southwest Florida (Collier and Lee counties: Naples, Marco Island, Bonita Springs, Estero, Fort Myers, Cape Coral, Sanibel and more). The site shows every active MLS listing in the region, updated continuously, with price history, flood zone (FEMA), schools, taxes and community data on each listing.
 
-Contact: +1-239-992-9119 · ${BASE}/contact · Office: Naples, FL 34102
+Contact: +1-239-992-9119 · ${BASE}/contact · Office: 2367 Vanderbilt Beach Rd, Suite 812, Naples, FL 34109 · Hours: Monday-Sunday 9am-8pm, by appointment
 
 ## Search listings
 - [Search all Southwest Florida listings](${BASE}/Florida-Real-Estate-Search): homes, condos and land for sale, map and list view
